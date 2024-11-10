@@ -10,6 +10,10 @@
   #define LOG_MILLISECONDS 0
 #endif
 
+#ifndef LOG_TIME_ONLY
+  #define LOG_TIME_ONLY 0
+#endif
+
 #ifndef LOG_COLORS
   #define LOG_COLORS 1
 #endif

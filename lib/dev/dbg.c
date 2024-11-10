@@ -140,9 +140,17 @@ inline static void LOG_Datetime(void)
 {
   RTC_Datetime_t dt = RTC_Datetime();
   #if(LOG_MILLISECONDS)
-    DBG_DatetimeMs(&dt);
+    #if(LOG_TIME_ONLY)
+      DBG_TimeMs(&dt);
+    #else
+      DBG_DatetimeMs(&dt);
+    #endif
   #else
-    DBG_Datetime(&dt);
+    #if(LOG_TIME_ONLY)
+      DBG_Time(&dt);
+    #else
+      DBG_Datetime(&dt);
+    #endif
   #endif
 }
 
