@@ -23,8 +23,8 @@ const uint8_t RTC_DAYS_IN_MONTH[2][12] = {
 };
 
 const uint32_t alarm_mask[2] = { RTC_CR_ALRAE, RTC_CR_ALRBE };
-const char *rtc_weak_day_string[8] = { "", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-// const char *rtc_weak_day_string[8] = { "", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+const char *rtc_weakdays[8] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+// const char *rtc_weakdays[8] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
 const RTC_Datetime_t rtc_datetime_empty = {0, 0, 0, 0, 0, 0, 0, 0};
 bool rtc_ready;
 
@@ -108,7 +108,7 @@ static uint8_t _RTC_WeekDay(RTC_Datetime_t *datatime)
 
 char *RTC_WeekDayString(void)
 {
-  return (char*)rtc_weak_day_string[RTC_Datetime().week_day];
+  return (char*)rtc_weakdays[RTC_Datetime().week_day];
 }
 
 bool RTC_DatetimeSyncIsCorrect(RTC_Datetime_t *date, int8_t time_zone)

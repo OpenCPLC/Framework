@@ -52,6 +52,8 @@ typedef enum {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+// uint8_t DBG_Char(char data)
+
 typedef struct {
   USART_TypeDef *reg;
   UART_TX_e tx_pin;
@@ -82,11 +84,9 @@ bool UART_IsBusy(UART_t *uart);
 bool UART_IsFree(UART_t *uart);
 
 access_t UART_Send(UART_t *uart, uint8_t *array, uint16_t length);
-access_t UART_SendFile(UART_t *uart, FILE_t *file);
 uint16_t UART_ReadSize(UART_t *uart);
 uint16_t UART_ReadArray(UART_t *uart, uint8_t *array);
 char *UART_ReadString(UART_t *uart);
-uint8_t UART_ReadToFile(UART_t *uart, FILE_t *file);
 bool UART_ReadSkip(UART_t *uart);
 void UART_ReadClear(UART_t *uart);
 

@@ -149,7 +149,8 @@ UART_t RS1 = {
   .dma_channel = 5,
   .UART_9600,
   .buff = &rs1_buff,
-  .gpio_direction = &rs1_gpio_direction
+  .gpio_direction = &rs1_gpio_direction,
+  .timeout = 40
 };
 
 uint8_t rs2_buff_buffer[RS_BUFFER_SIZE];
@@ -162,7 +163,8 @@ UART_t RS2 = {
   .dma_channel = 6,
   .UART_9600,
   .buff = &rs2_buff,
-  .gpio_direction = &rs2_gpio_direction
+  .gpio_direction = &rs2_gpio_direction,
+  .timeout = 40
 };
 
 //------------------------------------------------------------------------------------------------- I2C
@@ -243,7 +245,13 @@ DIN_t BTN = { .gpif = { .gpio = { .port = GPIOC, .pin = 12 } } };
 //------------------------------------------------------------------------------------------------- DBG+Bash
 
 uint8_t dbg_buff_buffer[2048];
-BUFF_t dbg_buff = { .mem = dbg_buff_buffer, .size = sizeof(dbg_buff_buffer) };
+BUFF_t dbg_buff = {
+  .mem = dbg_buff_buffer,
+  .size = sizeof(dbg_buff_buffer),
+  .console_mode = true,
+  .Echo = DBG_Char,
+  .Enter = DBG_Enter,
+};
 #ifdef STM32G081xx
   TIM_t dbg_tim = { .reg = TIM6 };
 #endif
@@ -268,13 +276,6 @@ FILE_t dbg_file = { .name = "debug", .buffer = dbg_file_buffer, .limit = sizeof(
 #endif
 uint8_t cache_file_buffer[2048];
 FILE_t cache_file = { .name = "cache", .buffer = cache_file_buffer, .limit = sizeof(cache_file_buffer) };
-
-STREAM_t dbg_stream = {
-  .name = "debug",
-  .modify = STREAM_Modify_Lowercase,
-  .Size = DBG_ReadSize,
-  .Read = DBG_ReadString
-};
 
 //------------------------------------------------------------------------------------------------- Functions PLC
 
@@ -347,23 +348,13 @@ void PLC_Init(void)
   // Interfejsy RS485
   UART_Init(&RS1);
   UART_Init(&RS2);
+  LOG_Init("Uno");
 }
 
 void PLC_Loop(void)
 {
   RGB_Loop(&RGB);
   DIN_Loop(&BTN);
-  // Obsługa debugera i powłoki bash
-  BASH_Loop(&dbg_stream);
-  if(UART_IsFree(&dbg_uart)) {
-    clear();
-    if(dbg_file.size) {
-      uint8_t *buffer = (uint8_t *)new(dbg_file.size);
-      memcpy(buffer, dbg_file.buffer, dbg_file.size);
-      UART_Send(&dbg_uart, buffer, dbg_file.size);
-      FILE_Clear(&dbg_file);
-    }
-  }
   // Wyjścia przekaźnikowe (RO)
   DOUT_Loop(&RO1);
   DOUT_Loop(&RO2);

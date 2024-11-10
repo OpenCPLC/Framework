@@ -1,110 +1,158 @@
 #include "new.h"
 
-#if(VRTS_SWITCHING)
-  NEW_t *new_stacks[VRTS_THREAD_LIMIT];
-#else
-  NEW_t new_stack;
-#endif
-uint16_t new_size;
-
-void *aloc_var[ALOC_COUNT_LIMIT];
-uint16_t aloc_size[ALOC_COUNT_LIMIT];
+static struct {
+  #if(VRTS_SWITCHING)
+    NEW_t *stacks[VRTS_THREAD_LIMIT]; // Stacks, one for each thread for multi-threading mode
+  #else
+    NEW_t *stacks[1]; // Single stack for single-threaded mode
+  #endif
+  uint16_t total; // Total allocated memory in bytes
+  void *aloc_vars[ALOC_LIMIT]; // List of variables to be allocated using aloc
+  uint16_t aloc_sizes[ALOC_LIMIT]; // List storing the size of each allocated space via aloc
+} state;
 
 //-------------------------------------------------------------------------------------------------
 
+/**
+ * @brief Permanently reserves memory.
+ * Uses memory allocated specifically for the garbage collector.
+ * @param size Size of the memory block in bytes.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
 void *new_static(size_t size)
 {
-  new_size += size;
+  state.total += size;
   return malloc(size);
 }
 
-#if(VRTS_SWITCHING)
-void NEW_Init(uint8_t thread_nbr)
+/**
+ * @brief Sets up garbage-collector dynamic memory allocation for a thread
+ * (works in single-threaded mode as well).
+ * Creates a stack for variables and reserves space for them.
+ * The function will be called automatically with a default limit if 
+ * 'new' is used without prior initialization.
+ * @param limit The maximum number of variables the thread can allocate.
+ * @retval NEW_t* Pointer to the stack structure for the active thread.
+ */
+NEW_t *NEW_Init(uint16_t limit)
 {
-  NEW_t *new_stack = new_static(sizeof(NEW_t));
-  new_stack->count = 0;
-  new_stack->size = 0;
-  new_stacks[thread_nbr] = new_stack;
+  uint8_t active_thread = VRTS_ActiveThread();
+  NEW_t *stack = state.stacks[active_thread];
+  if(stack) return stack;
+  stack = new_static(sizeof(NEW_t));
+  uint16_t var_space = sizeof(void *) * limit;
+  state.total += var_space;
+  stack->var = (void **)new_static(var_space);
+  stack->count = 0;
+  stack->limit = limit;
+  stack->size = 0;
+  state.stacks[active_thread] = stack;
+  return stack;
 }
-#endif
 
-static void MEM_ErrorHandler(void)
+/**
+ * @brief Handles critical memory errors.
+ * Disables interrupts and enters an infinite loop to halt execution.
+ * @param error_code The error code indicating the type of memory error.
+ */
+static void MEM_ErrorHandler(int8_t error_code)
 {
-  __disable_irq();
+  // TODO: Implement critical error handling
+  __disable_irq(); // Disable interrupts
   volatile uint32_t i = 0;
-  while(1) i++;
+  while(1) i++; // Infinite loop to halt system
 }
 
+/**
+ * @brief Reserves memory in the garbage-collector for the active thread.
+ * Allocates a memory block of the specified size, adding it to the
+ * current thread's stack.
+ * @param size Size of the memory block in bytes.
+ * @return Pointer to the allocated memory, or NULL on failure.
+ */
 void *new(size_t size)
 {
   void *pointer = NULL;
   if(!size) return pointer;
-  #if(VRTS_SWITCHING)
-    uint8_t active_thread = VRTS_ActiveThread();
-    NEW_t *stack = new_stacks[active_thread];
-  #else
-    NEW_t *stack = &new_stack;
-  #endif
-  if(stack->count >= NEW_COUNT_LIMIT) MEM_ErrorHandler();
-  if((new_size + size) >= NEW_SIZE_LIMIT) MEM_ErrorHandler();
+  uint8_t active_thread = VRTS_ActiveThread();
+  NEW_t *stack = state.stacks[active_thread];
+  if(!stack) {
+    stack = NEW_Init(NEW_DEFAULT_LIMIT);
+  }
+  if(stack->count >= stack->limit) MEM_ErrorHandler(NEW_ERROR_LIMIT);
+  if((state.total + size) >= NEW_TOTAL) MEM_ErrorHandler(NEW_ERROR_SIZE);
   pointer = malloc(size);
   stack->var[stack->count] = pointer;
   stack->count++;
   stack->size += size;
-  new_size += size;
+  state.total += size;
   return pointer;
 }
 
+/**
+ * @brief Clears memory allocated by 'new' for the active thread.
+ * Frees each variable in the active thread's stack and resets the allocation count.
+ */
 void clear()
 {
-  #if(VRTS_SWITCHING)
-    uint8_t active_thread = VRTS_ActiveThread();
-    NEW_t *stack = new_stacks[active_thread];
-  #else
-    NEW_t *stack = &new_stack;
-  #endif
+  uint8_t active_thread = VRTS_ActiveThread();
+  NEW_t *stack = state.stacks[active_thread];
+  if(!stack) return;
   if(stack->count) {
     for(int i = 0; i < stack->count; i++)
       free(stack->var[i]);
     stack->count = 0;
-    new_size -= stack->size;
+    state.total -= stack->size;
     stack->size = 0;
   }
 }
 
+//-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Allocates a memory block and tracks it.
+ * Checks limits, updates allocation list, and returns a pointer.
+ * @param size Size in bytes.
+ * @return Pointer to allocated memory, or NULL on failure.
+ */
 void *aloc(size_t size)
 {
   uint16_t i = 0;
   void *pointer = 0;
   if(!size) return pointer;
-  if((new_size + size) >= NEW_SIZE_LIMIT) MEM_ErrorHandler();
-  while(aloc_var[i]) {
+  if((state.total + size) >= NEW_TOTAL) MEM_ErrorHandler(NEW_ERROR_SIZE);
+  while(state.aloc_vars[i]) {
     i++;
-    if(i >= ALOC_COUNT_LIMIT) MEM_ErrorHandler();
+    if(i >= ALOC_LIMIT) MEM_ErrorHandler(ALOC_ERROR_SIZE);
   }
   pointer = malloc(size);
-  aloc_var[i] = pointer;
-  aloc_size[i] = size;
-  new_size += size;
+  state.aloc_vars[i] = pointer;
+  state.aloc_sizes[i] = size;
+  state.total += size;
   return pointer;
 }
 
+/**
+ * @brief Deallocates memory for a specified pointer.
+ * Frees memory, updates usage, and clears tracking info.
+ * @param pointer Double pointer to the memory to free.
+ */
 void dloc(void **pointer)
 {
   if(!pointer) return;
   uint16_t i = 0;
-  while(i < ALOC_COUNT_LIMIT) {
-    if(*pointer == aloc_var[i]) {
+  while(i < ALOC_LIMIT) {
+    if(*pointer == state.aloc_vars[i]) {
       free(*pointer);
       *pointer = NULL;
-      new_size -= aloc_size[i];
-      aloc_size[i] = 0;
-      aloc_var[i] = NULL;
+      state.total -= state.aloc_sizes[i];
+      state.aloc_sizes[i] = 0;
+      state.aloc_vars[i] = NULL;
       return;
     }
     i++;
   }
-  MEM_ErrorHandler();
+  MEM_ErrorHandler(DLOC_NOT_FOUND);
   return;
 }
 

@@ -25,7 +25,7 @@ void BASH_AddFile(FILE_t *file)
     bash_state.dsc = file;
   }
   bash_state.file_count++;
-  FILE_FlashLoad(file);
+  FILE_Flash_Load(file);
 }
 
 void BASH_AddCallback(bool (*callback)(char **, uint16_t))
@@ -54,7 +54,7 @@ static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
   FILE_Append(bash_state.cache, data, size);
   if(!stream->counter) {
     stream->mode = STREAM_Mode_String;
-    if(bash_state.flash_autosave) FILE_FlashSave(bash_state.cache);
+    if(bash_state.flash_autosave) FILE_Flash_Save(bash_state.cache);
   }
   else bash_state.cache->mutex = true;
 }
@@ -91,7 +91,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     uint8_t nbr = atoi(argv[2]);
     if(nbr < bash_state.file_count) bash_state.cache = bash_state.file[nbr];
     #if(BASH_DBG)
-      FILE_Print(bash_state.cache);
+      DBG_File_Print(bash_state.cache);
     #endif
     return;
   }
@@ -101,14 +101,14 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     if(a < bash_state.file_count) bash_state.src = bash_state.file[a];
     if(b < bash_state.file_count) bash_state.dsc = bash_state.file[b];
     #if(BASH_DBG)
-      FILE_Print(bash_state.src);
-      FILE_Print(bash_state.dsc);
+      DBG_File_Print(bash_state.src);
+      DBG_File_Print(bash_state.dsc);
     #endif
     return;
   }
   if(!strcmp(argv[1], "clear") && argc == 2) { // FILE clear
     if(FILE_Clear(bash_state.cache)) _BASH_AccessDenied(bash_state.cache);
-    FILE_Print(bash_state.cache);
+    DBG_File_Print(bash_state.cache);
     return;
   }
   if(!strcmp(argv[1], "load") && argc <= 4) { // FILE load [limit] [offset]
@@ -155,15 +155,15 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     return;
   }
   if(!strcmp(argv[1], "flash") && argc == 3) { // FILE flash {save|load}
-    if(!strcmp(argv[2], "save")) FILE_FlashSave(bash_state.cache);
-    else if(!strcmp(argv[2], "load")) FILE_FlashLoad(bash_state.cache);
+    if(!strcmp(argv[2], "save")) FILE_Flash_Save(bash_state.cache);
+    else if(!strcmp(argv[2], "load")) FILE_Flash_Load(bash_state.cache);
     return;
   }
   if(!strcmp(argv[1], "mutex") && argc == 3) { // FILE mutex {set|rst}
     if(!strcmp(argv[2], "set")) bash_state.cache->mutex = true;
     else if(!strcmp(argv[2], "rst")) bash_state.cache->mutex = false;
     #if(BASH_DBG)
-      FILE_Print(bash_state.cache);
+      DBG_File_Print(bash_state.cache);
     #endif
     return;
   }
@@ -180,8 +180,8 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     if(FILE_Copy(dsc, src))
       _BASH_AccessDenied(dsc);
     else {
-      FILE_Print(src);
-      FILE_Print(dsc);
+      DBG_File_Print(src);
+      DBG_File_Print(dsc);
     }
   }
 }
@@ -208,7 +208,7 @@ void BASH_Rtc(char **argv, uint16_t argc)
       DBG_String("RTC ");
       DBG_Datetime(&datetime);
       DBG_Char(' ');
-      DBG_String((char *)rtc_weak_day_string[datetime.week_day]);
+      DBG_String((char *)rtc_weakdays[datetime.week_day]);
       DBG_Enter();
     #else
       DBG_Dec(RTC_DatetimeUnix(&datetime));

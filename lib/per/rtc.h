@@ -114,7 +114,7 @@ void RTC_Force_WakeupTimer(void);
 
 //-------------------------------------------------------------------------------------------------
 
-extern const char *rtc_weak_day_string[];
+extern const char *rtc_weakdays[];
 extern const RTC_Datetime_t rtc_datetime_empty;
 extern bool rtc_ready;
 

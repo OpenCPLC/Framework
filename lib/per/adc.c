@@ -14,7 +14,7 @@ static void ADC_SetChannels(uint8_t *cha, uint8_t count)
 
 uint8_t ADC_Measurements(ADC_t *adc)
 {
-	if(!adc->_busy_flag) {
+  if(!adc->_busy_flag) {
     adc->_busy_flag = ADC_StatusSingle;
     adc->measurements._active = 0;
     ADC1->CFGR2 =
@@ -27,39 +27,39 @@ uint8_t ADC_Measurements(ADC_t *adc)
       ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
       ADC1->CFGR1 |= ADC_CFGR1_CONT;
     #endif
-		ADC1->IER |= ADC_IER_EOCIE;
-		ADC1->CR |= ADC_CR_ADSTART;
-		return OK;
-	}
-	return BUSY;
+    ADC1->IER |= ADC_IER_EOCIE;
+    ADC1->CR |= ADC_CR_ADSTART;
+    return OK;
+  }
+  return BUSY;
 }
 
 #if(ADC_RECORD)
 uint8_t ADC_Record(ADC_t *adc)
 {
-	if(!adc->_busy_flag) {
-	  adc->_busy_flag = ADC_StatusRecord;
-	  ADC1->CFGR2 =
-	      (adc->record.oversampling_shift << 5) |
-	      (adc->record.oversampling_ratio << 2) |
-	       adc->record.oversampling_enable;
-	  ADC1->SMPR = adc->record.sampling_time;
-	  ADC_SetChannels(adc->record.channels, adc->record.count);
-		adc->record._dma->CMAR = (uint32_t)(adc->record.buffer);
-		adc->record._dma->CNDTR = (uint32_t)(adc->record.buffer_length);
-		if(adc->record.tim) {
-		  TIM_Enable(adc->record.tim);
-		  ADC1->CFGR1 |= ADC_CFGR1_EXTEN;
-		  ADC1->CFGR1 &= ~ADC_CFGR1_CONT;
-		} else {
-	    ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
-	    ADC1->CFGR1 |= ADC_CFGR1_CONT;
-		}
-		adc->record._dma->CCR |= DMA_CCR_EN;
-		ADC1->CR |= ADC_CR_ADSTART;
-		return FREE;
-	}
-	return BUSY;
+  if(!adc->_busy_flag) {
+    adc->_busy_flag = ADC_StatusRecord;
+    ADC1->CFGR2 =
+        (adc->record.oversampling_shift << 5) |
+        (adc->record.oversampling_ratio << 2) |
+         adc->record.oversampling_enable;
+    ADC1->SMPR = adc->record.sampling_time;
+    ADC_SetChannels(adc->record.channels, adc->record.count);
+    adc->record._dma->CMAR = (uint32_t)(adc->record.buffer);
+    adc->record._dma->CNDTR = (uint32_t)(adc->record.buffer_length);
+    if(adc->record.tim) {
+      TIM_Enable(adc->record.tim);
+      ADC1->CFGR1 |= ADC_CFGR1_EXTEN;
+      ADC1->CFGR1 &= ~ADC_CFGR1_CONT;
+    } else {
+      ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
+      ADC1->CFGR1 |= ADC_CFGR1_CONT;
+    }
+    adc->record._dma->CCR |= DMA_CCR_EN;
+    ADC1->CR |= ADC_CR_ADSTART;
+    return FREE;
+  }
+  return BUSY;
 }
 #endif
 
@@ -67,28 +67,28 @@ uint8_t ADC_Record(ADC_t *adc)
 
 void ADC_Stop(ADC_t *adc)
 {
-	ADC1->CR |= ADC_CR_ADSTP;
+  ADC1->CR |= ADC_CR_ADSTP;
   switch(adc->_busy_flag) {
-		case ADC_StatusSingle: ADC1->IER &= ~ADC_IER_EOCIE; break;
+    case ADC_StatusSingle: ADC1->IER &= ~ADC_IER_EOCIE; break;
     #if(ADC_RECORD)
       case ADC_StatusRecord:
         if(adc->record.tim) TIM_Disable(adc->record.tim);
         adc->record._dma->CCR &= ~DMA_CCR_EN;
         break;
     #endif
-	}
-	adc->_busy_flag = ADC_StatusFree;
+  }
+  adc->_busy_flag = ADC_StatusFree;
 }
 
 uint8_t ADC_IsBusy(ADC_t *adc)
 {
   if(adc->_busy_flag) return 1;
-	return 0;
+  return 0;
 }
 
 uint8_t ADC_IsFree(ADC_t *adc)
 {
-	return !(adc->_busy_flag);
+  return !(adc->_busy_flag);
 }
 
 void ADC_Wait(ADC_t *adc)
@@ -98,16 +98,17 @@ void ADC_Wait(ADC_t *adc)
 
 void ADC_Enabled(void)
 {
-	do { ADC1->CR |= ADC_CR_ADEN;
-	} while((ADC1->ISR & ADC_ISR_ADRDY) == 0);
+  do {
+    ADC1->CR |= ADC_CR_ADEN;
+  } while((ADC1->ISR & ADC_ISR_ADRDY) == 0);
 }
 
 void ADC_Disabled(void)
 {
-	if((ADC1->CR & ADC_CR_ADSTART)) ADC1->CR |= ADC_CR_ADSTP;
-	while((ADC1->CR & ADC_CR_ADSTP)) __DSB();
-	ADC1->CR |= ADC_CR_ADDIS;
-	while((ADC1->CR & ADC_CR_ADEN) != 0) __DSB();
+  if((ADC1->CR & ADC_CR_ADSTART)) ADC1->CR |= ADC_CR_ADSTP;
+  while((ADC1->CR & ADC_CR_ADSTP)) __DSB();
+  ADC1->CR |= ADC_CR_ADDIS;
+  while((ADC1->CR & ADC_CR_ADEN) != 0) __DSB();
 }
 
 //-----------------------------------------------------------------------------
@@ -160,16 +161,16 @@ static void ADC_InitGPIO(uint32_t *chselr, uint8_t *cha, uint8_t count)
 
 void ADC_Init(ADC_t *adc)
 {
-	RCC->AHBENR |= RCC_AHBENR_DMA1EN;
-	RCC->APBENR2 |= RCC_APBENR2_ADCEN;
-	ADC1->CR |= ADC_CR_ADVREGEN;
-	for(uint32_t i = 0; i < SystemCoreClock / 500000; i++) __DSB();
-	ADC1->CR &= ~ADC_CR_ADEN;
-	ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
-	ADC1->CR |= ADC_CR_ADCAL;
-	while(!(ADC1->ISR & ADC_ISR_EOCAL)) __DSB();
-	ADC1->ISR |= ADC_ISR_EOCAL;
-	#if(ADC_RECORD)
+  RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+  RCC->APBENR2 |= RCC_APBENR2_ADCEN;
+  ADC1->CR |= ADC_CR_ADVREGEN;
+  for(uint32_t i = 0; i < SystemCoreClock / 500000; i++) __DSB();
+  ADC1->CR &= ~ADC_CR_ADEN;
+  ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
+  ADC1->CR |= ADC_CR_ADCAL;
+  while(!(ADC1->ISR & ADC_ISR_EOCAL)) __DSB();
+  ADC1->ISR |= ADC_ISR_EOCAL;
+  #if(ADC_RECORD)
     adc->record._dma = (DMA_Channel_TypeDef *) (DMA1_BASE + 8 + (20 * (adc->record.dma_channel - 1)));
     adc->record._dmamux = (DMAMUX_Channel_TypeDef *) (DMAMUX1_BASE + (4 * (adc->record.dma_channel - 1)));
     adc->record._dmamux->CCR = (adc->record._dma->CCR & 0xFFFFFFC0) | 5;
@@ -177,17 +178,17 @@ void ADC_Init(ADC_t *adc)
     adc->record._dma->CCR |= DMA_CCR_MINC | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0 | DMA_CCR_TCIE;
     ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
     INT_EnableDMA(adc->record.dma_channel, adc->interrupt_level, (void (*)(void *))&ADC_InterruptDMA, adc);
-	#endif
-	if(!adc->prescaler && SystemCoreClock > 32000000) adc->prescaler = ADC_Prescaler_2;
-	ADC->CCR |= (adc->prescaler << 18);
-	uint32_t chselr = 0;
-	ADC_InitGPIO(&chselr, adc->measurements.channels, adc->measurements.count);
+  #endif
+  if(!adc->prescaler && SystemCoreClock > 32000000) adc->prescaler = ADC_Prescaler_2;
+  ADC->CCR |= (adc->prescaler << 18);
+  uint32_t chselr = 0;
+  ADC_InitGPIO(&chselr, adc->measurements.channels, adc->measurements.count);
   #if(ADC_RECORD)
     if(adc->record) ADC_InitGPIO(&chselr, adc->record.channels, adc->record.count);
   #endif
-	ADC1->CHSELR = chselr;
-	ADC1->IER |= ADC_IER_OVRIE;
-	INT_EnableADC(adc->interrupt_level, (void (*)(void *))&ADC_InterruptEV, adc);
+  ADC1->CHSELR = chselr;
+  ADC1->IER |= ADC_IER_OVRIE;
+  INT_EnableADC(adc->interrupt_level, (void (*)(void *))&ADC_InterruptEV, adc);
   #if(ADC_RECORD)
     if(adc->record.tim) {
       switch((uint32_t)adc->record.tim->tim_typedef) {
@@ -204,7 +205,7 @@ void ADC_Init(ADC_t *adc)
       TIM_MasterMode(adc->record.tim, TIM_MasterMode_Update);
     }
   #else
-    ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
+    ADC1->CFGR1 &= ~ADC_CFGR1_EXTEN;
     ADC1->CFGR1 |= ADC_CFGR1_CONT;
   #endif
   if(adc->measurements.gpio_enable) {
@@ -217,7 +218,7 @@ void ADC_Init(ADC_t *adc)
       GPIO_Init(adc->record.gpio_enable);
     }
   #endif
-	ADC_Enabled();
+  ADC_Enabled();
 }
 
 //-----------------------------------------------------------------------------

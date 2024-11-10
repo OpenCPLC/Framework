@@ -1,202 +1,283 @@
 #include "dbg.h"
+#include "bash.h"
+#include "opencplc.h"
 
-//-------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------- Basic
 
-struct {
+static struct {
   FILE_t *file;
   UART_t *uart;
-} dbg_state;
+  bool run;
+} dbg;
+
+STREAM_t dbg_stream = {
+  .name = "debug",
+  .modify = STREAM_Modify_Lowercase,
+  .Size = DBG_ReadSize,
+  .Read = DBG_ReadString
+};
 
 void DBG_Init(UART_t *uart, FILE_t *file)
 {
-  dbg_state.uart = uart;
-  dbg_state.file = file;
+  dbg.uart = uart;
+  dbg.file = file;
+  dbg.run = true;
   UART_Init(uart);
 }
 
-//-------------------------------------------------------------------------------------------------
+void DBG_Loop(void)
+{
+  NEW_Init(8);
+  while(1) {
+    BASH_Loop(&dbg_stream);
+    if(UART_IsFree(dbg.uart)) {
+      clear();
+      if(dbg.run == true && dbg.file->size) {
+        uint8_t *buffer = (uint8_t *)new(dbg.file->size);
+        memcpy(buffer, dbg.file->buffer, dbg.file->size);
+        UART_Send(dbg.uart, buffer, dbg.file->size);
+        FILE_Clear(dbg.file);
+      }
+    }
+    let();
+  }
+}
+
+void DBG_Enable(void)
+{
+  dbg.run = true;
+}
+
+void DBG_Disable(void)
+{
+  dbg.run = false;
+}
+
+void DBG_BeforeReset(void)
+{
+  while(UART_During(dbg.uart)) let();
+}
+
+static void DBG_Wait4Uart(void)
+{
+  while(UART_IsBusy(dbg.uart)) let();
+}
+
+void DBG_Send(uint8_t *array, uint16_t length)
+{
+  DBG_Wait4Uart();
+  UART_Send(dbg.uart, array, length);
+}
+
+void DBG_SendFile(FILE_t *file)
+{
+  DBG_Send(file->buffer, file->size);
+}
+
+//------------------------------------------------------------------------------------------------- Read
 
 uint16_t DBG_ReadArray(uint8_t *array)
 {
-  return UART_ReadArray(dbg_state.uart, array);
+  return UART_ReadArray(dbg.uart, array);
 }
 
 uint16_t DBG_ReadSize(void)
 {
-  return UART_ReadSize(dbg_state.uart);
+  return UART_ReadSize(dbg.uart);
 }
 
 char *DBG_ReadString(void)
 {
-  return UART_ReadString(dbg_state.uart);
+  return UART_ReadString(dbg.uart);
 }
 
-//-------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------- Add
 
-uint8_t DBG_Array(uint8_t *ary, uint16_t len)
+int32_t DBG_Char(uint8_t data) { return FILE_Char(dbg.file, data); }
+int32_t DBG_Char16(uint16_t data) { return FILE_Char16(dbg.file, data); }
+int32_t DBG_Char32(uint32_t data) { return FILE_Char32(dbg.file, data); }
+int32_t DBG_Char64(uint64_t data) { return FILE_Char64(dbg.file, data); }
+int32_t DBG_Array(uint8_t *array, uint16_t length) { return FILE_Array(dbg.file, array, length); }
+int32_t DBG_String(char *string) { return FILE_String(dbg.file, string); }
+int32_t DBG_Enter(void) { return FILE_Enter(dbg.file); }
+int32_t DBG_ClearLastLine(void) { return FILE_ClearLastLine(dbg.file); }
+int32_t DBG_Bool(bool value) { return FILE_Bool(dbg.file, value); }
+
+int32_t DBG_Int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space) {
+  return FILE_Int(dbg.file, nbr, base, sign, fill_zero, fill_space);
+}
+
+int32_t DBG_Float(float nbr, uint8_t accuracy) {
+  return FILE_Float(dbg.file, nbr, accuracy, 1);
+}
+
+int32_t DBG_Dec(int32_t nbr) { return FILE_Dec(dbg.file, nbr); }
+int32_t DBG_uDec(uint32_t nbr) { return FILE_uDec(dbg.file, nbr); }
+int32_t DBG_Hex8(uint32_t nbr) { return FILE_Hex8(dbg.file, nbr); }
+int32_t DBG_Hex16(uint32_t nbr) { return FILE_Hex16(dbg.file, nbr); }
+int32_t DBG_Hex32(uint32_t nbr) { return FILE_Hex32(dbg.file, nbr); }
+int32_t DBG_Bin8(uint8_t nbr) { return FILE_Bin8(dbg.file, nbr); }
+
+int32_t DBG_Date(RTC_Datetime_t *datetime) { return FILE_Date(dbg.file, datetime); }
+int32_t DBG_Time(RTC_Datetime_t *datetime) { return FILE_Time(dbg.file, datetime); }
+int32_t DBG_TimeMs(RTC_Datetime_t *datetime) { return FILE_TimeMs(dbg.file, datetime); }
+int32_t DBG_Datetime(RTC_Datetime_t *datetime) { return FILE_Datetime(dbg.file, datetime); }
+int32_t DBG_DatetimeMs(RTC_Datetime_t *datetime) { return FILE_DatetimeMs(dbg.file, datetime); }
+int32_t DBG_AlarmTime(RTC_Alarm_t *alarm) { return FILE_AlarmTime(dbg.file, alarm); }
+int32_t DBG_Alarm(RTC_Alarm_t *alarm) { return FILE_Alarm(dbg.file, alarm); }
+
+//------------------------------------------------------------------------------------------------- Log
+
+void print(const char *template, ...)
 {
-  return FILE_Array(dbg_state.file, (uint8_t *)ary, len);
+  va_list args;
+  va_start(args, template);
+  FILE_Print(dbg.file, template, args);
+  va_end(args);
 }
 
-uint8_t DBG_Char(char data)
+inline static void LOG_Datetime(void)
 {
-  return FILE_Char(dbg_state.file, (uint8_t)data);
+  RTC_Datetime_t dt = RTC_Datetime();
+  #if(LOG_MILLISECONDS)
+    DBG_DatetimeMs(&dt);
+  #else
+    DBG_Datetime(&dt);
+  #endif
 }
 
-uint8_t DBG_Char16(uint16_t data)
+void LOG_Init(const char *board)
 {
-  return FILE_Char16(dbg_state.file, data);
+  #if(LOG_INIT)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[36mINIT:\e[0m ");
+      DBG_String("OpenCPLC \e[90mversion:\e[0m");
+      DBG_String(OPENCPLC_VERSION);
+      DBG_String(" \e[90mboard:\e[0m");
+    #else
+      DBG_String(" INIT: ");
+      DBG_String("OpenCPLC version:");
+      DBG_String(OPENCPLC_VERSION);
+      DBG_String(" board:");
+    #endif
+    DBG_String((char *)board);
+    DBG_Enter();
+  #endif
 }
 
-uint8_t DBG_Char32(uint32_t data)
+void LOG_Debug(const char *message, ...)
 {
-  return FILE_Char32(dbg_state.file, data);
+  #if(LOG_LEVEL <= LEG_Level_Debug)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[92mDBUG:\e[0m ");
+    #else
+      DBG_String(" DBUG: ");
+    #endif
+    va_list args;
+    va_start(args, message);
+    print(message, args);
+    va_end(args);
+    DBG_Enter();
+  #endif
 }
 
-uint8_t DBG_Char64(uint64_t data)
+void LOG_Info(const char *message, ...)
 {
-  return FILE_Char64(dbg_state.file, data);
+  #if(LOG_LEVEL <= LEG_Level_Info)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[94mINFO:\e[0m ");
+    #else
+      DBG_String(" INFO: ");
+    #endif
+    va_list args;
+    va_start(args, message);
+    print(message, args);
+    va_end(args);
+    DBG_Enter();
+  #endif
 }
 
-uint8_t DBG_String(char *str)
+void LOG_Warning(const char *message, ...)
 {
-  return FILE_String(dbg_state.file, str);
+  #if(LOG_LEVEL <= LEG_Level_Warning)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[93mWARN:\e[0m ");
+    #else
+      DBG_String(" WARN: ");
+    #endif
+    va_list args;
+    va_start(args, message);
+    print(message, args);
+    va_end(args);
+    DBG_Enter();
+  #endif
 }
 
-uint8_t DBG_Enter(void)
+void LOG_Error(const char *message, ...)
 {
-  return FILE_Enter(dbg_state.file);
+  #if(LOG_LEVEL <= LEG_Level_Error)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[91mERRO:\e[0m ");
+    #else
+      DBG_String(" ERRO: ");
+    #endif
+    va_list args;
+    va_start(args, message);
+    print(message, args);
+    va_end(args);
+    DBG_Enter();
+  #endif
 }
 
-//-------------------------------------------------------------------------------------------------
-
-uint8_t DBG_Int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+void LOG_Critical(const char *message, ...)
 {
-  return FILE_Int(dbg_state.file, nbr, base, sign, fill_zero, fill_space);
+  #if(LOG_LEVEL <= LEG_Level_Critical)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[95mCRIT:\e[0m ");
+    #else
+      DBG_String(" CRIT: ");
+    #endif
+    va_list args;
+    va_start(args, message);
+    print(message, args);
+    va_end(args);
+    DBG_Enter();
+    dbg.run = false;
+    DBG_Send(dbg.file->buffer, dbg.file->size);
+    DBG_Wait4Uart();
+    FILE_Clear(dbg.file);
+    dbg.run = true;
+  #endif
 }
 
-uint8_t DBG_Float(float nbr, uint8_t accuracy)
+void LOG_Panic(const char *message)
 {
-  return FILE_Float(dbg_state.file, nbr, accuracy, 1);
+  #if(LOG_LEVEL <= LEG_Level_Panic)
+    LOG_Datetime();
+    #if(LOG_COLORS)
+      DBG_String(" \e[31mPANC:\e[0m ");
+    #else
+      DBG_String(" PANC: ");
+    #endif
+    DBG_String((char *)message);
+    DBG_Enter();
+    dbg.run = false;
+    DBG_Send(dbg.file->buffer, dbg.file->size);
+    DBG_Wait4Uart();
+    FILE_Clear(dbg.file);
+    dbg.run = true;
+  #endif
 }
 
-uint8_t DBG_FloatInt(float nbr, uint8_t accuracy)
-{
-  uint32_t factor = 1;
-  for(uint8_t i = 0; i < accuracy; i++) factor *= 10;
-  return FILE_Float(dbg_state.file, nbr / factor, accuracy, 1);
-}
+//------------------------------------------------------------------------------------------------- Array
 
-uint8_t DBG_Dec(int32_t nbr)
-{
-  return FILE_Dec(dbg_state.file, nbr);
-}
-
-uint8_t DBG_uDec(uint32_t nbr)
-{
-  return FILE_uDec(dbg_state.file, nbr);
-}
-
-uint8_t DBG_Hex8(uint32_t nbr)
-{
-  return FILE_Hex8(dbg_state.file, nbr);
-}
-
-uint8_t DBG_Hex16(uint32_t nbr)
-{
-  return FILE_Hex16(dbg_state.file, nbr);
-}
-
-uint8_t DBG_Hex32(uint32_t nbr)
-{
-  return FILE_Hex32(dbg_state.file, nbr);
-}
-
-uint8_t DBG_Bin8(uint8_t nbr)
-{
-  return FILE_Bin8(dbg_state.file, nbr);
-}
-
-uint8_t DBG_Bin16(uint16_t nbr, char *sep)
-{
-  return FILE_Bin16(dbg_state.file, nbr, sep);
-}
-
-uint8_t DBG_Bin32(uint32_t nbr, char *sep)
-{
-  return FILE_Bin32(dbg_state.file, nbr, sep);
-}
-
-uint8_t DBG_Bool(bool value)
-{
-  return FILE_Bool(dbg_state.file, value);
-}
-
-uint8_t DBG_Status(bool value)
-{
-  return FILE_Status(dbg_state.file, value);
-}
-
-//------------------------------------------------------------------------------------------------- RTC
-
-uint8_t DBG_Date(RTC_Datetime_t *datetime)
-{
-  return FILE_Date(dbg_state.file, datetime);
-}
-
-uint8_t DBG_Time(RTC_Datetime_t *datetime)
-{
-  return FILE_Time(dbg_state.file, datetime);
-}
-
-uint8_t DBG_Datetime(RTC_Datetime_t *datetime)
-{
-  return FILE_Datetime(dbg_state.file, datetime);
-}
-
-uint8_t DBG_AlarmTime(RTC_Alarm_t *alarm)
-{
-  return FILE_AlarmTime(dbg_state.file, alarm);
-}
-
-uint8_t DBG_Alarm(RTC_Alarm_t *alarm)
-{
-  return FILE_Alarm(dbg_state.file, alarm);
-}
-
-uint8_t DBG_DatetimeMs(RTC_Datetime_t *datetime)
-{
-  return FILE_DatetimeMs(dbg_state.file, datetime);
-}
-
-uint8_t DBG_Now(void)
-{
-  return FILE_Now(dbg_state.file);
-}
-
-uint8_t DBG_NowMs(void)
-{
-  return FILE_NowMs(dbg_state.file);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-uint8_t DBG_Ip(uint8_t *ip)
-{
-  return FILE_Ip(dbg_state.file, ip);
-}
-
-uint8_t DBG_ClearLastLine(void)
-{
-  return FILE_ClearLastLine(dbg_state.file);
-}
-
-uint8_t DBG_Clear(void)
-{
-  return FILE_Clear(dbg_state.file);
-}
-
-static inline uint16_t _DBG_PrintArrayHeader(char *name, uint16_t count, uint16_t *limit, uint16_t *offset)
+static inline uint16_t _DBG_Array_PrintHeader(char *name, uint16_t count, uint16_t *limit, uint16_t *offset)
 {
   if(!offset) {
     uint16_t offset_void = 0;
@@ -217,12 +298,12 @@ static inline uint16_t _DBG_PrintArrayHeader(char *name, uint16_t count, uint16_
   return end;
 }
 
-void DBG_PrintArray(FILE_t *file, uint16_t limit, uint16_t offset, void (*Print)(void *))
+void DBG_Array_Print(FILE_t *file, uint16_t limit, uint16_t offset, void (*Print)(void *))
 {
-  uint16_t count = FILE_StructCount(file);
+  uint16_t count = FILE_Struct_GetCount(file);
   uint8_t *p = file->buffer + (file->struct_size * offset);
   char *name = strtoupper((char *)file->name);
-  _DBG_PrintArrayHeader(name, count, &limit, &offset);
+  _DBG_Array_PrintHeader(name, count, &limit, &offset);
   while(limit) {
     DBG_String("  ");
     Print(p);
@@ -237,31 +318,30 @@ void DBG_PrintArray(FILE_t *file, uint16_t limit, uint16_t offset, void (*Print)
   }
 }
 
-void DBG_PrintArrayBash(FILE_t *file, char **argv, uint16_t argc, uint8_t limit_index, uint8_t offset_index, void (*Print)(void *))
+void DBG_Array_PrintBash(FILE_t *file, char **argv, uint16_t argc, uint16_t limit_index, uint16_t offset_index, void (*Print)(void *))
 {
   uint16_t limit = 0, offset = 0;
-  if(argc > limit_index) limit = atoi(argv[limit_index]);
-  if(argc > offset_index) offset = atoi(argv[offset_index]);
-  DBG_PrintArray(file, limit, offset, Print);
+  if(argc > limit_index) limit = (uint16_t)atoi(argv[limit_index]);
+  if(argc > offset_index) offset = (uint16_t)atoi(argv[offset_index]);
+  DBG_Array_Print(file, limit, offset, Print);
+}
+
+//------------------------------------------------------------------------------------------------- File
+
+void DBG_File_Print(FILE_t *file)
+{
+  #if(FILE_DBG)
+    DBG_String("FILE "); DBG_String((char *)file->name); DBG_Char(' ');
+    DBG_uDec(file->size); DBG_Char('/'); DBG_uDec(file->limit);
+    if(file->mutex) DBG_String(" mutex");
+    if(file->flash_page) { DBG_String(" flash:"); DBG_uDec(file->flash_page); }
+    DBG_Enter();
+  #endif
+}
+
+void DBG_File_PPrint(FILE_t **file)
+{
+  DBG_File_Print(*file);
 }
 
 //-------------------------------------------------------------------------------------------------
-
-access_t DBG_Send(uint8_t *array, uint16_t length)
-{
-  return UART_Send(dbg_state.uart, array, length);
-}
-
-access_t DBG_SendFile(FILE_t *file)
-{
-  return UART_SendFile(dbg_state.uart, file);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-void DBG_BeforeReset(void)
-{
-  while(UART_During(dbg_state.uart)) {
-    let();
-  }
-}

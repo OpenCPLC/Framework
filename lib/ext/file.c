@@ -1,92 +1,134 @@
 #include "file.h"
 #include "dbg.h"
 
-//------------------------------------------------------------------------------------------------- PRINT-Basic
+//------------------------------------------------------------------------------------------------- Strings
 
-status_t FILE_Char(FILE_t *file, uint8_t data)
+int32_t FILE_Char(FILE_t *file, uint8_t data)
 {
-  if(file->mutex) return ERR;
-  if(file->size >= file->limit) return ERR;
+  if(file->mutex) return 0;
+  if(file->size + 1 >= file->limit) return 0;
   file->buffer[file->size] = data;
   file->size++;
-  return OK;
+  return 1;
 }
 
-status_t FILE_Char16(FILE_t *file, uint16_t data)
+int32_t FILE_Char16(FILE_t *file, uint16_t data)
 {
-  if(FILE_Char(file, (uint8_t)(data >> 8))) return ERR;
-  if(FILE_Char(file, (uint8_t)data)) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 2 >= file->limit) return 0;
+  FILE_Char(file, (uint8_t)(data >> 8));
+  FILE_Char(file, (uint8_t)data);
+  return 2;
 }
 
-status_t FILE_Char32(FILE_t *file, uint32_t data)
+int32_t FILE_Char32(FILE_t *file, uint32_t data)
 {
-  if(FILE_Char16(file, (uint16_t)(data >> 16))) return ERR;
-  if(FILE_Char16(file, (uint16_t)(data))) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 4 >= file->limit) return 0;
+  FILE_Char16(file, (uint16_t)(data >> 16));
+  FILE_Char16(file, (uint16_t)(data));
+  return 4;
 }
 
-status_t FILE_Char64(FILE_t *file, uint64_t data)
+int32_t FILE_Char64(FILE_t *file, uint64_t data)
 {
-  if(FILE_Char32(file, (uint32_t)(data >> 32))) return ERR;
-  if(FILE_Char32(file, (uint32_t)(data))) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 8 >= file->limit) return 0;
+  FILE_Char32(file, (uint32_t)(data >> 32));
+  FILE_Char32(file, (uint32_t)(data));
+  return 8;
 }
 
-status_t FILE_Array(FILE_t *file, uint8_t *array, uint16_t length)
+int32_t FILE_Array(FILE_t *file, uint8_t *array, uint16_t length)
 {
-  if(file->mutex) return ERR;
-  if(((file->size) + length) >= file->limit) return ERR;
+  if(file->mutex) return 0;
+  if((file->size + length) >= file->limit) return 0;
   memcpy(&(file->buffer[file->size]), array, length);
   file->size += length;
-  return OK;
+  return length;
 }
 
-status_t FILE_String(FILE_t *file, char *string)
+int32_t FILE_String(FILE_t *file, char *string)
 {
-  if(file->mutex) return ERR;
+  if(file->mutex) return 0;
+  uint16_t length = 0;
   while(*string) {
-    if(file->size >= file->limit) return ERR;
+    if(file->size >= file->limit) {
+      file->size -= length;
+      return 0;
+    }
     file->buffer[file->size] = *string;
     file->size++;
     string++;
+    length++;
   }
-  return OK;
+  return length;
 }
 
-status_t FILE_Enter(FILE_t *file)
+int32_t FILE_Enter(FILE_t *file)
 {
-  if(FILE_Char(file, 13)) return ERR;
-  return FILE_Char(file, 10);
+  if(file->mutex) return 0;
+  #if(FILE_ENTER_RETURN)
+    if(file->size + 2 >= file->limit) return 0;
+    FILE_Char(file, '\r');
+    FILE_Char(file, '\n');
+    return 2;
+  #else
+    return FILE_Char(file, '\n');
+  #endif
 }
 
-//------------------------------------------------------------------------------------------------- PRINT-Number
-
-status_t FILE_Int(FILE_t *file, int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+int32_t FILE_ClearLastLine(FILE_t *file)
 {
-  if(file->mutex) return ERR;
-  char str[32];
-  uint16_t len = itoa_base(nbr, str, base, sign, fill_zero, fill_space);
-  if(((file->size)+len) >= file->limit) return ERR;
-  while(len) {
-    len--;
-    file->buffer[file->size] = str[len];
+  if(file->mutex) return 0;
+  int32_t length = 0;
+  bool end = false;
+  uint16_t size = file->size;
+  for(int32_t i = file->size - 1; i >= 0; i--) {
+    if(file->buffer[i] == '\r' || file->buffer[i] == '\n') {
+      if(end) return length;
+    }
+    else end = true;
+    file->size--;
+    length++;
+  }
+  file->size = size;
+  return length;
+}
+
+int32_t FILE_Bool(FILE_t *file, bool value)
+{
+  if(value) return FILE_String(file, "true");
+  else return FILE_String(file, "false");
+}
+
+//------------------------------------------------------------------------------------------------- Numbers
+
+static char file_cache[48];
+
+int32_t FILE_Int(FILE_t *file, int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+{
+  if(file->mutex) return 0;
+  int32_t length = (int32_t)itoa_base(nbr, file_cache, base, sign, fill_zero, fill_space);
+  if(((file->size)+length) >= file->limit) return ERR;
+  while(length) {
+    length--;
+    file->buffer[file->size] = file_cache[length];
     file->size++;
   }
-  return OK;
+  return length;
 }
 
-status_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space)
+int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space)
 {
-  if(file->mutex) return ERR;
-  char str[32];
+  if(file->mutex) return 0;
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
-  uint16_t length = itoa_base((int32_t)nbr, str, 10, true, accuracy + 1, fill_space - 1);
+  int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, accuracy + 1, fill_space - 1);
   if(accuracy) {
-    if(((file->size)+ length + 1) >= file->limit) return ERR;
+    if(((file->size)+ length + 1) >= file->limit) return 0;
   }
   else {
-    if(((file->size) + length) >= file->limit) return ERR;
+    if(((file->size) + length) >= file->limit) return 0;
   }
   while(length) {
     if(length == accuracy) {
@@ -94,228 +136,243 @@ status_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_spac
       file->size++;
     }
     length--;
-    file->buffer[file->size] = str[length];
+    file->buffer[file->size] = file_cache[length];
     file->size++;
   }
-  return OK;
+  return length;
 }
 
-status_t FILE_Dec(FILE_t *file, int32_t nbr) { return FILE_Int(file, nbr, 10, true, 0, 0); }
-status_t FILE_uDec(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 10, false, 0, 0); }
-status_t FILE_Hex8(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 2, 2); }
-status_t FILE_Hex16(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 4, 4); }
-status_t FILE_Hex32(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 8, 8); }
-status_t FILE_Bin8(FILE_t *file, uint8_t nbr) { return FILE_Int(file, (int32_t)nbr, 2, false, 8, 8); }
-
-status_t FILE_Bin16(FILE_t *file, uint16_t nbr, char *sep)
-{
-  if(FILE_Bin8(file, (uint8_t)(nbr >> 8))) return ERR;
-  if(FILE_String(file, sep)) return ERR;
-  if(FILE_Bin8(file, (uint8_t)(nbr))) return ERR;
-  return OK;
-}
-
-status_t FILE_Bin32(FILE_t *file, uint32_t nbr, char *sep)
-{
-  if(FILE_Bin16(file, (uint16_t)nbr >> 16, sep)) return ERR;
-  if(FILE_String(file, sep)) return ERR;
-  if(FILE_Bin16(file, (uint16_t)nbr, sep)) return ERR;
-  return OK;
-}
-
-status_t FILE_Bool(FILE_t *file, bool value)
-{
-  if(value) return FILE_String(file, "true");
-  else return FILE_String(file, "false");
-}
-
-status_t FILE_Status(FILE_t *file, bool value)
-{
-  if(value) return FILE_String(file, "err");
-  else return FILE_String(file, "ok");
-}
-
-status_t FILE_Struct(FILE_t *file, uint8_t *object)
-{
-  if(file->mutex) return ERR;
-  if(file->size + file->struct_size > file->limit) return ERR;
-  memcpy(&file->buffer[file->size], object, file->struct_size);
-  file->size += file->struct_size;
-  return OK;
-}
-
-uint16_t FILE_StructCount(FILE_t *file)
-{
-  return file->size / file->struct_size;
-}
-
-// Returns the number of structures still fit in the file
-uint16_t FILE_StructFreeSpace(FILE_t *file, uint16_t margin)
-{
-  if((int32_t)file->limit - margin <= 0) return 0;
-  return ((file->limit - margin) / file->struct_size) - (file->size / file->struct_size);
-}
-
-status_t FILE_StructMove(FILE_t *file, uint8_t count)
-{
-  if(file->mutex) return ERR;
-  int32_t size = (int32_t)file->size - (file->struct_size * count);
-  if(size > 0) {
-    memcpy(file->buffer, &file->buffer[file->struct_size * count], (size_t)size);
-    file->size = size;
-    return ERR;
-  }
-  return OK;
-}
-
-status_t FILE_StructDrop(FILE_t *file, uint8_t count)
-{
-  if(file->mutex) return ERR;
-  if(!count) return ERR;
-  int32_t size = file->struct_size * count;
-  if(size > file->size) {
-    file->size = 0;
-    return OK;
-  }
-  else {
-    file->size -= size;
-    return ERR;
-  }
-}
+int32_t FILE_Dec(FILE_t *file, int32_t nbr) { return FILE_Int(file, nbr, 10, true, 0, 0); }
+int32_t FILE_uDec(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 10, false, 0, 0); }
+int32_t FILE_Hex8(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 2, 2); }
+int32_t FILE_Hex16(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 4, 4); }
+int32_t FILE_Hex32(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 8, 8); }
+int32_t FILE_Bin8(FILE_t *file, uint8_t nbr) { return FILE_Int(file, (int32_t)nbr, 2, false, 8, 8); }
 
 //------------------------------------------------------------------------------------------------- RTC
 
-status_t FILE_Date(FILE_t *file, RTC_Datetime_t *datetime)
+int32_t FILE_Date(FILE_t *file, RTC_Datetime_t *datetime)
 {
-  if(FILE_String(file, "20")) return ERR;
-  if(FILE_Int(file, datetime->year, 10, false, 2, 2)) return ERR;
-  if(FILE_Char(file, '-')) return ERR;
-  if(FILE_Int(file, datetime->month, 10, false, 2, 2)) return ERR;
-  if(FILE_Char(file, '-')) return ERR;
-  if(FILE_Int(file, datetime->month_day, 10, false, 2, 2)) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 10 >= file->limit) return 0;
+  FILE_String(file, "20");
+  FILE_Int(file, datetime->year, 10, false, 2, 2);
+  FILE_Char(file, '-');
+  FILE_Int(file, datetime->month, 10, false, 2, 2);
+  FILE_Char(file, '-');
+  FILE_Int(file, datetime->month_day, 10, false, 2, 2);
+  return 10;
 }
 
-status_t FILE_Time(FILE_t *file, RTC_Datetime_t *datetime)
+int32_t FILE_Time(FILE_t *file, RTC_Datetime_t *datetime)
 {
-  if(FILE_Int(file, datetime->hour, 10, false, 2, 2)) return ERR;
-  if(FILE_Char(file, ':')) return ERR;
-  if(FILE_Int(file, datetime->minute, 10, false, 2, 2)) return ERR;
-  if(FILE_Char(file, ':')) return ERR;
-  if(FILE_Int(file, datetime->second, 10, false, 2, 2)) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 8 >= file->limit) return 0;
+  FILE_Int(file, datetime->hour, 10, false, 2, 2);
+  FILE_Char(file, ':');
+  FILE_Int(file, datetime->minute, 10, false, 2, 2);
+  FILE_Char(file, ':');
+  FILE_Int(file, datetime->second, 10, false, 2, 2);
+  return 8;
 }
 
-status_t FILE_Datetime(FILE_t *file, RTC_Datetime_t *datetime)
+int32_t FILE_TimeMs(FILE_t *file, RTC_Datetime_t *datetime)
 {
-  if(FILE_Date(file, datetime)) return ERR;
-  if(FILE_Char(file, ' ')) return ERR;
-  if(FILE_Time(file, datetime)) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 12 >= file->limit) return 0;
+  FILE_Time(file, datetime);
+  FILE_Char(file, '.');
+  FILE_Int(file, datetime->ms, 10, false, 3, 3);
+  return 12;
 }
 
-status_t FILE_DatetimeMs(FILE_t *file, RTC_Datetime_t *datetime)
+int32_t FILE_Datetime(FILE_t *file, RTC_Datetime_t *datetime)
 {
-  if(FILE_Datetime(file, datetime)) return ERR;
-  if(FILE_Char(file, '.')) return ERR;
-  if(FILE_Int(file, datetime->ms, 10, false, 3, 3)) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  if(file->size + 19 >= file->limit) return 0;
+  FILE_Date(file, datetime);
+  FILE_Char(file, ' ');
+  FILE_Time(file, datetime);
+  return 19;
 }
 
-status_t FILE_AlarmTime(FILE_t *file, RTC_Alarm_t *alarm)
+int32_t FILE_DatetimeMs(FILE_t *file, RTC_Datetime_t *datetime)
 {
+  if(file->mutex) return 0;
+  if(file->size + 23 >= file->limit) return 0;
+  FILE_Datetime(file, datetime);
+  FILE_Char(file, '.');
+  FILE_Int(file, datetime->ms, 10, false, 3, 3);
+  return 23;
+}
+
+int32_t FILE_AlarmTime(FILE_t *file, RTC_Alarm_t *alarm)
+{
+  if(file->mutex) return 0;
+  if(file->size + 8 >= file->limit) return 0;
   if(alarm->hour_mask) FILE_String(file, "**:");
   else {
-    if(FILE_Int(file, alarm->hour, 10, false, 2, 2)) return ERR;
-    if(FILE_Char(file, ':')) return ERR;
+    FILE_Int(file, alarm->hour, 10, false, 2, 2);
+    FILE_Char(file, ':');
   }
   if(alarm->minute_mask) FILE_String(file, "**:");
   else {
-    if(FILE_Int(file, alarm->minute, 10, false, 2, 2)) return ERR;
-    if(FILE_Char(file, ':')) return ERR;
+    FILE_Int(file, alarm->minute, 10, false, 2, 2);
+    FILE_Char(file, ':');
   }
   if(alarm->second_mask) FILE_String(file, "**");
   else {
-    if(FILE_Int(file, alarm->second, 10, false, 2, 2)) return ERR;
+    FILE_Int(file, alarm->second, 10, false, 2, 2);
   }
-  return OK;
+  return 8;
 }
 
-status_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm)
+int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm)
 {
-  if(alarm->day_mask) { if(FILE_String(file, "Everyday")) return ERR; }
-  else { if(FILE_String(file, (char *)rtc_weak_day_string[alarm->day])) return ERR; }
-  if(FILE_Char(file, ' ')) return ERR;
-  if(FILE_AlarmTime(file, alarm)) return ERR;
-  return OK;
+  if(file->mutex) return 0;
+  int32_t length;
+  length = alarm->day_mask ? FILE_String(file, "Everyday") : FILE_String(file, (char *)rtc_weakdays[alarm->day]);
+  if(!length) return 0;
+  if(file->size + 9 >= file->limit) {
+    file->size -= length;
+    return 0;
+  }
+  length += 9;
+  FILE_Char(file, ' ');
+  FILE_AlarmTime(file, alarm);
+  return length;
 }
 
-status_t FILE_Now(FILE_t *file)
+//------------------------------------------------------------------------------------------------- Print
+
+static uint8_t FILE_GetStringNumber(const char **format)
 {
-  RTC_Datetime_t datetime = RTC_Datetime();
-  return FILE_Datetime(file, &datetime);
+  uint8_t nbr = 0;
+  while (**format >= '0' && **format <= '9') {
+    nbr = nbr * 10 + (**format - '0');
+    (*format)++;
+  }
+  return nbr;
 }
 
-status_t FILE_NowMs(FILE_t *file)
+void FILE_Print(FILE_t *file, const char *format, ...)
 {
-  RTC_Datetime_t datetime = RTC_Datetime();
-  return FILE_DatetimeMs(file, &datetime);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-status_t FILE_Ip(FILE_t *file, uint8_t *ip)
-{
-  if(FILE_uDec(file, ip[0])) return ERR;
-  if(FILE_Char(file, '.')) return ERR;
-  if(FILE_uDec(file, ip[1])) return ERR;
-  if(FILE_Char(file, '.')) return ERR;
-  if(FILE_uDec(file, ip[2])) return ERR;
-  if(FILE_Char(file, '.')) return ERR;
-  if(FILE_uDec(file, ip[3])) return ERR;
-  return OK;
-}
-
-status_t FILE_ClearLastLine(FILE_t *file)
-{
-  if(file->mutex) return ERR;
-  bool end = false;
-  uint16_t size = file->size;
-  for(int32_t i = file->size - 1; i >= 0; i--) {
-    if(file->buffer[i] == '\r' || file->buffer[i] == '\n') {
-      if(end) return OK;
+  va_list args;
+  va_start(args, format);
+  while(*format) {
+    if(*format == '%') {
+      format++;
+      uint8_t width = FILE_GetStringNumber(&format);
+      if(*format == '-') format++;
+      uint8_t precision = 0;
+      if(*format == '.') {
+        format++;
+        precision = FILE_GetStringNumber(&format);
+      }
+      switch (*format) {
+        case 'i': case 'd': {
+          int32_t nbr = va_arg(args, int32_t);
+          FILE_Int(file, nbr, 10, true, precision, width);
+          break;
+        }
+        case 'u': {
+          uint32_t nbr = va_arg(args, uint32_t);
+          FILE_Int(file, nbr, 10, false, precision, width);
+          break;
+        }
+        case 'f': case 'F': {
+          if(!precision) precision = 2;
+          float nbr = (float)va_arg(args, double);
+          FILE_Float(file, nbr, precision, width);
+          break;
+        }
+        case 'x': case 'X': {
+          uint32_t nbr = va_arg(args, uint32_t);
+          uint8_t fill_zero = precision > width ? precision : width;
+          DBG_Int(nbr, 16, false, fill_zero, fill_zero);
+          break;
+        }
+        case 'c': {
+          char sing = (char)va_arg(args, int);
+          DBG_Char(sing);
+          break;
+        }
+        case 's': {
+          char *str = va_arg(args, char *);
+          DBG_String(str);
+          break;
+        }
+        case 'b': case 'B': {
+          uint8_t bin = (uint8_t)va_arg(args, int);
+          uint8_t fill_zero = precision > width ? precision : width;
+          DBG_Int(bin, 2, false, fill_zero, fill_zero);
+          break;
+        }
+        case 't':  {
+          RTC_Datetime_t *dt = (RTC_Datetime_t *)va_arg(args, void *);
+          uint8_t mode = precision > width ? precision : width;
+          switch(mode) {
+            case 1: FILE_Time(file, dt); break;
+            case 2: FILE_TimeMs(file, dt); break;
+            case 3: FILE_DatetimeMs(file, dt); break;
+            default: FILE_Datetime(file, dt);
+          }
+          break;
+        }
+        case 'T':  {
+          RTC_Datetime_t *dt = (RTC_Datetime_t *)va_arg(args, void *);
+          uint8_t mode = precision > width ? precision : width;
+          switch(mode) {
+            case 1: FILE_Date(file, dt); break;
+            case 3: FILE_DatetimeMs(file, dt); break;
+            default: FILE_Datetime(file, dt);
+          }
+          break;
+        }
+        case 'n':  {
+          RTC_Datetime_t dt = RTC_Datetime();
+          uint8_t mode = precision > width ? precision : width;
+          switch(mode) {
+            case 1: FILE_Time(file, &dt); break;
+            case 2: FILE_TimeMs(file, &dt); break;
+            case 3: FILE_DatetimeMs(file, &dt); break;
+            default: FILE_Datetime(file, &dt);
+          }
+          break;
+        }
+        case 'N':  {
+          RTC_Datetime_t dt = RTC_Datetime();
+          uint8_t mode = precision > width ? precision : width;
+          switch(mode) {
+            case 1: FILE_Date(file, &dt); break;
+            case 3: FILE_DatetimeMs(file, &dt); break;
+            default: FILE_Datetime(file, &dt);
+          }
+          break;
+        }
+        case '%': {
+          DBG_Char('%');
+          break;
+        }
+      }
     }
-    else end = true;
-    file->size--;
+    else {
+      DBG_Char(*format);
+    }
+    format++;
   }
-  file->size = size;
-  return ERR;
+  va_end(args);
 }
 
-//-------------------------------------------------------------------------------------------------
-
-status_t FILE_Crc(FILE_t *file, const CRC_t *crc)
-{
-  if(file->limit - file->size < crc->width / 8) return ERR;
-  file->size = CRC_Append(crc, file->buffer, file->size);
-  return OK;
-}
-
-status_t FILE_CrcError(FILE_t *file, const CRC_t *crc)
-{
-  if(file->size < crc->width / 8) return ERR;
-  if(CRC_Error(crc, file->buffer, file->size)) return ERR;
-  file->size -= crc->width / 8;
-  return OK;
-}
 
 //------------------------------------------------------------------------------------------------- Save/Load/Copy
 
-status_t FILE_Clear(FILE_t *file)
+int32_t FILE_Clear(FILE_t *file)
 {
-  if(file->mutex) return ERR;
+  if(file->mutex) return 0;
+  int32_t size = file->size;
   file->size = 0;
-  return OK;
+  return size;
 }
 
 status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
@@ -345,80 +402,108 @@ status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
   return OK;
 }
 
-status_t FILE_GetAccess(FILE_t *file)
+//------------------------------------------------------------------------------------------------- Access
+
+status_t FILE_Access_Get(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->mutex = true;
   return OK;
 }
 
-status_t FILE_Get2Access(FILE_t *primary, FILE_t *secondary)
+void FILE_Access_Allow(FILE_t *file)
 {
-  if(FILE_GetAccess(primary)) return ERR;
+  if(file) file->mutex = false;
+}
+
+status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
+{
+  if(FILE_Access_Get(primary)) return ERR;
   if(secondary && secondary != primary) {
-    if(FILE_GetAccess(secondary)) {
-      FILE_AllowAccess(primary);
+    if(FILE_Access_Get(secondary)) {
+      FILE_Access_Allow(primary);
       return ERR;
     }
   }
   return OK;
 }
 
-void FILE_AllowAccess(FILE_t *file)
-{
-  if(file) file->mutex = false;
-}
+//------------------------------------------------------------------------------------------------- Flash
 
-status_t FILE_FlashSave(FILE_t *file)
+status_t FILE_Flash_Save(FILE_t *file)
 {
   if(!file->flash_page) return ERR;
-  #if(FILE_DBG)
-    DBG_String("FILE flash save ");
-    DBG_String((char *)file->name);
-  #endif
   if(FLASH_Compare(file->flash_page, file->buffer, file->size)) {
-    #if(FILE_DBG)
-      DBG_String("no-change\r\n");
-    #endif
+    return OK; // no-change
   }
-  else if(FLASH_Save(file->flash_page, file->buffer, file->size)) {
-    #if(FILE_DBG)
-      DBG_String("error\r\n");
-    #endif
+  if(FLASH_Save(file->flash_page, file->buffer, file->size)) {
     return ERR;
-  }
-  else {
-    #if(FILE_DBG)
-      DBG_String("ok\r\n");
-    #endif
   }
   return OK;
 }
 
-status_t FILE_FlashLoad(FILE_t *file)
+status_t FILE_Flash_Load(FILE_t *file)
 {
   if(file->mutex) return ERR;
   else if(!file->flash_page) return ERR;
   file->size = FLASH_Load(file->flash_page, file->buffer);
-  #if(FILE_DBG)
-    DBG_String("FILE flash load ");
-    DBG_String((char*)file->name);
-  #endif
-  if(file->size) {
-    #if(FILE_DBG)
-      DBG_String(" ok\r\n");
-    #endif
-    return OK;
-  }
-  else {
-    #if(FILE_DBG)
-      DBG_String(" error\r\n");
-    #endif
-    return ERR;
-  }
+  if(file->size) return OK;
+  else return ERR;
 }
 
-status_t FILE_OffsetDrop(FILE_t *file)
+//------------------------------------------------------------------------------------------------- Struct
+
+int32_t FILE_Struct_Add(FILE_t *file, uint8_t *object)
+{
+  if(file->mutex) return 0;
+  if(file->size + file->struct_size >= file->limit) return 0;
+  memcpy(&file->buffer[file->size], object, file->struct_size);
+  file->size += file->struct_size;
+  return file->struct_size;
+}
+
+uint16_t FILE_Struct_GetCount(FILE_t *file)
+{
+  return file->size / file->struct_size;
+}
+
+// Returns the number of structures still fit in the file
+uint16_t FILE_Struct_GetFreeSpace(FILE_t *file, uint16_t margin)
+{
+  if((int32_t)file->limit - margin <= 0) return 0;
+  return ((file->limit - margin) / file->struct_size) - (file->size / file->struct_size);
+}
+
+int32_t FILE_Struct_Move(FILE_t *file, uint16_t count)
+{
+  if(file->mutex) return 0;
+  int32_t size = (int32_t)file->size - (file->struct_size * count);
+  if(size > 0) {
+    memcpy(file->buffer, &file->buffer[file->struct_size * count], (size_t)size);
+    file->size = size;
+    return -(int32_t)file->struct_size;
+  }
+  return 0;
+}
+
+int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count)
+{
+  if(file->mutex) return 0;
+  if(!count) return 0;
+  int32_t size = file->struct_size * count;
+  if(size > file->size) {
+    size = file->size;
+    file->size = 0;
+  }
+  else {
+    file->size -= size;
+  }
+  return -size;
+}
+
+//------------------------------------------------------------------------------------------------- Offset
+
+status_t FILE_Offset_Drop(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->buffer -= file->_offset;
@@ -428,9 +513,9 @@ status_t FILE_OffsetDrop(FILE_t *file)
   return OK;
 }
 
-status_t FILE_OffsetSet(FILE_t *file, uint16_t offset)
+status_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
 {
-  if(FILE_OffsetDrop(file)) return ERR;
+  if(FILE_Offset_Drop(file)) return ERR;
   if(offset > file->limit) return ERR;
   file->buffer += offset;
   file->limit -= offset;
@@ -440,22 +525,21 @@ status_t FILE_OffsetSet(FILE_t *file, uint16_t offset)
   return OK;
 }
 
-//-------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------------------------- Crc
 
-void FILE_Print(FILE_t *file)
+int32_t FILE_Crc_Append(FILE_t *file, const CRC_t *crc)
 {
-  #if(FILE_DBG)
-    DBG_String("FILE "); DBG_String((char *)file->name); DBG_Char(' ');
-    DBG_uDec(file->size); DBG_Char('/'); DBG_uDec(file->limit);
-    if(file->mutex) DBG_String(" mutex");
-    if(file->flash_page) { DBG_String(" flash:"); DBG_uDec(file->flash_page); }
-    DBG_Enter();
-  #endif
+  if(file->limit - file->size < crc->width / 8) return 0;
+  file->size = CRC_Append(crc, file->buffer, file->size);
+  return crc->width / 8;
 }
 
-void FILE_PointerPrint(FILE_t **file)
+bool FILE_Crc_IsError(FILE_t *file, const CRC_t *crc)
 {
-  FILE_Print(*file);
+  if(file->size < crc->width / 8) return true;
+  if(CRC_Error(crc, file->buffer, file->size)) return true;
+  file->size -= crc->width / 8;
+  return false;
 }
 
 //-------------------------------------------------------------------------------------------------

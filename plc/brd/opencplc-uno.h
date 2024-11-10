@@ -11,6 +11,7 @@
 #include "one-wire.h"
 #include "i2c-master.h"
 #include "vrts.h"
+#include "sys.h"
 #include "main.h"
 
 #define PLC_RS485

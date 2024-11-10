@@ -152,7 +152,7 @@ void INT_EnableDMA(uint8_t dma_nbr, uint8_t priority, void (*handler)(void *), v
       NVIC_SetPriority(INT_DMA1_CH23, priority);
       NVIC_EnableIRQ(INT_DMA1_CH23);
       break;
-case 4:
+    case 4:
       DMA4_IRQFnc = handler;
       DMA4_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);

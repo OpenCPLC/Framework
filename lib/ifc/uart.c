@@ -14,7 +14,8 @@ static void UART_InterruptDMA(UART_t *uart)
 static void UART_InterruptEV(UART_t *uart)
 {
   if(uart->reg->ISR & USART_ISR_RXNE_RXFNE) {
-    BUFF_Push(uart->buff, (uint8_t)(uart->reg->RDR));
+    uint8_t value = (uint8_t)uart->reg->RDR;
+    BUFF_Push(uart->buff, value);
     if(uart->tim) {
       TIM_ResetValue(uart->tim);
       TIM_Enable(uart->tim);
@@ -82,7 +83,6 @@ void UART_Init(UART_t *uart)
     uart->gpio_direction->mode = GPIO_Mode_Output;
     GPIO_Init(uart->gpio_direction);
   }
-  if(!uart->timeout) uart->timeout = 40;
   BUFF_Init(uart->buff);
   uart->_tx_dma = (DMA_Channel_TypeDef*)(DMA1_BASE + 8 + (20 * (uart->dma_channel - 1)));
   uart->_tx_dmamux = (DMAMUX_Channel_TypeDef*)(DMAMUX1_BASE + (4 * (uart->dma_channel - 1)));
@@ -119,6 +119,9 @@ void UART_Init(UART_t *uart)
   uart->reg->CR1 |= USART_CR1_RXNEIE_RXFNEIE | USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
   uart->reg->ICR |= USART_ICR_TCCF;
   uart->reg->RQR |= USART_RQR_RXFRQ;
+  INT_EnableDMA(uart->dma_channel, uart->interrupt_level, (void (*)(void*))&UART_InterruptDMA, uart);
+  INT_EnableUART(uart->reg, uart->interrupt_level, (void (*)(void*))&UART_InterruptEV, uart);
+  if(!uart->timeout) return;
   if(uart->tim) {
     uart->tim->prescaler = 100;
     uart->tim->auto_reload = ((float)SystemCoreClock * uart->timeout / (uart->baud) / 100);
@@ -135,8 +138,6 @@ void UART_Init(UART_t *uart)
     uart->reg->CR1 |= USART_CR1_RTOIE;
     uart->reg->CR2 |= USART_CR2_RTOEN;
   }
-  INT_EnableDMA(uart->dma_channel, uart->interrupt_level, (void (*)(void*))&UART_InterruptDMA, uart);
-  INT_EnableUART(uart->reg, uart->interrupt_level, (void (*)(void*))&UART_InterruptEV, uart);
 }
 
 void UART_ReInit(UART_t *uart)
@@ -168,14 +169,14 @@ bool UART_IsFree(UART_t *uart)
   return !(uart->_busy_tx);
 }
 
-//------------------------------------------------------------------------------------------------- Run
+//------------------------------------------------------------------------------------------------- Send
 
-access_t UART_Send(UART_t *uart, uint8_t *array, uint16_t length)
+access_t UART_Send(UART_t *uart, uint8_t *data, uint16_t length)
 {
   if(!uart->_busy_tx) {
     if(uart->gpio_direction) GPIO_Set(uart->gpio_direction);
     uart->_tx_dma->CCR &= ~DMA_CCR_EN;
-    uart->_tx_dma->CMAR = (uint32_t)array;
+    uart->_tx_dma->CMAR = (uint32_t)data;
     uart->_tx_dma->CNDTR = length;
     if(uart->prefix) uart->reg->TDR = uart->prefix; // send address for stream
     uart->_tx_dma->CCR |= DMA_CCR_EN;
@@ -184,11 +185,6 @@ access_t UART_Send(UART_t *uart, uint8_t *array, uint16_t length)
     return FREE;
   }
   else return BUSY;
-}
-
-access_t UART_SendFile(UART_t *uart, FILE_t *file)
-{
-  return UART_Send(uart, file->buffer, file->size);
 }
 
 //------------------------------------------------------------------------------------------------- Read
@@ -206,13 +202,6 @@ uint16_t UART_ReadArray(UART_t *uart, uint8_t *array)
 char *UART_ReadString(UART_t *uart)
 {
   return BUFF_String(uart->buff);
-}
-
-uint8_t UART_ReadToFile(UART_t *uart, FILE_t *file)
-{
-  if(UART_ReadSize(uart) > file->limit) return ERR;
-  file->size = BUFF_Array(uart->buff, file->buffer);
-  return OK;
 }
 
 bool UART_ReadSkip(UART_t *uart)
@@ -243,4 +232,3 @@ uint16_t UART_CalcTime(UART_t *uart, uint16_t length)
   } 
   return 1000 * ((bits * length) + uart->timeout) / uart->baud;
 }
-
