@@ -144,11 +144,12 @@ char *strtoupper(char *str)
  */
 uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
 {
-  const uint8_t ITOA_ARRAY[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  static const uint8_t ITOA_ARRAY[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   uint16_t n = 0;
   bool is_negative = false;
   uint32_t unbr;
   if(!fill_zero) fill_zero = 1;
+  if(fill_space < fill_zero) fill_space = fill_zero;  
   if(sign && nbr < 0) {
     is_negative = true;
     unbr = (uint32_t)(-nbr);
@@ -158,7 +159,7 @@ uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_
     str[n++] = ITOA_ARRAY[unbr % base];
     unbr = unbr/base;
   }
-  while(n < fill_zero) str[n++] = '0';
+  while(n < fill_zero - is_negative) str[n++] = '0';
   if(is_negative) str[n++] = '-';
   while(n < fill_space) str[n++] = ' ';
   return n;

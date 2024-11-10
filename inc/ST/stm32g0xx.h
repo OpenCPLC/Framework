@@ -94,11 +94,6 @@ typedef enum {
   ERR = !OK
 } status_t;
 
-/**
-  * @}
-  */
-
-
 /** @addtogroup Exported_macros
   * @{
   */

@@ -1,40 +1,62 @@
+/**
+ * @file  new.h
+ * @brief Library for safer dynamic memory allocation.
+ *        Defines limits for dynamic allocation, returning an error if exceeded.
+ *        The library works with the VRTS multi-threading system: https://github.com/Xaeian/VRTS.
+ *        Provides 'new' for memory allocation and 'clear' to free all allocated variables 
+ *        in the current thread within a garbage collector system.
+ *        Additionally, functions 'aloc' and 'dloc' allow allocating and freeing memory 
+ *        using the same memory pool.
+ * @date  2024-11-09
+ */
+
 #ifndef NEW_H_
 #define NEW_H_
 
 #include <stdlib.h>
 #include <stdint.h>
-#include "stm32g0xx.h"
 #include "main.h"
 #include "vrts.h"
 
 //-------------------------------------------------------------------------------------------------
 
-#ifndef NEW_COUNT_LIMIT
-  #define NEW_COUNT_LIMIT 32 // limit of variables allocated by the 'new' function
+// Total allocated memory limit
+#ifndef NEW_TOTAL
+  #define NEW_TOTAL 8000 
 #endif
-#ifndef NEW_SIZE_LIMIT
-  #define NEW_SIZE_LIMIT 8000 // total allocated memory limit for function 'new'
+
+// Variables limit allocated by the 'new' function
+#ifndef NEW_DEFAULT_LIMIT
+  #define NEW_DEFAULT_LIMIT 32
 #endif
-#ifndef ALOC_COUNT_LIMIT
-  #define ALOC_COUNT_LIMIT 32 // limit of variables allocated by the 'new' function
+
+// Variables limit allocated by the 'aloc' function
+#ifndef ALOC_LIMIT
+  #define ALOC_LIMIT 16 
 #endif
+
+#define NEW_OK 0
+#define NEW_ERROR_SIZE -1
+#define NEW_ERROR_LIMIT -2
+#define ALOC_ERROR_SIZE -3
+#define DLOC_NOT_FOUND -3
 
 //-------------------------------------------------------------------------------------------------
 
-#if(VRTS_SWITCHING)
-  void NEW_Init(uint8_t thread_nbr);
-#endif
-void *new_static(size_t size);
-void *new(size_t size);
-void clear();
-void *aloc(size_t size);
-void dloc(void **pointer);
-
+// Memory stack for garbage collector, one per thread
 typedef struct {
-  void *var[NEW_COUNT_LIMIT];
-  uint16_t count;
-  uint16_t size;
+  void **var; // Pointers to dynamically allocated variables
+  uint16_t count; // Current number of variables
+  uint16_t limit; // Maximum number of variables allowed
+  uint16_t size; // Total memory allocated by this stack
 } NEW_t;
+
+NEW_t *NEW_Init(uint16_t limit); // Initialize memory with a limit on variable count
+void *new_static(size_t size); // Allocate static memory block
+void *new(size_t size); // Allocate dynamic memory for current thread
+void clear(); // Clear all allocated memory for current thread
+void *aloc(size_t size); // Allocate memory with tracking
+void dloc(void **pointer); // Deallocate memory and update tracking
 
 //-------------------------------------------------------------------------------------------------
 
