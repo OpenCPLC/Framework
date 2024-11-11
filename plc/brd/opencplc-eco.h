@@ -8,6 +8,7 @@
 #include "bash.h"
 #include "rgb.h"
 #include "vrts.h"
+#include "sys.h"
 #include "main.h"
 
 #define PLC_RS485
@@ -44,8 +45,13 @@ extern AIN_t AI1;
 extern AIN_t AI2;
 extern AIN_t AI3;
 extern AIN_t AI4;
-float VCC_Value(void);
-float POT_Value(uint8_t nbr);
+extern AIN_t POT1;
+extern AIN_t POT2;
+extern AIN_t POT3;
+extern AIN_t POT4;
+extern AIN_t POT5;
+extern AIN_t POT6;
+float VCC_Voltage_V(void);
 
 // RS485
 #ifndef RS_BUFFER_SIZE
@@ -55,6 +61,7 @@ extern UART_t RS;
 
 // Dioda RGB
 extern RGB_t RGB;
+#define RGB1 RGB
 extern DIN_t BTN1;
 extern DIN_t BTN2;
 extern DIN_t BTN3;

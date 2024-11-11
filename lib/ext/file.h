@@ -59,7 +59,7 @@ int32_t FILE_DatetimeMs(FILE_t *file, RTC_Datetime_t *datetime);
 int32_t FILE_AlarmTime(FILE_t *file, RTC_Alarm_t *alarm);
 int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm);
 
-void FILE_Print(FILE_t *file, const char *format, ...);
+void FILE_Print(FILE_t *file, const char *format, va_list args);
 
 int32_t FILE_Clear(FILE_t *file);
 status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from);

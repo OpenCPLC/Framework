@@ -52,8 +52,9 @@ extern DIN_t DI4;
 // Wejścia analogowe (AI)
 extern AIN_t AI1;
 extern AIN_t AI2;
-float VCC_Value(void);
-float POT_Value(void);
+extern AIN_t POT;
+#define POT1 POT
+float VCC_Voltage_V(void);
 
 // RS485
 #ifndef RS_BUFFER_SIZE
@@ -80,7 +81,9 @@ bool ONE_WIRE_Search(uint8_t *addr);
 
 // Dioda RGB i przycisk BTN
 extern RGB_t RGB;
+#define RGB1 RGB
 extern DIN_t BTN;
+#define BTN1 BTN
 
 // Functions
 void PLC_Init(void);

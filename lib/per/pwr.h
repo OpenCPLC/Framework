@@ -7,7 +7,7 @@
 
 //------------------------------------------------------------------------------------------------- SYS
 
-void SYSCFG_RAMP_PA11_PA12(void);
+void RAMP_PA11_PA12(void);
 
 //------------------------------------------------------------------------------------------------- RCC
 
@@ -22,6 +22,8 @@ typedef enum {
   RCC_HSI_125kHz = 7
 } RCC_HSI_e;
 
+extern uint32_t rcc_xtal_value;
+
 void RCC_EnableTIM(TIM_TypeDef *tim_typedef);
 void RCC_EnableGPIO(GPIO_TypeDef *gpio_typedef);
 void RCC_EnableUART(USART_TypeDef *uart_typedef);
@@ -30,13 +32,14 @@ void RCC_EnableI2C(I2C_TypeDef *i2c_typedef);
 void RCC_DisableI2C(I2C_TypeDef *i2c_typedef);
 void RCC_EnableSPI(SPI_TypeDef *spi_typedef);
 
-void RCC_2MHz(void);
-void RCC_16MHz(void);
-void RCC_48MHz(void);
+uint32_t RCC_HSE(uint32_t xtal_value);
+uint32_t RCC_PLL(uint32_t hse_xtal_value, uint8_t m, uint8_t n, uint8_t r);
+uint32_t RCC_2MHz(void);
+uint32_t RCC_16MHz(void);
+uint32_t RCC_48MHz(void);
+uint32_t RCC_64MHz(void);
 
 //------------------------------------------------------------------------------------------------- PWR
-
-void PWR_Reset(void);
 
 #define PWR_SCR_CLEAR 0x013B
 
@@ -62,6 +65,7 @@ typedef enum {
   PWR_Mode_Shutdown = 4
 } PWR_SleepMode_e;
 
+void PWR_Reset(void);
 void PWR_Sleep(PWR_SleepMode_e mode);
 void PWR_Wakeup(PWR_WakeupPin_e wakeup_pin, PWR_WakeupDir_e dir);
 

@@ -1,6 +1,6 @@
 #include "adc.h"
 
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 static void ADC_SetChannels(uint8_t *cha, uint8_t count)
 {
@@ -63,7 +63,7 @@ uint8_t ADC_Record(ADC_t *adc)
 }
 #endif
 
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 void ADC_Stop(ADC_t *adc)
 {
@@ -80,20 +80,21 @@ void ADC_Stop(ADC_t *adc)
   adc->_busy_flag = ADC_StatusFree;
 }
 
-uint8_t ADC_IsBusy(ADC_t *adc)
+bool ADC_IsBusy(ADC_t *adc)
 {
-  if(adc->_busy_flag) return 1;
-  return 0;
+  if(adc->_busy_flag) return true;
+  return false;
 }
 
-uint8_t ADC_IsFree(ADC_t *adc)
+bool ADC_IsFree(ADC_t *adc)
 {
-  return !(adc->_busy_flag);
+  if(adc->_busy_flag) return false;
+  return true;
 }
 
 void ADC_Wait(ADC_t *adc)
 {
-  while(ADC_IsBusy(adc));
+  while(ADC_IsBusy(adc)) __DSB();
 }
 
 void ADC_Enabled(void)
@@ -111,7 +112,7 @@ void ADC_Disabled(void)
   while((ADC1->CR & ADC_CR_ADEN) != 0) __DSB();
 }
 
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 static void ADC_InterruptEV(ADC_t *adc)
 {
@@ -141,7 +142,7 @@ static void ADC_InterruptDMA(ADC_t *adc)
 }
 #endif
 
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 static void ADC_InitGPIO(uint32_t *chselr, uint8_t *cha, uint8_t count)
 {
@@ -161,16 +162,16 @@ static void ADC_InitGPIO(uint32_t *chselr, uint8_t *cha, uint8_t count)
 
 void ADC_Init(ADC_t *adc)
 {
-  RCC->AHBENR |= RCC_AHBENR_DMA1EN;
   RCC->APBENR2 |= RCC_APBENR2_ADCEN;
   ADC1->CR |= ADC_CR_ADVREGEN;
   for(uint32_t i = 0; i < SystemCoreClock / 500000; i++) __DSB();
   ADC1->CR &= ~ADC_CR_ADEN;
-  ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
   ADC1->CR |= ADC_CR_ADCAL;
   while(!(ADC1->ISR & ADC_ISR_EOCAL)) __DSB();
   ADC1->ISR |= ADC_ISR_EOCAL;
   #if(ADC_RECORD)
+    RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+    ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
     adc->record._dma = (DMA_Channel_TypeDef *) (DMA1_BASE + 8 + (20 * (adc->record.dma_channel - 1)));
     adc->record._dmamux = (DMAMUX_Channel_TypeDef *) (DMAMUX1_BASE + (4 * (adc->record.dma_channel - 1)));
     adc->record._dmamux->CCR = (adc->record._dma->CCR & 0xFFFFFFC0) | 5;
@@ -179,19 +180,18 @@ void ADC_Init(ADC_t *adc)
     ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
     INT_EnableDMA(adc->record.dma_channel, adc->interrupt_level, (void (*)(void *))&ADC_InterruptDMA, adc);
   #endif
-  if(!adc->prescaler && SystemCoreClock > 32000000) adc->prescaler = ADC_Prescaler_2;
-  ADC->CCR |= (adc->prescaler << 18);
+  ADC->CCR |= (adc->prescaler << ADC_CCR_PRESC_Pos);
   uint32_t chselr = 0;
   ADC_InitGPIO(&chselr, adc->measurements.channels, adc->measurements.count);
   #if(ADC_RECORD)
-    if(adc->record) ADC_InitGPIO(&chselr, adc->record.channels, adc->record.count);
+    if(adc->record.channels) ADC_InitGPIO(&chselr, adc->record.channels, adc->record.count);
   #endif
   ADC1->CHSELR = chselr;
   ADC1->IER |= ADC_IER_OVRIE;
   INT_EnableADC(adc->interrupt_level, (void (*)(void *))&ADC_InterruptEV, adc);
   #if(ADC_RECORD)
     if(adc->record.tim) {
-      switch((uint32_t)adc->record.tim->tim_typedef) {
+      switch((uint32_t)adc->record.tim->reg) {
         case (uint32_t)TIM1: ADC1->CFGR1 |= (0 << 6); break;
         case (uint32_t)TIM3: ADC1->CFGR1 |= (3 << 6); break;
         case (uint32_t)TIM6: ADC1->CFGR1 |= (5 << 6); break;
@@ -208,17 +208,7 @@ void ADC_Init(ADC_t *adc)
     ADC1->CFGR1 &= ~ADC_CFGR1_EXTEN;
     ADC1->CFGR1 |= ADC_CFGR1_CONT;
   #endif
-  if(adc->measurements.gpio_enable) {
-    adc->measurements.gpio_enable->mode = GPIO_Mode_Output;
-    GPIO_Init(adc->measurements.gpio_enable);
-  }
-  #if(ADC_RECORD)
-    if(adc->record.gpio_enable) {
-      adc->record.gpio_enable->mode = GPIO_Mode_Output;
-      GPIO_Init(adc->record.gpio_enable);
-    }
-  #endif
   ADC_Enabled();
 }
 
-//-----------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------

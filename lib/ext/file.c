@@ -123,6 +123,7 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
 {
   if(file->mutex) return 0;
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
+  if(!fill_space) fill_space = 1;
   int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, accuracy + 1, fill_space - 1);
   if(accuracy) {
     if(((file->size)+ length + 1) >= file->limit) return 0;
@@ -255,10 +256,8 @@ static uint8_t FILE_GetStringNumber(const char **format)
   return nbr;
 }
 
-void FILE_Print(FILE_t *file, const char *format, ...)
+void FILE_Print(FILE_t *file, const char *format, va_list args)
 {
-  va_list args;
-  va_start(args, format);
   while(*format) {
     if(*format == '%') {
       format++;
@@ -269,7 +268,7 @@ void FILE_Print(FILE_t *file, const char *format, ...)
         format++;
         precision = FILE_GetStringNumber(&format);
       }
-      switch (*format) {
+      switch(*format) {
         case 'i': case 'd': {
           int32_t nbr = va_arg(args, int32_t);
           FILE_Int(file, nbr, 10, true, precision, width);
@@ -281,7 +280,7 @@ void FILE_Print(FILE_t *file, const char *format, ...)
           break;
         }
         case 'f': case 'F': {
-          if(!precision) precision = 2;
+          if(!precision) precision = 3;
           float nbr = (float)va_arg(args, double);
           FILE_Float(file, nbr, precision, width);
           break;
@@ -361,7 +360,6 @@ void FILE_Print(FILE_t *file, const char *format, ...)
     }
     format++;
   }
-  va_end(args);
 }
 
 

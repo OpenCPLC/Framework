@@ -104,37 +104,38 @@ uint8_t ain_channels[] = {
   ADC_IN_PA0, ADC_IN_PA1, ADC_IN_PA5, ADC_IN_PB10
 };
 
-uint16_t ain_output[sizeof(ain_channels)];
+#define AIN_BUFFER_SIZE adc_record_buffer_size(AIN_AVERAGE_TIME_MS, 160, 64, sizeof(ain_channels))
+#define AIN_SAMPLES (AIN_BUFFER_SIZE / sizeof(ain_channels))
+
+uint16_t ain_buffer[AIN_BUFFER_SIZE];
+uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
-  .prescaler = ADC_Prescaler_2,
+  .prescaler = ADC_Prescaler_1,
   .interrupt_level = 3,
-  .measurements = {
+  .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
-    .output = ain_output,
+    .dma_channel = 1,
     .sampling_time = ADC_SamplingTime_160,
     .oversampling_enable = true,
-    .oversampling_ratio = ADC_OversamplingRatio_256,
-    .oversampling_shift = 4
+    .oversampling_ratio = ADC_OversamplingRatio_64,
+    .oversampling_shift = 2,
+    .buffer = ain_buffer,
+    .buffer_length = AIN_BUFFER_SIZE
   }
 };
 
-AIN_t AI1 = { .adc = &ain_adc, .channel = 0, .type = AIN_Type_Volts };
-AIN_t AI2 = { .adc = &ain_adc, .channel = 1, .type = AIN_Type_Volts };
+AIN_t AI1 = { .name = "AI1", .data = ain_data[0], .count = AIN_SAMPLES };
+AIN_t AI2 = { .name = "AI2", .data = ain_data[1], .count = AIN_SAMPLES };
+AIN_t POT = { .name = "POT", .data = ain_data[3], .count = AIN_SAMPLES };
+AIN_t VCC = { .name = "VCC", .data = ain_data[2], .count = AIN_SAMPLES };
 
-float VCC_Value(void)
+float VCC_Voltage_V(void)
 {
-  uint16_t raw = ain_adc.measurements.output[2];
+  float raw = AIN_Raw(&VCC);
   float value = resistor_divider_factor(3.3, 110, 10, 16) * raw;
   return value;
-}
-
-float POT_Value(void)
-{
-  uint16_t raw = ain_adc.measurements.output[3];
-  float value = volts_factor(3.3, 16) * raw;
-  return value * 100 / 3.3;
 }
 
 //------------------------------------------------------------------------------------------------- RS485
@@ -285,6 +286,7 @@ void PLC_Init(void)
     // SCB->VTOR = FLASH_BASE | 0x00000000U;
   #endif
   // Konfiguracja systemowa
+  SYS_Clock_Init();
   RTC_Init();
   EEPROM_Cache(&cache_eeprom);
   SYSTICK_Init(PLC_BASETIME);
@@ -343,7 +345,7 @@ void PLC_Init(void)
   }
   // Wejścia analogowe (AI)
   ADC_Init(&ain_adc);
-  ADC_Measurements(&ain_adc);
+  ADC_Record(&ain_adc);
   ADC_Wait(&ain_adc);
   // Interfejsy RS485
   UART_Init(&RS1);
@@ -353,6 +355,7 @@ void PLC_Init(void)
 
 void PLC_Loop(void)
 {
+  // Dioda LED i przycisk (BTN)
   RGB_Loop(&RGB);
   DIN_Loop(&BTN);
   // Wyjścia przekaźnikowe (RO)
@@ -377,7 +380,10 @@ void PLC_Loop(void)
     // PWMI_Print(&din_pwmi);
   }
   // Wejścia analogowe (AI)
-  ADC_Measurements(&ain_adc);
+  if(ADC_IsFree(&ain_adc)) {
+    AIN_Sort(ain_buffer, sizeof(ain_channels), AIN_SAMPLES, ain_data);
+    ADC_Record(&ain_adc);
+  }
   if(ain_adc.overrun) {
     // DBG_String("ADC overrun:");
     // DBG_uDec(ain_adc.overrun);

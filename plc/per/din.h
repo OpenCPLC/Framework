@@ -18,7 +18,7 @@
 #define DIN_DEFAULT 0xFFFF
 
 typedef struct {
-  char *name;        // Nazwa wyświetlana podczas zapytań `bash`
+  const char *name;  // Nazwa wyświetlana podczas zapytań `bash`
   GPIF_t gpif;       // Wskaźnik na wejście GPIF_t. Należy skonfigurować pola `gpio.port` i `gpio.pin`.
   EEPROM_t *eeprom;  // Wskaźnik na pamięć EEPROM_t do przechowywania wartości nieulotnych.
   bool fast_counter; // Aktywacja trybu szybkiego licznika
