@@ -9,6 +9,8 @@ Wejście analogowe umożliwia pomiar napięcia w zakresie **0-10V** oraz prądu 
 
 Wszystkie funkcje zwracają zmienną typu float, którą przed przeliczeniem należy sprawdzić za pomocą `AIN_Error` lub `AIN_OK`, aby upewnić się, że wartość mieści się w oczekiwanym zakresie.
 
+**TODO**: Konfiguracje zworek
+
 W podstawowym przykładzie wykorzystane są dwa wejścia: **`AI1`** jako wejście **napięciowe** i **`AI2`** jako wejście **prądowe**:
 
 ```c
@@ -59,7 +61,7 @@ Różne sterowniki PLC oferują zróżnicowaną liczbę wejść analogowych `AI`
 | :-----------------: | :------------------: | :------------------: | :------------------: |
 | **2**: `AI1`, `AI2` | **4**: `AI1` – `AI4` | **8**: `AI1` – `AI8` | **4**: `AI1` – `AI4` |
 
-### Skalowanie
+### 📏 Skalowanie
 
 W aplikacjach z wejściami i wyjściami analogowymi podłącza się czujniki, przetworniki oraz potencjometry, które mierzą różne wielkości fizyczne, takie jak temperatura, ciśnienie czy prędkość obrotowa. W celu uzyskania właściwych wyników, wartości te należy przeskalować na docelowe jednostki, uwzględniając charakterystykę danego czujnika.
 
@@ -156,7 +158,7 @@ Możesz go szybko uruchomić, bedąc w przestrzeni roboczej, wpisując w konsoli
 make run
 ```
 
-### Extras
+### 🎁 Extras
 
 W sterownikach **OpenCPLC** do wejściowych wartości analogowych zaliczamy wskazania z potencjometrów oraz napięcie zasilania**.
 

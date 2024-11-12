@@ -8,15 +8,15 @@ W świecie technologii, programowanie staje się coraz bardziej złożone _(czę
 
 Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszłości, kiedy programistów było niewiele, a za automatykę brali się elektrycy, zaprojektowanie języka, jakim jest ladder logic **LAD** było strzałem w dziesiątkę, bo wykorzystywało logikę znaną z elektryki. Obecnie sytuacja jest odwrotna, a kod w języku **C** często jest bardziej czytelny dla absolwentów kierunków technicznych niż drzewo logiczne złożone ze styków i cewek. 
 
-Nie zapominajmy, że [język C](https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)) powstał jako język ogólnego przeznaczenia, zatem charakteryzuje się dużą uniwersalnością, szczególnie względem sandbox'ów dostarczanych przez producentów sterowników PLC.
+Nie zapominajmy, że język [**C**](https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)) powstał jako język ogólnego przeznaczenia, zatem charakteryzuje się dużą uniwersalnością, szczególnie względem sandbox'ów dostarczanych przez producentów sterowników PLC.
 
-[⚔️ Porównanie języków LAD, ST, Ansi C na przykładzie systemu **start-stop**](res/ext-code.md)
+⚔️ Porównanie języków LAD, ST, Ansi C na przykładzie systemu [start-stop](res/ext-code.md).
 
 Sterowniki z linii **OpenCPLC** mogą wyróżniać się na rynku dzięki swojej kompatybilności z systemami **24V** i **12V**. Mogą być zasilane tymi napięciami, płynnie sterować nimi na wyjściach oraz odczytywać jako logiczną 1️⃣ na wejściach. Dzięki temu można je stosować zarówno w automatyce, gdzie standardem jest **24VDC**, jak i w maszynach przemysłowych używających **12VDC**. Co więcej, wejścia cyfrowe radzą sobie nawet z napięciami do **400VAC**, co daje sporą elastyczność w projektowaniu systemów.
 
 Każdy sterownik po zakupie jest wstępnie zaprogramowany jako moduł rozszerzeń, gotowy do współpracy z zewnętrznym sterownikiem lub komputerem. Oczywiście, każdą płytkę można przeprogramować tak, aby działała jako samodzielny sterownik **PLC**.
 
-To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, zapraszam [tutaj 📜](res/ext-article.md)
+📜 To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [artykół](res/ext-article.md).
 
 ## 🥇 Uno
 
