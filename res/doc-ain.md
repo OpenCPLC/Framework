@@ -1,17 +1,15 @@
 ## 📼 Wejścia analogowe **`AI`**
 
-Wejście analogowe pozwala na pomiar wartości napięcia w zakresie **0-10V**, gdy pole type jest ustawione na `AIN_Type_Volts` _(domyślnie)_, prądu w zakresie **0-20mA**, gdy pole type jest ustawione na `AIN_Type_mAmps`, lub wartość w procentach `AIN_Type_Percent`, gdzie maksynalne wartości prądu i napięcia są skalowane do **100%**. Funkcją, która zwraca nam zmierzoną wartość, jest `AIN_Value`.  
+Wejście analogowe umożliwia pomiar napięcia w zakresie **0-10V** oraz prądu w zakresie **0-20mA**. Zakres prądu można zawęzić do **4-20mA** poprzez ustawienie flagi `mode_4_20mA` na `true`. Do odczytu wskazań z wejść analogowych dostępne są następujące funkcje:
 
+- `AIN_Voltage_V`: zwraca wartość napięcia,
+- `AIN_Current_mA`: zwraca wartość prądu,
+- `AIN_Percent`: przelicza wartość prądu lub napięcia na zakres **0-100%** _(min-max)_,
+- `AIN_Normalized`: przelicza wartość prądu lub napięcia na skalę znormalizowaną **0-1**.
 
-W przykła
+Wszystkie funkcje zwracają zmienną typu float, którą przed przeliczeniem należy sprawdzić za pomocą `AIN_Error` lub `AIN_OK`, aby upewnić się, że wartość mieści się w oczekiwanym zakresie.
 
-
-Różne sterowniki PLC oferują zróżnicowaną liczbę wejść analogowych `AIx`, co przedstawia poniższa tabela:
-
-|         Uno         |         DIO          |         AIO          |         Eco          |
-| :-----------------: | :------------------: | :------------------: | :------------------: |
-| **2**: `AI1`, `AI2` | **4**: `AI1` – `AI4` | **8**: `AI1` – `AI8` | **4**: `AI1` – `AI4` |
-
+W podstawowym przykładzie wykorzystane są dwa wejścia: **`AI1`** jako wejście **napięciowe** i **`AI2`** jako wejście **prądowe**:
 
 ```c
 // Pobieranie wartości wejść analogowych AI
@@ -40,12 +38,6 @@ void loop(void)
       // Obsługa błędu dla prądu poza spodziewanym zakresem
       // LOG z poziomem AIN_LOG_LEVEL będzie generowany automatycznie
     }
-    // Odczyt wartości potencjometru
-    float value = POT_Percent(&POT);
-    LOG_Info("Potentiometer value: %f%%", value);
-    // Odczyt napięcia zasilania
-    float supply = VCC_Voltage_V();
-    LOG_Info("Power supply: %fV", supply);
     // Pomiary wykonywane co ok. 1s
     delay(1000);
   }
@@ -61,11 +53,23 @@ Możesz go szybko uruchomić, bedąc w przestrzeni roboczej, wpisując w konsoli
 make run
 ```
 
+Różne sterowniki PLC oferują zróżnicowaną liczbę wejść analogowych `AI`, co przedstawia poniższa tabela:
+
+|         Uno         |         DIO          |         AIO          |         Eco          |
+| :-----------------: | :------------------: | :------------------: | :------------------: |
+| **2**: `AI1`, `AI2` | **4**: `AI1` – `AI4` | **8**: `AI1` – `AI8` | **4**: `AI1` – `AI4` |
+
 ### Skalowanie
 
-W przykładzie pobierana jest wartość prądu, sprawdzane jest, czy nie jest ona mniejsza niż **2mA**, co wskazywałoby na brak podpiętego czujnika, a następnie prąd jest przeliczany na temperaturę.
+W aplikacjach z wejściami i wyjściami analogowymi podłącza się czujniki, przetworniki oraz potencjometry, które mierzą różne wielkości fizyczne, takie jak temperatura, ciśnienie czy prędkość obrotowa. W celu uzyskania właściwych wyników, wartości te należy przeskalować na docelowe jednostki, uwzględniając charakterystykę danego czujnika.
 
-Wersja 1. Podejście `Linear function`
+#### Math-Style
+
+Metoda _Math-Style_ polega na traktowaniu przetwarzanych wartości jako funkcji liniowej, dla której można obliczyć parametry `a` i `b`. Te parametry są następnie wykorzystywane do konwersji zmierzonych wartości na docelową jednostkę _(np. temperaturę)_. Funkcja liniowa przekształca prąd w zakresie 4-20mA na temperaturę, zgodnie z równaniem:
+
+$$ temperatura = a × prąd + b $$
+
+W przykładzie poniżej wartości `a`, jako `PARAM_A` i `b`, jako `PARAM_B` zostały wyliczone w odniesieniu do minimalnej i maksymalnej temperatury.
 
 ```c
 // Definicja zakresu temperatury
@@ -90,7 +94,7 @@ static float getTemperature(void)
   // Obliczenie temperatury z funkcji liniowej
   float temperature = (PARAM_A * current_mA) + PARAM_B;
   // Informacja o zmierzonej temperaturze
-  LOG_Info("Temperature: %f°C", current_mA);
+  LOG_Info("Temperature: %f°C", temperature);
   return temperature;
 }
 
@@ -106,15 +110,15 @@ static void scaleMathStyle(void)
 }
 ```
 
-Wersja 2. Podejście `PLC style`
+#### PLC-Style
+
+W metodzie PLC-Style wartości są najpierw **normalizowane** do zakresu **0-1**, a następnie przeskalowane do oczekiwanego przedziału. Takie podejście jest często stosowane w programowalnych sterownikach logicznych _(PLC)_, gdzie po przetworzeniu i normalizacji można łatwo przeliczyć wynik na docelowe jednostki. Na przykład, prąd w zakresie `4-20mA` jest najpierw normalizowany do wartości **0-1**, a następnie przeskalowany na określony zakres temperatury.
 
 ```c
 // Definicja zakresu temperatury
 #define TEMPERATURE_MIN  -60.0 // Minimalna temperatura [°C]
 #define TEMPERATURE_MAX 100.0 // Maksymalna temperatura
 // Definicja zakresu prądu wejściowego
-#define INPUT_MIN 4.0 // Minimalny  prąd [mA] dla wejścia analogowego
-#define INPUT_MAX 20.0 // Maksymalny prąd [mA] dla wejścia analogowego
 #define ERROR_VAL (float)0xFFFF // Wartość zwracana w przypadku błędu
 
 // Mapowanie AI1 na nazwę AI_Temperature z użyciem definicji
@@ -126,13 +130,12 @@ static void scalePLCStyle(void)
   float temperature;
   AI_Temperature.mode_4_20mA = true; // Ustawienie trybu 4-20mA dla AI
   while(1) {
-    float current_mA = AIN_Current_mA(&AI_Temperature); // Pobierz aktualny prąd z AI
-    if(AIN_OK(current_mA)) { // Sprawdzenie, czy pomiar jest prawidłowy
-      // Normalizacja prądu do skali 0-1
-      float normalized_current = (current_mA - INPUT_MIN) / (INPUT_MAX - INPUT_MIN);
+    // Pobierz znormalizowaną wartość prądu [0-1]
+    float normalized_current = AIN_Normalized(&AI_Temperature);
+    if(AIN_OK(normalized_current)) { // Sprawdzenie, czy pomiar jest prawidłowy
       // Przeskalowanie do temperatury
-      temperature = TEMPERATURE_MIN + normalized_current * (TEMPERATURE_MAX - TEMPERATURE_MIN);
-      LOG_Info("Temperature: %f°C", current_mA); // Logowanie zmierzonej temperatury
+      temperature = normalized_current * (TEMPERATURE_MAX - TEMPERATURE_MIN) + TEMPERATURE_MIN;
+      LOG_Info("Temperature: %f°C", temperature); // Logowanie zmierzonej temperatury
     }
     else {
       temperature = ERROR_VAL; // Wartość w przypadku błędu pomiaru
@@ -159,7 +162,7 @@ W sterownikach **OpenCPLC** do wejściowych wartości analogowych zaliczamy wska
 
 **Potencjometry** są ciekawym sposobem regulacji parametrów ciągłych wpływających na działanie maszyny lub systemu. Szczególnie sprawdzają się w małych projektach, gdzie wygodniej jest użyć śrubokrętu do odpowiedniego przekręcenia potencjometru w lewo lub w prawo, niż korzystać z komputera z odpowiednim interfejsem.
 
-W różnych sterownikch są różne wartości 
+W różnych sterownikch są różne wartości
 
 |     Uno      |              DIO              |  AIO  |          Eco           |
 | :----------: | :---------------------------: | :---: | :--------------------: |
@@ -168,15 +171,7 @@ W różnych sterownikch są różne wartości
 
 Monitorowanie **napięcia zasilania** jest istotne w systemach, gdzie może ono być niestabilne lub pochodzić z różnych źródeł o różnej wartości nominalnej. Znając napięcie zasilania, aplikacja może reagować na zbyt niskie, zbyt wysokie lub niestabilne napięcie, unikając wykonywania operacji obarczonych ryzykiem w takich warunkach.
 
-
-
-
-mniejszych projektach najprostszą metodą 
-
-
-
-
-, które możemy wykorzystać jako nastawy w aplikacjach. W licznych mniejszych projektach najprostszą metodą regulacji parametrów wpływających na działanie maszyny jest użycie śrubokrętu do odpowiedniego przekręcenia potencjometru w lewo lub w prawo.
+W przykładzie odczytywana jest wartość z potencjometru **`POT1`** oraz napięcie zasilania sterownika:
 
 ```c
 // Pobieranie nastaw z potencjometrów POT oraz pamiar napięcia zasilania

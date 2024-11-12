@@ -34,12 +34,6 @@ void loop(void)
       // Obsługa błędu dla prądu poza spodziewanym zakresem
       // LOG z poziomem AIN_LOG_LEVEL będzie generowany automatycznie
     }
-    // Odczyt wartości potencjometru
-    float value = POT_Percent(&POT);
-    LOG_Info("Potentiometer value: %f%%", value);
-    // Odczyt napięcia zasilania
-    float supply = VCC_Voltage_V();
-    LOG_Info("Power supply: %fV", supply);
     // Pomiary wykonywane co ok. 1s
     delay(1000);
   }

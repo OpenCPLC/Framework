@@ -105,6 +105,16 @@ float AIN_Percent(AIN_t *ain)
 }
 
 /**
+ * @brief Zwraca wartość wejścia analogowego 'ain' w postaci znormalizowanej [0-1].
+ * @param ain Wskaźnik na strukturę AIN_t reprezentującą wejście analogowe (AI).
+ * @return Znormalizowana wartość w zakresie [0-1].
+ */
+float AIN_Normalized(AIN_t *ain)
+{
+  return AIN_Percent(ain) / 100;
+}
+
+/**
  * @brief Zwraca napięcie [V] na potencjometrze na podstawie przeliczonej wartości pomiaru ADC.
  * @param ain Wskaźnik na strukturę AIN_t reprezentującą wejście analogowe (AI).
  * @return Napięcie w zakresie [0-3.3V].
@@ -124,4 +134,14 @@ float POT_Percent(AIN_t *ain)
 {
   float volts = POT_Voltage_V(ain);
   return volts * 100 / 3.3;
+}
+
+/**
+ * @brief Zwraca wartość na potencjometrze w postaci znormalizowanej [0-1].
+ * @param ain Wskaźnik na strukturę AIN_t reprezentującą wejście analogowe (AI).
+ * @return Znormalizowana wartość wskazania potencjometru w zakresie [0-1].
+ */
+float POT_Normalized(AIN_t *ain)
+{
+  return POT_Percent(ain) / 100;
 }

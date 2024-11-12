@@ -45,8 +45,10 @@ float AIN_Raw(AIN_t *ain);; // Zwraca surową wartość z ADC
 float AIN_Voltage_V(AIN_t *ain); // Zwraca napięcie [V] na wejściu analogowym
 float AIN_Current_mA(AIN_t *ain); // Zwraca prąd [mA] na wejściu analogowym
 float AIN_Percent(AIN_t *ain); // Zwraca wartość w procentach [0-100%] na wejściu analogowym
+float AIN_Normalized(AIN_t *ain); // Zwraca wartość znormalizowaną [0-1] na wejściu analogowym
 float POT_Voltage_V(AIN_t *ain); // Zwraca napięcie [V] na potencjometrze
 float POT_Percent(AIN_t *ain); // Zwraca wartość w procentach [0-100%] na potencjometrze
+float POT_Normalized(AIN_t *ain); // Zwraca wartość znormalizowaną [0-1] na potencjometrze
 
 //-------------------------------------------------------------------------------------------------
 #endif

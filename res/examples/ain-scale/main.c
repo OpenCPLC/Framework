@@ -32,7 +32,7 @@ static float getTemperature(void)
   // Obliczenie temperatury z funkcji liniowej
   float temperature = (PARAM_A * current_mA) + PARAM_B;
   // Informacja o zmierzonej temperaturze
-  LOG_Info("Temperature: %f°C", current_mA);
+  LOG_Info("Temperature: %f°C", temperature);
   return temperature;
 }
 
@@ -53,8 +53,6 @@ static void scaleMathStyle(void)
 #define TEMPERATURE_MIN  -60.0 // Minimalna temperatura [°C]
 #define TEMPERATURE_MAX 100.0 // Maksymalna temperatura
 // Definicja zakresu prądu wejściowego
-#define INPUT_MIN 4.0 // Minimalny  prąd [mA] dla wejścia analogowego
-#define INPUT_MAX 20.0 // Maksymalny prąd [mA] dla wejścia analogowego
 #define ERROR_VAL (float)0xFFFF // Wartość zwracana w przypadku błędu
 
 // Mapowanie AI1 na nazwę AI_Temperature z użyciem definicji
@@ -66,13 +64,12 @@ static void scalePLCStyle(void)
   float temperature;
   AI_Temperature.mode_4_20mA = true; // Ustawienie trybu 4-20mA dla AI
   while(1) {
-    float current_mA = AIN_Current_mA(&AI_Temperature); // Pobierz aktualny prąd z AI
-    if(AIN_OK(current_mA)) { // Sprawdzenie, czy pomiar jest prawidłowy
-      // Normalizacja prądu do skali 0-1
-      float normalized_current = (current_mA - INPUT_MIN) / (INPUT_MAX - INPUT_MIN);
+    // Pobierz znormalizowaną wartość prądu [0-1]
+    float normalized_current = AIN_Normalized(&AI_Temperature);
+    if(AIN_OK(normalized_current)) { // Sprawdzenie, czy pomiar jest prawidłowy
       // Przeskalowanie do temperatury
-      temperature = TEMPERATURE_MIN + normalized_current * (TEMPERATURE_MAX - TEMPERATURE_MIN);
-      LOG_Info("Temperature: %f°C", current_mA); // Logowanie zmierzonej temperatury
+      temperature = normalized_current * (TEMPERATURE_MAX - TEMPERATURE_MIN) + TEMPERATURE_MIN;
+      LOG_Info("Temperature: %f°C", temperature); // Logowanie zmierzonej temperatury
     }
     else {
       temperature = ERROR_VAL; // Wartość w przypadku błędu pomiaru
