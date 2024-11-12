@@ -11,7 +11,7 @@ Po wyczyszczeniu upamięci do zera
 
 Przykłady mają stały schemat i wyglądają następująco ⤵️
 
-🚀 Kompletny przykład: **_"Nazwa Przykładu"_**
+🧩 Kompletny przykład: **_"Nazwa Przykładu"_**
 
 Możesz go szybko uruchomić, bedąc w przestrzeni roboczej, wpisując w konsoli:
 

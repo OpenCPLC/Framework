@@ -1,4 +1,4 @@
-## 📼 Wejścia analogowe **`AI`**
+## 🎛️ Wejścia analogowe **`AI`**
 
 Wejście analogowe umożliwia pomiar napięcia w zakresie **0-10V** oraz prądu w zakresie **0-20mA**. Zakres prądu można zawęzić do **4-20mA** poprzez ustawienie flagi `mode_4_20mA` na `true`. Do odczytu wskazań z wejść analogowych dostępne są następujące funkcje:
 
@@ -44,7 +44,7 @@ void loop(void)
 }
 ```
 
-🚀 Kompletny przykład: [Wejścia analogowe AI](./examples/ain-basic/main.c)
+🧩 Kompletny przykład: [Wejścia analogowe AI](./examples/ain-basic/main.c)
 
 Możesz go szybko uruchomić, bedąc w przestrzeni roboczej, wpisując w konsoli:
 
@@ -55,7 +55,7 @@ make run
 
 Różne sterowniki PLC oferują zróżnicowaną liczbę wejść analogowych `AI`, co przedstawia poniższa tabela:
 
-|         Uno         |         DIO          |         AIO          |         Eco          |
+|         Uno         |         DIO          |       🎚️AIO          |         Eco          |
 | :-----------------: | :------------------: | :------------------: | :------------------: |
 | **2**: `AI1`, `AI2` | **4**: `AI1` – `AI4` | **8**: `AI1` – `AI8` | **4**: `AI1` – `AI4` |
 
@@ -147,7 +147,7 @@ static void scalePLCStyle(void)
 }
 ```
 
-🚀 Kompletny przykład: [Skalowanie wejść analogowych AI](./examples/ain-scale/main.c)
+🧩 Kompletny przykład: [Skalowanie wejść analogowych AI](./examples/ain-scale/main.c)
 
 Możesz go szybko uruchomić, bedąc w przestrzeni roboczej, wpisując w konsoli:
 
@@ -190,7 +190,7 @@ void loop(void)
 }
 ```
 
-🚀 Kompletny przykład: [Obsługa potencjometru i pomiar napięcia zasilania](./examples/ain-extras/main.c)
+🧩 Kompletny przykład: [Obsługa potencjometru i pomiar napięcia zasilania](./examples/ain-extras/main.c)
 
 Możesz go szybko uruchomić, bedąc w przestrzeni roboczej, wpisując w konsoli:
 
