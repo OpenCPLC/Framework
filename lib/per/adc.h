@@ -20,7 +20,8 @@
 #define resistor_divider_factor(vcc, up, down, resolution) \
   ((float)vcc * ((float)up + down) / down / ((1 << resolution) - 1))
 
-#define volts_factor(vcc, resolution) ((float)vcc / (float)((1 << resolution) - 1))
+#define volts_factor(vcc, resolution) \
+  ((float)vcc / (float)((1 << resolution) - 1))
 
 //-------------------------------------------------------------------------------------------------
 
@@ -75,19 +76,19 @@ typedef enum {
 } ADC_SamplingTime_e;
 
 typedef enum {
-  ADC_Prescaler_1 = 0,
-  ADC_Prescaler_2 = 1,
-  ADC_Prescaler_4 = 2,
-  ADC_Prescaler_6 = 3,
-  ADC_Prescaler_8 = 4,
-  ADC_Prescaler_10 = 5,
-  ADC_Prescaler_12 = 6,
-  ADC_Prescaler_16 = 7,
-  ADC_Prescaler_32 = 8,
-  ADC_Prescaler_64 = 9,
-  ADC_Prescaler_128 = 10,
-  ADC_Prescaler_256 = 11
-} ADC_Prescaler_e;
+  ADC_Frequency_16MHz = 0,  // Prescaler:1
+  ADC_Frequency_8Mhz = 1, // Prescaler:2
+  ADC_Frequency_4Mhz = 2, // Prescaler:4
+  ADC_Frequency_2_7MHz = 3, // Prescaler:6
+  ADC_Frequency_2Mhz = 4, // Prescaler:8
+  ADC_Frequency_1_6MHz = 5, // Prescaler:10
+  ADC_Frequency_1_3MHz = 6, // Prescaler:12
+  ADC_Frequency_1MHz = 7, // Prescaler:16
+  ADC_Frequency_500kHz = 8, // Prescaler:32
+  ADC_Frequency_250kHz = 9, // Prescaler:64
+  ADC_Frequency_125kHz = 10, // Prescaler:128
+  ADC_Frequency_62_5kHz = 11 // Prescaler:256
+} ADC_Frequency_e;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -121,7 +122,7 @@ typedef struct {
 
 typedef struct {
   uint8_t interrupt_level;
-  ADC_Prescaler_e prescaler;
+  ADC_Frequency_e frequency;
   ADC_Measurements_t measurements;
   #if(ADC_RECORD)
     ADC_Record_t record;

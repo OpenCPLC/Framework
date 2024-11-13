@@ -83,7 +83,7 @@ bool UART_Idle(UART_t *uart);
 bool UART_IsBusy(UART_t *uart);
 bool UART_IsFree(UART_t *uart);
 
-access_t UART_Send(UART_t *uart, uint8_t *array, uint16_t length);
+state_t UART_Send(UART_t *uart, uint8_t *array, uint16_t length);
 uint16_t UART_ReadSize(UART_t *uart);
 uint16_t UART_ReadArray(UART_t *uart, uint8_t *array);
 char *UART_ReadString(UART_t *uart);

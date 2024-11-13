@@ -171,7 +171,7 @@ bool UART_IsFree(UART_t *uart)
 
 //------------------------------------------------------------------------------------------------- Send
 
-access_t UART_Send(UART_t *uart, uint8_t *data, uint16_t length)
+state_t UART_Send(UART_t *uart, uint8_t *data, uint16_t length)
 {
   if(!uart->_busy_tx) {
     if(uart->gpio_direction) GPIO_Set(uart->gpio_direction);

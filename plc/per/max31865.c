@@ -1,56 +1,37 @@
 #include "max31865.h"
 
-#define MAX31865_RTD_A 3.9083e-3
-#define MAX31865_RTD_B -5.775e-7
+//-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Oblicza temperaturę w stopniach Celsjusza na podstawie
- * rezystancji termometru oporowego RTD za pomocą obliczeń rezystancji.
- * @param raw Wartość 16-bitowa bezpośrednio z rejestru RTD przekształcona na float
- * @param nominal Wartość nominalna rezystancji dla czujnika RTD (100 dla PT100, 1000 dla PT1000)
- * @param reference Wartość referencyjna rezystancji podłączona zewnętrznie
- * @return Wartość temperatury [°C]
+ * @brief Inicjalizuje moduł MAX31865 do pracy z czujnikiem RTD.
+ * @param rtd Wskaźnik do struktury reprezentującej układ MAX31865.
  */
-static float MAX31865_Calc(float raw, float nominal, float reference)
-{
-  float Z1, Z2, Z3, Z4, Rt, temp;
-  Rt = raw;
-  Rt /= 32768;
-  Rt *= reference;
-  Z1 = -MAX31865_RTD_A;
-  Z2 = MAX31865_RTD_A * MAX31865_RTD_A - (4 * MAX31865_RTD_B);
-  Z3 = (4 * MAX31865_RTD_B) / nominal;
-  Z4 = 2 * MAX31865_RTD_B;
-  temp = Z2 + (Z3 * Rt);
-  temp = (sqrt(temp) + Z1) / Z4;
-  if(temp >= 0) return temp;
-  Rt /= nominal;
-  Rt *= 100;
-  float rpoly = Rt;
-  temp = -242.02;
-  temp += 2.2228 * rpoly;
-  rpoly *= Rt;
-  temp += 2.5859e-3 * rpoly;
-  rpoly *= Rt;
-  temp -= 4.8260e-6 * rpoly;
-  rpoly *= Rt;
-  temp -= 2.8183e-8 * rpoly;
-  rpoly *= Rt;
-  temp += 1.5243e-10 * rpoly;
-  return temp;
-}
-
 void MAX31865_Init(MAX31865_t *rtd)
 {
+  if(rtd->cs) {
+    rtd->cs->mode = GPIO_Mode_Output;
+    GPIO_Init(rtd->cs);
+  }
   rtd->ready->mode = GPIO_Mode_Input;
   GPIO_Init(rtd->ready);
-  SPI_Master_Init(rtd->spi);
+  if(!rtd->nominal_ohms) rtd->nominal_ohms = RTD_Type_PT100;
+  if(!rtd->reference_ohms) rtd->reference_ohms = 4 * rtd->nominal_ohms;
 }
 
-static status_t MAX31865_ReadData(MAX31865_t *rtd, uint8_t *buffer)
+static state_t MAX31865_GetData(MAX31865_t *rtd)
 {
-  if(timeout(50, WAIT_&GPIO_In, rtd->ready)) return ERR;
-  SPI_Master_ReadSequence(rtd->spi, MAX31865_Reg_Read_RTD_MSBs, buffer, 2);
+  if(timeout(100, WAIT_&GPIO_In, rtd->ready)) return ERR;
+  SPI_Master_Read(rtd->spi, MAX31865_Reg_Read_RTD_MSBs, rtd->buff, 3);
+  if(timeout(50, WAIT_&SPI_Master_IsFree, rtd->spi)) return ERR;
+  rtd->raw = ((uint16_t)rtd->buff[1] << 7) | (rtd->buff[2] >> 1);
+  return OK;
+}
+
+static state_t MAX31865_SetConfig(MAX31865_t *rtd, uint8_t config)
+{
+  rtd->buff[0] = MAX31865_Reg_Write_Configuration;
+  rtd->buff[1] = config;
+  SPI_Master_Write(rtd->spi, rtd->buff, 2);
   if(timeout(50, WAIT_&SPI_Master_IsFree, rtd->spi)) return ERR;
   return OK;
 }
@@ -59,38 +40,82 @@ static status_t MAX31865_ReadData(MAX31865_t *rtd, uint8_t *buffer)
  * @brief Pętla obsługująca pomiar temperatury za pomocą czujnika RTD.
  * Wykonuje konfigurację, dokonuje pomiarów oraz oblicza temperaturę.
  * @param rtd Wskaźnik do struktury reprezentującej układ MAX31865.
- * @return Status wykonanej operacji.
- * ERR `1` w przypadku niepowodzenia, OK `0` w przypadku powodzenia.
+ * @return Status wykonanej operacji {OK/ERR/BUSY}
 */
-status_t MAX31865_Loop(MAX31865_t *rtd)
+state_t MAX31865_Loop(MAX31865_t *rtd)
 {
-  if(SPI_Master_IsBusy(rtd->spi)) return ERR;
-  uint8_t buffer[2];
-  float raw;
-  bool auto_conversion = !rtd->oversampling;
-  buffer[0] = MAX31865_Reg_Write_Configuration;
-  buffer[1] = MAX31865_CFG_BIAS | (auto_conversion << 6) | (rtd->wire << 4) | MAX31865_CFG_FSCLR | rtd->reject;
-  SPI_Master_Write(rtd->spi, buffer, 2);
-  if(timeout(50, WAIT_&SPI_Master_IsFree, rtd->spi)) return ERR;
-  delay(15);
+  delay_until(&rtd->tick);
+  if(rtd->cs) rtd->spi->cs_gpio = rtd->cs;
+  uint8_t cfg = (rtd->wire << 4) | rtd->reject;
+  if(SPI_Master_IsBusy(rtd->spi)) return BUSY;
+  if(MAX31865_SetConfig(rtd, MAX31865_CFG_BIAS | cfg)) return ERR;
+  delay(10);
   if(rtd->oversampling) {
-    raw = 0;
-    for(uint8_t i = 0; i < rtd->oversampling; i++) {
-      if(MAX31865_ReadData(rtd, buffer)) return ERR;
-      raw += (float)(((uint16_t)buffer[0] << 8) | buffer[1]);
+    if(MAX31865_SetConfig(rtd, MAX31865_CFG_BIAS | MAX31865_CFG_AUTO | cfg)) return ERR;
+    float value = 0;
+    for(uint16_t n = 0; n < rtd->oversampling; n++) {
+      if(MAX31865_GetData(rtd)) return ERR;
+      value += (float)rtd->raw;
     }
+    rtd->raw_float = value / rtd->oversampling;
   }
   else {
-    buffer[0] = MAX31865_Reg_Write_Configuration;
-    buffer[1] = MAX31865_CFG_BIAS | MAX31865_CFG_SHOT | (rtd->wire << 4) | rtd->reject;
-    SPI_Master_Write(rtd->spi, buffer, 2);
-    if(timeout(50, WAIT_&SPI_Master_IsFree, rtd->spi)) return ERR;
-    if(MAX31865_ReadData(rtd, buffer)) return ERR;
-    raw = (float)(((uint16_t)buffer[0] << 8) | buffer[1]);
+    if(MAX31865_SetConfig(rtd, MAX31865_CFG_BIAS | MAX31865_CFG_SHOT | cfg)) return ERR;
+    if(MAX31865_GetData(rtd)) return ERR;
+    rtd->raw_float = (float)rtd->raw;
   }
-  if(rtd->type == MAX31865_Type_PT100) rtd->temperature = MAX31865_Calc(raw, 100, 400);
-  else rtd->temperature = MAX31865_Calc(raw, 1000, 4000);
-  buffer[0] = MAX31865_Reg_Write_Configuration;
-  buffer[1] = (rtd->wire << 4) | MAX31865_CFG_FSCLR | rtd->reject;
+  // Read Errors
+  if(MAX31865_SetConfig(rtd, MAX31865_CFG_FSCLR | cfg)) return ERR;
+  LOG_Debug("MAX31865 %s raw value: %.2f", rtd->name, rtd->raw_float);
+  rtd->tick = gettick(rtd->interval_ms);
   return OK;
 }
+
+//-------------------------------------------------------------------------------------------------
+
+#define MAX31865_A 3.9083e-3
+#define MAX31865_B -5.775e-7
+#define MAX31865_Z1 (-MAX31865_A)
+#define MAX31865_Z2 (MAX31865_A * MAX31865_A - (4 * MAX31865_B))
+
+/**
+ * @brief Oblicza rezystancję [Ω] na podstawie surowej wartości pomiarowej.
+ * @param rtd Wskaźnik do struktury MAX31865_t zawierającej konfigurację czujnika RTD
+ * @return Wartość rezystancji [Ω] czujnika RTD.
+ */
+float RTD_Resistance_Ohm(MAX31865_t *rtd)
+{
+  return rtd->raw_float * rtd->reference_ohms / 32768;
+}
+
+/**
+ * @brief Oblicza temperaturę w stopniach Celsjusza [°C] na podstawie
+ * rezystancji termometru oporowego RTD za pomocą obliczeń rezystancji.
+ * @param rtd Wskaźnik do struktury MAX31865_t zawierającej konfigurację czujnika RTD
+ * @return Wartość temperatury [°C]
+ */
+float RTD_Temperature_C(MAX31865_t *rtd)
+{
+  float ohms = RTD_Resistance_Ohm(rtd);
+  float z3 = (4 * MAX31865_B) / rtd->nominal_ohms;
+  float z4 = 2 * MAX31865_B;
+  float temp = MAX31865_Z2 + (z3 * ohms);
+  temp = (sqrt(temp) + MAX31865_Z1) / z4;
+  if(temp >= 0) return temp;
+  ohms /= rtd->nominal_ohms;
+  ohms *= 100;
+  float x = ohms;
+  temp = -242.02;
+  temp += 2.2228 * x;
+  x *= ohms;
+  temp += 2.5859e-3 * x;
+  x *= ohms;
+  temp -= 4.8260e-6 * x;
+  x *= ohms;
+  temp -= 2.8183e-8 * x;
+  x *= ohms;
+  temp += 1.5243e-10 * x;
+  return temp;
+}
+
+//-------------------------------------------------------------------------------------------------

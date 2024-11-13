@@ -111,7 +111,7 @@ uint16_t ain_buffer[AIN_BUFFER_SIZE];
 uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
-  .prescaler = ADC_Prescaler_1,
+  .frequency = ADC_Frequency_16MHz,
   .interrupt_level = 3,
   .record = {
     .channels = ain_channels,
@@ -408,43 +408,36 @@ GPIO_t rtd_gpio_cs = { .port = GPIOB, .pin = 12, .reverse = true };
 
 SPI_Master_t rtd_spi = {
   .spi_typedef = SPI2,
-  .tx_dma_channel = 2,
-  .rx_dma_channel = 3,
-  .interrupt_level = 2,
+  .tx_dma_channel = DMA_Channel_2,
+  .rx_dma_channel = DMA_Channel_3,
+  .interrupt_level = INT_Level_Medium,
   .miso_pin = SPI2_MISO_PB14,
   .mosi_pin = SPI2_MOSI_PB15,
   .sck_pin = SPI2_SCK_PB13,
   .cs_gpio = &rtd_gpio_cs,
-  .cs_delay = 10,
-  .prescaler = SPI_PS_16,
+  .cs_delay_ms = 10,
+  .prescaler = SPI_Prescaler_32,
   .cpol = true,
   .cpha = true
 };
 
-//------------------------------------------------------------------------------------------------- MAX31865
-
 MAX31865_t RTD = {
+  .name = "RTD",
   .spi = &rtd_spi,
   .ready = &rtd_gpio_drdy,
-  .type = MAX31865_Type_PT100,
-  .wire = MAX31865_Wire_3,
-  .reject = MAX31865_Reject_60Hz
+  .nominal_ohms = RTD_Type_PT100,
+  .wire = RTD_Wire_3,
+  .reject = RTD_Reject_60Hz
 };
 
-//------------------------------------------------------------------------------------------------- Functions RTD
-
-void RTD_Main(void)
+void RTD_Thread(void)
 {
+  SPI_Master_Init(&rtd_spi);
   MAX31865_Init(&RTD);
   while(1) {
     MAX31865_Loop(&RTD);
     let();
   }
-}
-
-float RTD_Temperature(void)
-{
-  return RTD.temperature;
 }
 
 //-------------------------------------------------------------------------------------------------

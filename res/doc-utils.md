@@ -1,24 +1,24 @@
 # 🧰 Utils [➥](../readme.md)
 
-## 🔄 Reset
+### 🔄 Reset
 
-## 🪪 Unikatowy identyfikator `UID`
-
-
-
-
-## 📇 Files
+### 🪪 Unikatowy identyfikator `UID`
 
 
 
 
-## 🔎 Suma kontrolna CRC
+### 📇 Files
 
-## 🎲 Losowanie RNG
+
+
+
+### 🔎 Suma kontrolna CRC
+
+### 🎲 Losowanie RNG
 
  
 
-## 💾 Pamięć EEPROM
+### 💾 Pamięć EEPROM
 
 Popularnym sposobem przechowywania zmiennych, których wartości zostają zachowane po resecie urządzenia lub utracie zasilania, jest pamięć **EEPROM**. Najprostszą metodą jest użycie domyślnego kontrolera tej pamięci do zapisu oraz wczytywania zmiennych podczas inicjalizacji programu lub w momencie, kiedy będą one potrzebne.
 

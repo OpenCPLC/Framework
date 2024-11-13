@@ -373,7 +373,7 @@ int32_t FILE_Clear(FILE_t *file)
   return size;
 }
 
-status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
+state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
 {
   if(file_to->mutex) return ERR;
   else if(file_to->size > file_from->limit) return ERR;
@@ -382,7 +382,7 @@ status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
   return OK;
 }
 
-status_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
+state_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
 {
   if(file->mutex) return ERR;
   else if(size > file->limit) return ERR;
@@ -391,7 +391,7 @@ status_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
   return OK;
 }
 
-status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
+state_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
 {
   if(file->mutex) return ERR;
   if(size + file->size > file->limit) return ERR;
@@ -402,7 +402,7 @@ status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
 
 //------------------------------------------------------------------------------------------------- Access
 
-status_t FILE_Access_Get(FILE_t *file)
+state_t FILE_Access_Get(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->mutex = true;
@@ -414,7 +414,7 @@ void FILE_Access_Allow(FILE_t *file)
   if(file) file->mutex = false;
 }
 
-status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
+state_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
 {
   if(FILE_Access_Get(primary)) return ERR;
   if(secondary && secondary != primary) {
@@ -428,7 +428,7 @@ status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
 
 //------------------------------------------------------------------------------------------------- Flash
 
-status_t FILE_Flash_Save(FILE_t *file)
+state_t FILE_Flash_Save(FILE_t *file)
 {
   if(!file->flash_page) return ERR;
   if(FLASH_Compare(file->flash_page, file->buffer, file->size)) {
@@ -440,7 +440,7 @@ status_t FILE_Flash_Save(FILE_t *file)
   return OK;
 }
 
-status_t FILE_Flash_Load(FILE_t *file)
+state_t FILE_Flash_Load(FILE_t *file)
 {
   if(file->mutex) return ERR;
   else if(!file->flash_page) return ERR;
@@ -501,7 +501,7 @@ int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count)
 
 //------------------------------------------------------------------------------------------------- Offset
 
-status_t FILE_Offset_Drop(FILE_t *file)
+state_t FILE_Offset_Drop(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->buffer -= file->_offset;
@@ -511,7 +511,7 @@ status_t FILE_Offset_Drop(FILE_t *file)
   return OK;
 }
 
-status_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
+state_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
 {
   if(FILE_Offset_Drop(file)) return ERR;
   if(offset > file->limit) return ERR;

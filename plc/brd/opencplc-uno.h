@@ -92,8 +92,8 @@ void PLC_Thread(void);
 
 // PT100/PT1000
 extern MAX31865_t RTD;
-void RTD_Main(void);
-float RTD_Temperature(void);
+#define RTD1 RTD
+void RTD_Thread(void);
 
 //-------------------------------------------------------------------------------------------------
 #endif

@@ -180,7 +180,7 @@ void ADC_Init(ADC_t *adc)
     ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
     INT_EnableDMA(adc->record.dma_channel, adc->interrupt_level, (void (*)(void *))&ADC_InterruptDMA, adc);
   #endif
-  ADC->CCR |= (adc->prescaler << ADC_CCR_PRESC_Pos);
+  ADC->CCR |= (adc->frequency << ADC_CCR_PRESC_Pos);
   uint32_t chselr = 0;
   ADC_InitGPIO(&chselr, adc->measurements.channels, adc->measurements.count);
   #if(ADC_RECORD)

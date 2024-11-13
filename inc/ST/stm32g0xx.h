@@ -27,17 +27,16 @@
   /* #define STM32G041xx */   /*!< STM32G041xx Devices */
 #endif
 
-/**
-  * @brief CMSIS Device version number $VERSION$
-  */
-#define __STM32G0_CMSIS_VERSION_MAIN   (0x01U) /*!< [31:24] main version */
-#define __STM32G0_CMSIS_VERSION_SUB1   (0x04U) /*!< [23:16] sub1 version */
-#define __STM32G0_CMSIS_VERSION_SUB2   (0x04U) /*!< [15:8]  sub2 version */
-#define __STM32G0_CMSIS_VERSION_RC     (0x00U) /*!< [7:0]  release candidate */
-#define __STM32G0_CMSIS_VERSION        ((__STM32G0_CMSIS_VERSION_MAIN << 24)\
-                                       |(__STM32G0_CMSIS_VERSION_SUB1 << 16)\
-                                       |(__STM32G0_CMSIS_VERSION_SUB2 << 8 )\
-                                       |(__STM32G0_CMSIS_VERSION_RC))
+// CMSIS Device version number
+#define __STM32G0_CMSIS_VERSION_MAIN   (0x01U) // [31:24] main version
+#define __STM32G0_CMSIS_VERSION_SUB1   (0x04U) // [23:16] sub1 version
+#define __STM32G0_CMSIS_VERSION_SUB2   (0x04U) // [15:8]  sub2 version
+#define __STM32G0_CMSIS_VERSION_RC     (0x00U) // [7:0]  release candidate
+#define __STM32G0_CMSIS_VERSION \
+  ((__STM32G0_CMSIS_VERSION_MAIN << 24) \
+  |(__STM32G0_CMSIS_VERSION_SUB1 << 16) \
+  |(__STM32G0_CMSIS_VERSION_SUB2 << 8 ) \
+  |(__STM32G0_CMSIS_VERSION_RC))
 
 #if defined(STM32G0B1xx)
   #include "stm32g0b1xx.h"
@@ -68,48 +67,32 @@
 #endif
 
 typedef enum {
-  RESET = 0,
-  SET = !RESET
-} FlagStatus, ITStatus;
-
-typedef enum {
-  DISABLE = 0,
-  ENABLE = !DISABLE
-} FunctionalState;
-#define IS_FUNCTIONAL_STATE(STATE) (((STATE) == DISABLE) || ((STATE) == ENABLE))
-
-typedef enum {
-  SUCCESS = 0,
-  ERROR = !SUCCESS
-} ErrorStatus;
-
-typedef enum {
-  FREE = 0,
-  IDLE = FREE,
-  BUSY = !FREE
-} access_t;
-
-typedef enum {
   OK = 0,
-  ERR = !OK
-} status_t;
+  FREE = 0,
+  IDLE = 0,
+  BUSY = 1,
+  ERR = -1,
+} state_t;
 
-/** @addtogroup Exported_macros
-  * @{
-  */
-#define SET_BIT(REG, BIT)     ((REG) |= (BIT))
+typedef enum {
+  DMA_Channel_1 = 1,
+  DMA_Channel_2 = 2,
+  DMA_Channel_3 = 3,
+  DMA_Channel_4 = 4,
+  DMA_Channel_5 = 5,
+  DMA_Channel_6 = 6,
+  DMA_Channel_7 = 7
+} DMA_Channel_e;
 
-#define CLEAR_BIT(REG, BIT)   ((REG) &= ~(BIT))
-
-#define READ_BIT(REG, BIT)    ((REG) & (BIT))
-
-#define CLEAR_REG(REG)        ((REG) = (0x0))
-
-#define WRITE_REG(REG, VAL)   ((REG) = (VAL))
-
-#define READ_REG(REG)         ((REG))
-
-#define MODIFY_REG(REG, CLEARMASK, SETMASK)  WRITE_REG((REG), (((READ_REG(REG)) & (~(CLEARMASK))) | (SETMASK)))
+// Exported macros
+#define SET_BIT(REG, BIT)   ((REG) |= (BIT))
+#define CLEAR_BIT(REG, BIT) ((REG) &= ~(BIT))
+#define READ_BIT(REG, BIT)  ((REG) & (BIT))
+#define CLEAR_REG(REG)      ((REG) = (0x0))
+#define WRITE_REG(REG, VAL) ((REG) = (VAL))
+#define READ_REG(REG)       ((REG))
+#define MODIFY_REG(REG, CLEARMASK, SETMASK) \
+  WRITE_REG((REG), (((READ_REG(REG)) & (~(CLEARMASK))) | (SETMASK)))
 
 /* Use of interrupt control for register exclusive access */
 /* Atomic 32-bit register access macro to set one or several bits */

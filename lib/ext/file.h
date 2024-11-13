@@ -62,22 +62,22 @@ int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm);
 void FILE_Print(FILE_t *file, const char *format, va_list args);
 
 int32_t FILE_Clear(FILE_t *file);
-status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from);
-status_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size);
-status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size);
-status_t FILE_Access_Get(FILE_t *file);
+state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from);
+state_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size);
+state_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size);
+state_t FILE_Access_Get(FILE_t *file);
 void FILE_Access_Allow(FILE_t *file);
-status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary);
-status_t FILE_Flash_Save(FILE_t *file);
-status_t FILE_Flash_Load(FILE_t *file);
+state_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary);
+state_t FILE_Flash_Save(FILE_t *file);
+state_t FILE_Flash_Load(FILE_t *file);
 
 int32_t FILE_Struct_Add(FILE_t *file, uint8_t *object);
 uint16_t FILE_Struct_GetCount(FILE_t *file);
 uint16_t FILE_Struct_GetFreeSpace(FILE_t *file, uint16_t margin);
 int32_t FILE_Struct_Move(FILE_t *file, uint16_t count);
 int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count);
-status_t FILE_Offset_Drop(FILE_t *file);
-status_t FILE_Offset_Set(FILE_t *file, uint16_t offset);
+state_t FILE_Offset_Drop(FILE_t *file);
+state_t FILE_Offset_Set(FILE_t *file, uint16_t offset);
 
 int32_t FILE_Crc_Append(FILE_t *file, const CRC_t *crc);
 bool FILE_Crc_IsError(FILE_t *file, const CRC_t *crc);

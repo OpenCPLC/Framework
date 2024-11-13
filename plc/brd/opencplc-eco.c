@@ -129,7 +129,7 @@ uint16_t ain_buffer[AIN_BUFFER_SIZE];
 uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
-  .prescaler = ADC_Prescaler_1,
+  .frequency = ADC_Frequency_16MHz,
   .interrupt_level = 3,
   .record = {
     .channels = ain_channels,

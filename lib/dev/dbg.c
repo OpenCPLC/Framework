@@ -183,10 +183,7 @@ static void LOG_ArgsDebug(const char *message, va_list args)
     #else
       DBG_String(" DBUG: ");
     #endif
-    va_list args;
-    va_start(args, message);
     FILE_Print(dbg.file, message, args);
-    va_end(args);
     DBG_Enter();
   #endif
 }

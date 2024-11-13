@@ -6,6 +6,17 @@
 //-------------------------------------------------------------------------------------------------
 
 typedef enum {
+	SPI_Prescaler_2 = 0,
+	SPI_Prescaler_4 = 1,
+	SPI_Prescaler_8 = 2,
+	SPI_Prescaler_16 = 3,
+	SPI_Prescaler_32 = 4,
+	SPI_Prescaler_64 = 5,
+	SPI_Prescaler_128 = 6,
+	SPI_Prescaler_256 = 7,
+} SPI_Prescaler_e;
+
+typedef enum {
   SPI1_MISO_Free, SPI1_MISO_PA6, SPI1_MISO_PA11, SPI1_MISO_PB4, SPI1_MISO_PD5,
   SPI2_MISO_PA3, SPI2_MISO_PA9, SPI2_MISO_PB2, SPI2_MISO_PB6, SPI2_MISO_PB14, SPI2_MISO_PC2, SPI2_MISO_PD3
 } SPI_MISO_e;
