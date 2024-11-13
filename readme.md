@@ -26,8 +26,6 @@ Pierwszy sterownik z linii **OpenCPLC** jakim jest **Uno** ma cechować się wsz
 | -------------------------------- | -------------------------------- |
 | ![Face](res/images/uno-face.png) | ![View](res/images/uno-view.png) |
 
-
-
 - System nawadniania/naświetlania roślin
 - Regulator temperatury/natlenienia w akwarium
 - Automatyczne drzwi
