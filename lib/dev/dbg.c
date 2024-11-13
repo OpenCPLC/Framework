@@ -174,87 +174,104 @@ void LOG_Init(const char *board)
   #endif
 }
 
-void LOG_Debug(const char *message, ...)
+static void LOG_ArgsDebug(const char *message, va_list args)
 {
-  #if(LOG_LEVEL <= LEG_Level_Debug)
+  #if(LOG_LEVEL <= LOG_LEVEL_DBUG)
     LOG_Datetime();
     #if(LOG_COLORS)
       DBG_String(" \e[92mDBUG:\e[0m ");
     #else
       DBG_String(" DBUG: ");
     #endif
-    va_list args;
-    va_start(args, message);
-    print(message, args);
-    va_end(args);
+    FILE_Print(dbg.file, message, args);
     DBG_Enter();
   #endif
 }
 
-void LOG_Info(const char *message, ...)
+void LOG_Debug(const char *message, ...)
 {
-  #if(LOG_LEVEL <= LEG_Level_Info)
+  va_list args;
+  va_start(args, message);
+  LOG_ArgsDebug(message, args);
+  va_end(args);
+}
+
+static void LOG_ArgsInfo(const char *message, va_list args)
+{
+  #if(LOG_LEVEL <= LOG_LEVEL_INFO)
     LOG_Datetime();
     #if(LOG_COLORS)
       DBG_String(" \e[94mINFO:\e[0m ");
     #else
       DBG_String(" INFO: ");
     #endif
-    va_list args;
-    va_start(args, message);
-    print(message, args);
-    va_end(args);
+    FILE_Print(dbg.file, message, args);
     DBG_Enter();
   #endif
 }
 
-void LOG_Warning(const char *message, ...)
+void LOG_Info(const char *message, ...)
 {
-  #if(LOG_LEVEL <= LEG_Level_Warning)
+  va_list args;
+  va_start(args, message);
+  LOG_ArgsInfo(message, args);
+  va_end(args);
+}
+
+static void LOG_ArgsWarning(const char *message, va_list args)
+{
+  #if(LOG_LEVEL <= LOG_LEVEL_WARN)
     LOG_Datetime();
     #if(LOG_COLORS)
       DBG_String(" \e[93mWARN:\e[0m ");
     #else
       DBG_String(" WARN: ");
     #endif
-    va_list args;
-    va_start(args, message);
-    print(message, args);
-    va_end(args);
+    FILE_Print(dbg.file, message, args);
     DBG_Enter();
   #endif
 }
 
-void LOG_Error(const char *message, ...)
+void LOG_Warning(const char *message, ...)
 {
-  #if(LOG_LEVEL <= LEG_Level_Error)
+  va_list args;
+  va_start(args, message);
+  LOG_ArgsWarning(message, args);
+  va_end(args);
+}
+
+static void LOG_ArgsError(const char *message, va_list args)
+{
+  #if(LOG_LEVEL <= LOG_LEVEL_ERRO)
     LOG_Datetime();
     #if(LOG_COLORS)
       DBG_String(" \e[91mERRO:\e[0m ");
     #else
       DBG_String(" ERRO: ");
     #endif
-    va_list args;
-    va_start(args, message);
-    print(message, args);
-    va_end(args);
+    FILE_Print(dbg.file, message, args);
     DBG_Enter();
   #endif
 }
 
-void LOG_Critical(const char *message, ...)
+void LOG_Error(const char *message, ...)
 {
-  #if(LOG_LEVEL <= LEG_Level_Critical)
+  va_list args;
+  va_start(args, message);
+  LOG_ArgsError(message, args);
+  va_end(args);
+}
+
+static void LOG_ArgsCritical(const char *message, va_list args)
+{
+  #if(LOG_LEVEL <= LOG_LEVEL_CRIT)
     LOG_Datetime();
     #if(LOG_COLORS)
       DBG_String(" \e[95mCRIT:\e[0m ");
     #else
       DBG_String(" CRIT: ");
     #endif
-    va_list args;
-    va_start(args, message);
-    print(message, args);
-    va_end(args);
+    FILE_Print(dbg.file, message, args);
     DBG_Enter();
     dbg.run = false;
     DBG_Send(dbg.file->buffer, dbg.file->size);
@@ -264,9 +281,17 @@ void LOG_Critical(const char *message, ...)
   #endif
 }
 
+void LOG_Critical(const char *message, ...)
+{
+  va_list args;
+  va_start(args, message);
+  LOG_ArgsCritical(message, args);
+  va_end(args);
+}
+
 void LOG_Panic(const char *message)
 {
-  #if(LOG_LEVEL <= LEG_Level_Panic)
+  #if(LOG_LEVEL <= LOG_LEVEL_PANC)
     LOG_Datetime();
     #if(LOG_COLORS)
       DBG_String(" \e[31mPANC:\e[0m ");
@@ -277,10 +302,26 @@ void LOG_Panic(const char *message)
     DBG_Enter();
     dbg.run = false;
     DBG_Send(dbg.file->buffer, dbg.file->size);
-    DBG_Wait4Uart();
+    while(UART_IsBusy(dbg.uart)) __WFI();
     FILE_Clear(dbg.file);
     dbg.run = true;
   #endif
+}
+
+void LOG_Message(LOG_Level_e lvl, char *message, ...)
+{
+  va_list args;
+  va_start(args, message);
+  switch(lvl) {
+    case LOG_Level_Debug: LOG_ArgsDebug(message, args); break;
+    case LOG_Level_Info: LOG_ArgsInfo(message, args); break;
+    case LOG_Level_Warning: LOG_ArgsWarning(message, args); break;
+    case LOG_Level_Error: LOG_ArgsError(message, args); break;
+    case LOG_Level_Critical: LOG_ArgsCritical(message, args); break;
+    case LOG_Level_Panic: LOG_Panic(message); break;
+    case LOG_Level_Void: break;
+  }
+  va_end(args);
 }
 
 //------------------------------------------------------------------------------------------------- Array

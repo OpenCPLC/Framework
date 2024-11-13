@@ -47,6 +47,13 @@ typedef enum {
   INT_RNG = 31
 } INT_e;
 
+typedef enum {
+  INT_Level_VeryHigh = 0,
+  INT_Level_High = 1,
+  INT_Level_Medium = 2,
+  INT_Level_Low = 3
+} INT_Level_e;
+
 //-------------------------------------------------------------------------------------------------
 
 void INT_EnableTIM(TIM_TypeDef *tim_typedef, uint8_t priority, void (*handler)(void *), void *object);

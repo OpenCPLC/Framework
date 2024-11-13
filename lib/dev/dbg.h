@@ -1,8 +1,8 @@
 #ifndef DBG_H_
 #define DBG_H_
 
-#include "main.h"
 #include "uart.h"
+#include "main.h"
 
 //-------------------------------------------------------------------------------------------------
 
@@ -22,16 +22,26 @@
   #define LOG_INIT 1
 #endif
 
-#define LEG_Level_Debug 0
-#define LEG_Level_Info 1
-#define LEG_Level_Warning 2
-#define LEG_Level_Error 3
-#define LEG_Level_Critical 4
-#define LEG_Level_Panic 5
-#define LEG_Level_Void 6
+#define LOG_LEVEL_DBUG 0
+#define LOG_LEVEL_INFO 1
+#define LOG_LEVEL_WARN 2
+#define LOG_LEVEL_ERRO 3
+#define LOG_LEVEL_CRIT 4
+#define LOG_LEVEL_PANC 5
+#define LOG_LEVEL_VOID 6
+
+typedef enum {
+  LOG_Level_Debug = LOG_LEVEL_DBUG,
+  LOG_Level_Info = LOG_LEVEL_INFO,
+  LOG_Level_Warning = LOG_LEVEL_WARN,
+  LOG_Level_Error = LOG_LEVEL_ERRO,
+  LOG_Level_Critical = LOG_LEVEL_CRIT,
+  LOG_Level_Panic = LOG_LEVEL_PANC,
+  LOG_Level_Void = LOG_LEVEL_VOID
+} LOG_Level_e;
 
 #ifndef LOG_LEVEL
-  #define LOG_LEVEL LEG_Level_Info
+  #define LOG_LEVEL LOG_LEVEL_INFO
 #endif
 
 void print(const char *template, ...);
@@ -42,6 +52,7 @@ void LOG_Warning(const char *message, ...);
 void LOG_Error(const char *message, ...);
 void LOG_Critical(const char *message, ...);
 void LOG_Panic(const char *message);
+void LOG_Message(LOG_Level_e lvl, char *message, ...);
 
 //-------------------------------------------------------------------------------------------------
 

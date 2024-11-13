@@ -122,41 +122,45 @@ uint8_t ain_channels[] = {
   ADC_IN_PB0, ADC_IN_PB1, ADC_IN_PB2, ADC_IN_PB10, ADC_IN_PB11, ADC_IN_PB12
 };
 
-uint16_t ain_output[sizeof(ain_channels)];
+#define AIN_BUFFER_SIZE adc_record_buffer_size(AIN_AVERAGE_TIME_MS, 160, 32, sizeof(ain_channels))
+#define AIN_SAMPLES (AIN_BUFFER_SIZE / sizeof(ain_channels))
+
+uint16_t ain_buffer[AIN_BUFFER_SIZE];
+uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
-  .prescaler = ADC_Prescaler_2,
+  .frequency = ADC_Frequency_16MHz,
   .interrupt_level = 3,
-  .measurements = {
+  .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
-    .output = ain_output,
+    .dma_channel = 1,
     .sampling_time = ADC_SamplingTime_160,
     .oversampling_enable = true,
-    .oversampling_ratio = ADC_OversamplingRatio_256,
-    .oversampling_shift = 4
+    .oversampling_ratio = ADC_OversamplingRatio_32,
+    .oversampling_shift = 1,
+    .buffer = ain_buffer,
+    .buffer_length = AIN_BUFFER_SIZE
   }
 };
 
-AIN_t AI1 = { .adc = &ain_adc, .channel = 1, .type = AIN_Type_Volts };
-AIN_t AI2 = { .adc = &ain_adc, .channel = 2, .type = AIN_Type_Volts };
-AIN_t AI3 = { .adc = &ain_adc, .channel = 3, .type = AIN_Type_Volts };
-AIN_t AI4 = { .adc = &ain_adc, .channel = 4, .type = AIN_Type_Volts };
+AIN_t AI1 = { .name = "AI1", .data = ain_data[1], .count = AIN_SAMPLES };
+AIN_t AI2 = { .name = "AI2", .data = ain_data[2], .count = AIN_SAMPLES };
+AIN_t AI3 = { .name = "AI3", .data = ain_data[3], .count = AIN_SAMPLES };
+AIN_t AI4 = { .name = "AI4", .data = ain_data[4], .count = AIN_SAMPLES };
+AIN_t POT1 = { .name = "POT1", .data = ain_data[10], .count = AIN_SAMPLES };
+AIN_t POT2 = { .name = "POT2", .data = ain_data[9], .count = AIN_SAMPLES };
+AIN_t POT3 = { .name = "POT3", .data = ain_data[8], .count = AIN_SAMPLES };
+AIN_t POT4 = { .name = "POT4", .data = ain_data[7], .count = AIN_SAMPLES };
+AIN_t POT5 = { .name = "POT5", .data = ain_data[6], .count = AIN_SAMPLES };
+AIN_t POT6 = { .name = "POT6", .data = ain_data[5], .count = AIN_SAMPLES };
+AIN_t VCC = { .name = "VCC", .data = ain_data[0], .count = AIN_SAMPLES };
 
-float VCC_Value(void)
+float VCC_Voltage_V(void)
 {
-  uint16_t raw = ain_adc.measurements.output[0];
+  float raw = AIN_Raw(&VCC);
   float value = resistor_divider_factor(3.3, 110, 10, 16) * raw;
   return value;
-}
-
-float POT_Value(uint8_t nbr)
-{
-  if(!nbr || nbr > 6) return 0.0;
-  nbr = -(((int8_t)nbr) - 7);
-  uint16_t raw = ain_adc.measurements.output[nbr + 4];
-  float value = volts_factor(3.3, 16) * raw;
-  return value * 100 / 3.3;
 }
 
 //------------------------------------------------------------------------------------------------- RS485
@@ -190,7 +194,13 @@ DIN_t SW2 = { .gpif = { .gpio = { .port = GPIOC, .pin = 13 } } };
 //------------------------------------------------------------------------------------------------- DBG+Bash
 
 uint8_t dbg_buff_buffer[2048];
-BUFF_t dbg_buff = { .mem = dbg_buff_buffer, .size = sizeof(dbg_buff_buffer) };
+BUFF_t dbg_buff = {
+  .mem = dbg_buff_buffer,
+  .size = sizeof(dbg_buff_buffer),
+  .console_mode = true,
+  .Echo = DBG_Char,
+  .Enter = DBG_Enter,
+};
 UART_t dbg_uart = {
   .reg = USART1,
   .tx_pin = UART1_TX_PA9,
@@ -210,13 +220,6 @@ FILE_t dbg_file = { .name = "debug", .buffer = dbg_file_buffer, .limit = sizeof(
 uint8_t cache_file_buffer[2048];
 FILE_t cache_file = { .name = "cache", .buffer = cache_file_buffer, .limit = sizeof(cache_file_buffer) };
 
-STREAM_t dbg_stream = {
-  .name = "debug",
-  .modify = STREAM_Modify_Lowercase,
-  .Size = DBG_ReadSize,
-  .Read = DBG_ReadString
-};
-
 //------------------------------------------------------------------------------------------------- PLC
 
 void PLC_Init(void)
@@ -225,6 +228,7 @@ void PLC_Init(void)
     // SCB->VTOR = FLASH_BASE | 0x00000000U;
   #endif
   // Konfiguracja systemowa
+  SYS_Clock_Init();
   EEPROM_Cache(&cache_eeprom);
   SYSTICK_Init(PLC_BASETIME);
   DBG_Init(&dbg_uart, &dbg_file);
@@ -276,7 +280,7 @@ void PLC_Init(void)
   }
   // Wejścia analogowe (AI)
   ADC_Init(&ain_adc);
-  ADC_Measurements(&ain_adc);
+  ADC_Record(&ain_adc);
   ADC_Wait(&ain_adc);
   // Interfejsy RS485
   UART_Init(&RS);
@@ -284,23 +288,13 @@ void PLC_Init(void)
 
 void PLC_Loop(void)
 {
+  // Dioda LED, przyciski (BTN), przełączniki (SW)
   RGB_Loop(&RGB);
   DIN_Loop(&BTN1);
   DIN_Loop(&BTN2);
   DIN_Loop(&BTN3);
   DIN_Loop(&SW1);
   DIN_Loop(&SW2);
-  // Obsługa debugera i powłoki bash
-  BASH_Loop(&dbg_stream);
-  if(UART_IsFree(&dbg_uart)) {
-    clear();
-    if(dbg_file.size) {
-      uint8_t *buffer = (uint8_t *)new(dbg_file.size);
-      memcpy(buffer, dbg_file.buffer, dbg_file.size);
-      UART_Send(&dbg_uart, buffer, dbg_file.size);
-      FILE_Clear(&dbg_file);
-    }
-  }
   // Wyjścia przekaźnikowe (RO)
   DOUT_Loop(&RO1);
   DOUT_Loop(&RO2);
@@ -322,7 +316,10 @@ void PLC_Loop(void)
     // PWMI_Print(&din_pwmi3_init);
   }
   // Wejścia analogowe (AI)
-  ADC_Measurements(&ain_adc);
+  if(ADC_IsFree(&ain_adc)) {
+    AIN_Sort(ain_buffer, sizeof(ain_channels), AIN_SAMPLES, ain_data);
+    ADC_Record(&ain_adc);
+  }
   if(ain_adc.overrun) {
     // DBG_String("ADC overrun:");
     // DBG_uDec(ain_adc.overrun);

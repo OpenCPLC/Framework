@@ -1,84 +1,6 @@
 #include "spi-master.h"
 
-//------------------------------------------------------------------------------------------------
-#if(SPI_SOFTWARE_ENABLE)
-
-void SPI_Software_Init(SPI_Software_t *spi)
-{
-  spi->cs->mode = GPIO_Mode_Output;
-  spi->sck->mode = GPIO_Mode_Output;
-  spi->miso->mode = GPIO_Mode_Input;
-  spi->mosi->mode = GPIO_Mode_Output;
-  GPIO_InitList(spi->cs, spi->sck, spi->miso, spi->mosi, NULL);
-  #if(SPI_SOFTWARE_CPOL)
-    GPIO_Set(spi->sck);
-  #else
-    GPIO_Rst(spi->sck);
-  #endif
-  GPIO_Rst(spi->cs);
-}
-
-static void SPI_Software_Write(GPIO_t *mosi, uint8_t *byte_tx)
-{
-  #if(SPI_SOFTWARE_LBS)
-    if(*byte_tx & 1) GPIO_Set(mosi);
-    else GPIO_Rst(mosi);
-    *byte_tx >>= 1;
-  #else
-    if(*byte_tx & (1 << 7)) GPIO_Set(mosi);
-    else GPIO_Rst(mosi);
-    *byte_tx <<= 1;
-  #endif
-}
-
-static void SPI_Software_Read(GPIO_t *miso, uint8_t *byte_rx)
-{
-  #if(SPI_SOFTWARE_LBS)
-    *byte_rx >>= 1;
-    if(GPIO_In(miso)) *byte_rx += (1 << 7);
-  #else
-    *byte_rx <<= 1;
-    if(GPIO_In(miso)) *byte_rx += 1;
-  #endif
-}
-
-void SPI_Software_Run(SPI_Software_t *spi, uint8_t *rx_ary, uint8_t *tx_ary, uint16_t n)
-{
-  #if(SPI_SOFTWARE_CPOL)
-    GPIO_Set(spi->sck);
-  #else
-    GPIO_Rst(spi->sck);
-  #endif
-  GPIO_Set(spi->cs);
-  for(uint32_t i = 0; i < spi->delay; i++) {}
-  uint8_t byte_tx, byte_rx;
-  for(uint16_t i = 0; i < n; i++) {
-    byte_tx = tx_ary[i];
-    byte_rx = 0;
-    for(uint8_t j = 0; j < 8; j++) {
-      GPIO_Tgl(spi->sck); __NOP();
-      #if(!SPI_SOFTWARE_CPHA)
-        SPI_Software_Write(spi->mosi, &byte_tx);
-        SPI_Software_Read(spi->mosi, &byte_rx);
-      #endif
-      GPIO_Tgl(spi->sck); __NOP();
-      #if(SPI_SOFTWARE_CPHA)
-        SPI_Software_Write(spi->mosi, &byte_tx);
-        SPI_Software_Read(spi->mosi, &byte_rx);
-      #endif
-    }
-    rx_ary[i] = byte_rx;
-  }
-  #if(SPI_SOFTWARE_CPOL)
-    GPIO_Rst(spi->sck);
-  #else
-    GPIO_Set(spi->sck);
-  #endif
-  GPIO_Rst(spi->cs);
-}
-
-#endif
-//--------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 static void SPI_Master_InterruptDMA(SPI_Master_t *spi)
 {
@@ -131,7 +53,7 @@ void SPI_Master_Init(SPI_Master_t *spi)
   spi->spi_typedef->CR1 = cr1;
 }
 
-//--------------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 bool SPI_Master_IsBusy(SPI_Master_t *spi)
 {
@@ -143,82 +65,149 @@ bool SPI_Master_IsFree(SPI_Master_t *spi)
   return !(spi->_busy_flag);
 }
 
-static inline void _SPI_Master_Start(SPI_Master_t *spi)
+static void SPI_Master_Start(SPI_Master_t *spi)
 {
   spi->_tx_dma->CCR &= ~DMA_CCR_EN;
   spi->_rx_dma->CCR &= ~DMA_CCR_EN;
 }
 
-static inline void _SPI_Master_End(SPI_Master_t *spi, uint16_t n)
+static void SPI_Master_End(SPI_Master_t *spi, uint16_t n)
 {
   spi->_tx_dma->CNDTR = n;
   spi->_rx_dma->CNDTR = n;
   if(spi->cs_gpio) {
     GPIO_Set(spi->cs_gpio);
-    for(uint32_t i = 0; i < spi->cs_delay; i++) __NOP();
+    delay(spi->cs_delay_ms);
   }
   spi->_rx_dma->CCR |= DMA_CCR_EN;
   spi->_tx_dma->CCR |= DMA_CCR_EN;
   spi->_busy_flag = true;
 }
 
-access_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_ary, uint8_t *tx_ary, uint16_t n)
+state_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, uint16_t n)
 {
-  if(!spi->_busy_flag) {
-  	_SPI_Master_Start(spi);
-	  spi->_tx_dma->CCR |= DMA_CCR_MINC;
-	  spi->_rx_dma->CCR |= DMA_CCR_MINC;
-	  spi->_tx_dma->CMAR = (uint32_t)tx_ary;
-	  spi->_rx_dma->CMAR = (uint32_t)rx_ary;
-	  _SPI_Master_End(spi, n);
-	  return OK;
-  }
-  else return BUSY;
+  if(spi->_busy_flag) return BUSY;
+  SPI_Master_Start(spi);
+	spi->_tx_dma->CCR |= DMA_CCR_MINC;
+	spi->_rx_dma->CCR |= DMA_CCR_MINC;
+	spi->_tx_dma->CMAR = (uint32_t)tx_buff;
+	spi->_rx_dma->CMAR = (uint32_t)rx_buff;
+	SPI_Master_End(spi, n);
+  return FREE;
 }
 
-static void _SPI_Master_OnlyRead(SPI_Master_t *spi, uint8_t *rx_ary, uint16_t n)
+void SPI_Master_OnlyRead(SPI_Master_t *spi, uint8_t *rx_buff, uint16_t n)
 {
   spi->_rx_dma->CCR &= ~DMA_CCR_EN;
-  spi->_rx_dma->CMAR = (uint32_t)rx_ary;
+  spi->_rx_dma->CMAR = (uint32_t)rx_buff;
   spi->_rx_dma->CNDTR = n;
   spi->_rx_dma->CCR |= DMA_CCR_EN;
   spi->_busy_flag = true;
   spi->spi_typedef->CR1 |= SPI_CR1_SPE;
 }
 
-access_t SPI_Master_Read(SPI_Master_t *spi, uint8_t *rx_ary, uint16_t n)
+state_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint16_t n)
 {
-  if(!spi->_busy_flag) {
-    if(!spi->mosi_pin) { _SPI_Master_OnlyRead(spi, rx_ary, n); return 0; }
-    _SPI_Master_Start(spi);
-    spi->_tx_dma->CCR &= ~DMA_CCR_MINC;
-    spi->_rx_dma->CCR |= DMA_CCR_MINC;
-    spi->_tx_dma->CMAR = (uint32_t)&(spi->_void_register);
-    spi->_rx_dma->CMAR = (uint32_t)rx_ary;
-    _SPI_Master_End(spi, n);
-    return OK;
+  if(spi->_busy_flag) return BUSY;
+  spi->const_reg = addr;
+  if(!spi->mosi_pin) { SPI_Master_OnlyRead(spi, rx_buff, n); return 0; }
+  SPI_Master_Start(spi);
+  spi->_tx_dma->CCR &= ~DMA_CCR_MINC;
+  spi->_rx_dma->CCR |= DMA_CCR_MINC;
+  spi->_tx_dma->CMAR = (uint32_t)&(spi->const_reg);
+  spi->_rx_dma->CMAR = (uint32_t)rx_buff;
+  SPI_Master_End(spi, n);
+  return FREE;
+}
+
+state_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_buff, uint16_t n)
+{
+  if(spi->_busy_flag) return BUSY;
+  SPI_Master_Start(spi);
+  spi->_tx_dma->CCR |= DMA_CCR_MINC;
+  spi->_rx_dma->CCR &= ~DMA_CCR_MINC;
+  spi->_tx_dma->CMAR = (uint32_t)tx_buff;
+  spi->_rx_dma->CMAR = (uint32_t)&(spi->const_reg);
+  SPI_Master_End(spi, n);
+  return FREE;
+}
+
+//-------------------------------------------------------------------------------------------------
+#if(SPI_SOFTWARE_ENABLE)
+
+void SPI_Software_Init(SPI_Software_t *spi)
+{
+  spi->cs->mode = GPIO_Mode_Output;
+  spi->sck->mode = GPIO_Mode_Output;
+  spi->miso->mode = GPIO_Mode_Input;
+  spi->mosi->mode = GPIO_Mode_Output;
+  GPIO_InitList(spi->cs, spi->sck, spi->miso, spi->mosi, NULL);
+  #if(SPI_SOFTWARE_CPOL)
+    GPIO_Set(spi->sck);
+  #else
+    GPIO_Rst(spi->sck);
+  #endif
+  GPIO_Rst(spi->cs);
+}
+
+static void SPI_Software_Write(GPIO_t *mosi, uint8_t *byte_tx)
+{
+  #if(SPI_SOFTWARE_LBS)
+    if(*byte_tx & 1) GPIO_Set(mosi);
+    else GPIO_Rst(mosi);
+    *byte_tx >>= 1;
+  #else
+    if(*byte_tx & (1 << 7)) GPIO_Set(mosi);
+    else GPIO_Rst(mosi);
+    *byte_tx <<= 1;
+  #endif
+}
+
+static void SPI_Software_Read(GPIO_t *miso, uint8_t *byte_rx)
+{
+  #if(SPI_SOFTWARE_LBS)
+    *byte_rx >>= 1;
+    if(GPIO_In(miso)) *byte_rx += (1 << 7);
+  #else
+    *byte_rx <<= 1;
+    if(GPIO_In(miso)) *byte_rx += 1;
+  #endif
+}
+
+void SPI_Software_Run(SPI_Software_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, uint16_t n)
+{
+  #if(SPI_SOFTWARE_CPOL)
+    GPIO_Set(spi->sck);
+  #else
+    GPIO_Rst(spi->sck);
+  #endif
+  GPIO_Set(spi->cs);
+  for(uint32_t i = 0; i < spi->delay; i++) {}
+  uint8_t byte_tx, byte_rx;
+  for(uint16_t i = 0; i < n; i++) {
+    byte_tx = tx_buff[i];
+    byte_rx = 0;
+    for(uint8_t j = 0; j < 8; j++) {
+      GPIO_Tgl(spi->sck); __NOP();
+      #if(!SPI_SOFTWARE_CPHA)
+        SPI_Software_Write(spi->mosi, &byte_tx);
+        SPI_Software_Read(spi->mosi, &byte_rx);
+      #endif
+      GPIO_Tgl(spi->sck); __NOP();
+      #if(SPI_SOFTWARE_CPHA)
+        SPI_Software_Write(spi->mosi, &byte_tx);
+        SPI_Software_Read(spi->mosi, &byte_rx);
+      #endif
+    }
+    rx_buff[i] = byte_rx;
   }
-  else return BUSY;
+  #if(SPI_SOFTWARE_CPOL)
+    GPIO_Rst(spi->sck);
+  #else
+    GPIO_Set(spi->sck);
+  #endif
+  GPIO_Rst(spi->cs);
 }
 
-access_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_ary, uint16_t n)
-{
-  if(!spi->_busy_flag) {
-    _SPI_Master_Start(spi);
-    spi->_tx_dma->CCR |= DMA_CCR_MINC;
-    spi->_rx_dma->CCR &= ~DMA_CCR_MINC;
-    spi->_tx_dma->CMAR = (uint32_t)tx_ary;
-    spi->_rx_dma->CMAR = (uint32_t)&(spi->_void_register);
-    _SPI_Master_End(spi, n);
-    return OK;
-  }
-  else return BUSY;
-}
-
-access_t SPI_Master_ReadSequence(SPI_Master_t *spi, uint8_t reg, uint8_t *rx_ary, uint16_t n)
-{
-  spi->_void_register = reg;
-  return SPI_Master_Read(spi, rx_ary, n);
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
+#endif
+//-------------------------------------------------------------------------------------------------

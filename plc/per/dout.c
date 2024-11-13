@@ -214,8 +214,7 @@ static inline void DOUT_RelayCyclesInc(DOUT_t *dout)
  */
 void DOUT_Loop(DOUT_t *dout)
 {
-  waitfor(&dout->_stun);
-  if(dout->_stun) return;
+  if(waitfor(&dout->_stun)) return;
   if(dout->_pulse) { // Gdy zostanie ustawiony tryb pulse
     if(dout->relay && !DOUT_State(dout)) DOUT_RelayCyclesInc(dout);
     if(dout->pwm) {

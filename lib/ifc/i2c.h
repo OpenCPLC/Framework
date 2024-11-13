@@ -2,6 +2,7 @@
 #define I2C_H_
 
 #include "gpio.h"
+#include "sys.h"
 #include "main.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -11,14 +12,22 @@
 #elif(SYS_CLOCK_FREQ == 16000000)
   #define I2C_TIMING_100kHz timing = 0x00503D5A, .filter = 0
   #define I2C_TIMING_400kHz timing = 0x0010061A, .filter = 0
-#elif(SYS_CLOCK_FREQ == 18432000)
-
-
 #elif(SYS_CLOCK_FREQ == 48000000)
   #define I2C_TIMING_100KHz timing = 0x00C0D6FF, .filter = 0
   #define I2C_TIMING_400kHz timing = 0x00501855, .filter = 0
   #define I2C_TIMING_1MHz timing = 0x0020091C, .filter = 0
   #define I2C_TIMING_OVERCLOCK timing = 0x00100207, .filter = 0
+#elif(SYS_CLOCK_FREQ == 64000000)
+  #define I2C_TIMING_100kHz timing = 0x10A13E56, .filter = 0
+  #define I2C_TIMING_400kHz timing = 0x00D00E28, .filter = 0
+  #define I2C_TIMING_1MHz timing = 0x00700818, .filter = 0
+#elif(SYS_CLOCK_FREQ == 18432000)
+  #define I2C_TIMING_100kHz timing = 0x10805E89, .filter = 0
+  #define I2C_TIMING_400kHz timing = 0x00900B22, .filter = 0
+#elif(SYS_CLOCK_FREQ == 59904000)
+  #define I2C_TIMING_100kHz timing = 0x109034E7, .filter = 0
+  #define I2C_TIMING_400kHz timing = 0x00400D14, .filter = 0
+  #define I2C_TIMING_1MHz timing = 0x0030060D, .filter = 0
 #endif
 
 //-------------------------------------------------------------------------------------------------

@@ -3,10 +3,10 @@
 static volatile uint64_t ticker; // global ticker
 static uint32_t tick_ms; // time in ms for a single ticker tick
 
-#if(VRTS_SWITCHING)
-
 volatile VRTS_Task_t *vrts_now_thread; // Current thread
 volatile VRTS_Task_t *vrts_next_thread; // Next thread
+
+#if(VRTS_SWITCHING)
 
 // Structure to manage threads in the VRTS system 
 struct {

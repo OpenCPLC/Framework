@@ -1,15 +1,14 @@
 #include "pwr.h"
 
-//--------------------------------------------------------------------------------------------------------------------- SYS
+//------------------------------------------------------------------------------------------------- RAMP
 
-inline void SYSCFG_RAMP_PA11_PA12(void)
+void RAMP_PA11_PA12(void)
 {
-
   RCC->APBENR2 |= RCC_APBENR2_SYSCFGEN;
   SYSCFG->CFGR1 |= SYSCFG_CFGR1_PA12_RMP | SYSCFG_CFGR1_PA11_RMP;
 }
 
-//--------------------------------------------------------------------------------------------------------------------- RCC
+//------------------------------------------------------------------------------------------------- Clock Enable
 
 void RCC_EnableTIM(TIM_TypeDef *tim_typedef)
 {
@@ -83,65 +82,100 @@ void RCC_EnableSPI(SPI_TypeDef *spi_typedef)
   }
 }
 
-static uint32_t _RCC_HSI(RCC_HSI_e frequency)
+//------------------------------------------------------------------------------------------------- RCC
+
+static uint32_t RCC_HSI(RCC_HSI_e frequency)
 {
-	RCC->CR = (RCC->CR & 0xFFFFC7FF) | (frequency << RCC_CR_HSIDIV_Pos) | RCC_CR_HSION;
-	while (!(RCC->CR & RCC_CR_HSIRDY)) __NOP();
-	RCC->CFGR &= RCC_CFGR_SW;
+	RCC->CR = (RCC->CR & ~RCC_CR_HSIDIV_Msk) | (frequency << RCC_CR_HSIDIV_Pos) | RCC_CR_HSION;
+	while(!(RCC->CR & RCC_CR_HSIRDY)) __NOP();
+	RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW);
 	while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSISYS) __NOP();
 	RCC->CR &= ~(RCC_CR_HSEON | RCC_CR_PLLON);
 	SystemCoreClockUpdate();
 	return SystemCoreClock;
 }
 
-static uint32_t _RCC_PLL(uint8_t m, uint8_t n, uint8_t r)
+static void RCC_FLASH_SetLatency(uint32_t freq)
 {
-  if(m < 1) m = 1; else if(m > 8) m = 8; m--;
+  if(freq >= 48000000) FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY) | FLASH_ACR_LATENCY_2;
+  else if(freq >= 24000000) FLASH->ACR = (FLASH->ACR & ~FLASH_ACR_LATENCY) | FLASH_ACR_LATENCY_1;
+  else FLASH->ACR &= ~FLASH_ACR_LATENCY;
+}
+
+uint32_t RCC_HSE(uint32_t xtal_value)
+{
+  RCC->CR |= RCC_CR_HSEON;
+  while(!(RCC->CR & RCC_CR_HSERDY)) __NOP();
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_0;
+  while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSE) __NOP();
+  RCC->CR &= ~(RCC_CR_HSION | RCC_CR_PLLON);
+  SystemCoreClock = xtal_value;
+  return xtal_value;
+}
+
+uint32_t RCC_PLL(uint32_t hse_xtal_value, uint8_t m, uint8_t n, uint8_t r)
+{
+  if(m < 1) m = 1; else if(m > 8) m = 8;
   if(n < 8) n = 8; else if(n > 86) n = 86;
-  if(r < 2) r = 2; else if(r > 8) r = 8; r--;
-  if ((RCC->CFGR & RCC_CFGR_SWS) == RCC_CFGR_SWS_PLLRCLK) {
-    RCC->CFGR &= ~RCC_CFGR_SW;
-    while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSISYS) __NOP();
+  if(r < 2) r = 2; else if(r > 8) r = 8;
+  uint32_t freq;
+  if(hse_xtal_value) {
+    freq = (hse_xtal_value / m) * n / r;
+    RCC_HSE(hse_xtal_value);
   }
-  RCC->CR &= ~RCC_CR_PLLON;
-  while((RCC->CR & RCC_CR_PLLRDY) != 0) __NOP();
+  else {
+    freq = (16000000 / m) * n / r;
+    RCC_HSI(RCC_HSI_16MHz);
+  }
+  RCC_FLASH_SetLatency(freq);
+  while((RCC->CR & RCC_CR_PLLRDY)) __NOP();
   RCC->PLLCFGR = (RCC->PLLCFGR & ~(RCC_PLLCFGR_PLLM | RCC_PLLCFGR_PLLN | RCC_PLLCFGR_PLLR | RCC_PLLCFGR_PLLSRC)) |
-                 (m << RCC_PLLCFGR_PLLM_Pos) | (n << RCC_PLLCFGR_PLLN_Pos) | (r << RCC_PLLCFGR_PLLR_Pos) |
-                 (1 << RCC_PLLCFGR_PLLQ_Pos) | (1 << RCC_PLLCFGR_PLLP_Pos) | RCC_PLLCFGR_PLLREN | RCC_PLLCFGR_PLLSRC_HSI;
+                 ((m - 1) << RCC_PLLCFGR_PLLM_Pos) |
+                 (n << RCC_PLLCFGR_PLLN_Pos) |
+                 (((r / 2) - 1) << RCC_PLLCFGR_PLLR_Pos) |
+                 RCC_PLLCFGR_PLLREN |
+                 (hse_xtal_value ? RCC_PLLCFGR_PLLSRC_HSE : RCC_PLLCFGR_PLLSRC_HSI); // HSI or HSE jako źródło
   RCC->CR |= RCC_CR_PLLON;
-  while((RCC->CR & RCC_CR_PLLRDY) == 0) __NOP();
-  RCC->CFGR |= RCC_CFGR_SW_1;
-  while ((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLLRCLK) __NOP();
-  SystemCoreClockUpdate();
+  while(!(RCC->CR & RCC_CR_PLLRDY)) __NOP();
+  RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_1; 
+  while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_PLLRCLK) __NOP();
+  SystemCoreClock = freq;
+  return freq;
+}
+
+uint32_t RCC_2MHz(void)
+{
+  RCC->APBENR1 |= RCC_APBENR1_PWREN;
+  RCC_HSI(RCC_HSI_2MHz);
+  PWR->CR1 |= PWR_CR1_LPR;
+  while(!(PWR->SR2 & (PWR_SR2_REGLPF_Msk))) __NOP();
   return SystemCoreClock;
 }
 
-void RCC_2MHz(void)
+uint32_t RCC_16MHz(void)
 {
-  RCC->APBENR1 |= RCC_APBENR1_PWREN;
-  _RCC_HSI(RCC_HSI_2MHz);
-  PWR->CR1 |= PWR_CR1_LPR;
-  while(!(PWR->SR2 & (PWR_SR2_REGLPF_Msk))) __NOP();
+  RCC_FLASH_SetLatency(16000000);
+  return RCC_HSI(RCC_HSI_16MHz);
 }
 
-void RCC_16MHz(void)
+uint32_t RCC_48MHz(void)
 {
-  _RCC_HSI(RCC_HSI_16MHz);
+  RCC_FLASH_SetLatency(48000000);
+  return RCC_PLL(false, 2, 12, 2);
 }
 
-void RCC_48MHz(void)
+uint32_t RCC_64MHz(void)
 {
-  _RCC_PLL(2, 12, 2);
+  RCC_FLASH_SetLatency(64000000);
+  return RCC_PLL(false, 2, 14, 2);
 }
 
-//--------------------------------------------------------------------------------------------------------------------- PWR
+//------------------------------------------------------------------------------------------------- PWR
 
 inline void PWR_Reset(void)
 {
   NVIC_SystemReset();
 }
-
-//--------------------------------------------------------------------------------------------------------------------- Sleep
 
 void PWR_Sleep(PWR_SleepMode_e mode)
 {
@@ -163,7 +197,7 @@ void PWR_Wakeup(PWR_WakeupPin_e wakeup_pin, PWR_WakeupDir_e dir)
   PWR->CR4 |= (dir << wakeup_pin);
 }
 
-//--------------------------------------------------------------------------------------------------------------------- BKPR
+//------------------------------------------------------------------------------------------------- BKPR
 
 void BKPR_Write(BKPR_e reg, uint32_t value)
 {
@@ -177,7 +211,7 @@ uint32_t BKPR_Read(BKPR_e reg)
 	return *((uint32_t *)(TAMP_BASE + (0x100) + (4 * reg)));
 }
 
-//--------------------------------------------------------------------------------------------------------------------- IWDG
+//------------------------------------------------------------------------------------------------- IWDG
 
 inline void IWDG_Init(IWDG_Time_e time, uint16_t reload_counter)
 {
@@ -203,4 +237,4 @@ bool IWDG_Status(void)
   return 0;
 }
 
-//--------------------------------------------------------------------------------------------------------------------- END
+//-------------------------------------------------------------------------------------------------

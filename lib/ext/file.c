@@ -123,6 +123,7 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
 {
   if(file->mutex) return 0;
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
+  if(!fill_space) fill_space = 1;
   int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, accuracy + 1, fill_space - 1);
   if(accuracy) {
     if(((file->size)+ length + 1) >= file->limit) return 0;
@@ -255,10 +256,8 @@ static uint8_t FILE_GetStringNumber(const char **format)
   return nbr;
 }
 
-void FILE_Print(FILE_t *file, const char *format, ...)
+void FILE_Print(FILE_t *file, const char *format, va_list args)
 {
-  va_list args;
-  va_start(args, format);
   while(*format) {
     if(*format == '%') {
       format++;
@@ -269,7 +268,7 @@ void FILE_Print(FILE_t *file, const char *format, ...)
         format++;
         precision = FILE_GetStringNumber(&format);
       }
-      switch (*format) {
+      switch(*format) {
         case 'i': case 'd': {
           int32_t nbr = va_arg(args, int32_t);
           FILE_Int(file, nbr, 10, true, precision, width);
@@ -281,7 +280,7 @@ void FILE_Print(FILE_t *file, const char *format, ...)
           break;
         }
         case 'f': case 'F': {
-          if(!precision) precision = 2;
+          if(!precision) precision = 3;
           float nbr = (float)va_arg(args, double);
           FILE_Float(file, nbr, precision, width);
           break;
@@ -361,7 +360,6 @@ void FILE_Print(FILE_t *file, const char *format, ...)
     }
     format++;
   }
-  va_end(args);
 }
 
 
@@ -375,7 +373,7 @@ int32_t FILE_Clear(FILE_t *file)
   return size;
 }
 
-status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
+state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
 {
   if(file_to->mutex) return ERR;
   else if(file_to->size > file_from->limit) return ERR;
@@ -384,7 +382,7 @@ status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
   return OK;
 }
 
-status_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
+state_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
 {
   if(file->mutex) return ERR;
   else if(size > file->limit) return ERR;
@@ -393,7 +391,7 @@ status_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
   return OK;
 }
 
-status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
+state_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
 {
   if(file->mutex) return ERR;
   if(size + file->size > file->limit) return ERR;
@@ -404,7 +402,7 @@ status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
 
 //------------------------------------------------------------------------------------------------- Access
 
-status_t FILE_Access_Get(FILE_t *file)
+state_t FILE_Access_Get(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->mutex = true;
@@ -416,7 +414,7 @@ void FILE_Access_Allow(FILE_t *file)
   if(file) file->mutex = false;
 }
 
-status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
+state_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
 {
   if(FILE_Access_Get(primary)) return ERR;
   if(secondary && secondary != primary) {
@@ -430,7 +428,7 @@ status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
 
 //------------------------------------------------------------------------------------------------- Flash
 
-status_t FILE_Flash_Save(FILE_t *file)
+state_t FILE_Flash_Save(FILE_t *file)
 {
   if(!file->flash_page) return ERR;
   if(FLASH_Compare(file->flash_page, file->buffer, file->size)) {
@@ -442,7 +440,7 @@ status_t FILE_Flash_Save(FILE_t *file)
   return OK;
 }
 
-status_t FILE_Flash_Load(FILE_t *file)
+state_t FILE_Flash_Load(FILE_t *file)
 {
   if(file->mutex) return ERR;
   else if(!file->flash_page) return ERR;
@@ -503,7 +501,7 @@ int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count)
 
 //------------------------------------------------------------------------------------------------- Offset
 
-status_t FILE_Offset_Drop(FILE_t *file)
+state_t FILE_Offset_Drop(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->buffer -= file->_offset;
@@ -513,7 +511,7 @@ status_t FILE_Offset_Drop(FILE_t *file)
   return OK;
 }
 
-status_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
+state_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
 {
   if(FILE_Offset_Drop(file)) return ERR;
   if(offset > file->limit) return ERR;
