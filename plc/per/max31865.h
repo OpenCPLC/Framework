@@ -5,7 +5,7 @@
 
 #include "spi-master.h"
 #include "log.h"
-#include "math.h"
+#include "exmath.h"
 
 #define MAX31865_CFG_BIAS  (1 << 7)
 #define MAX31865_CFG_AUTO  (1 << 6)
@@ -55,12 +55,14 @@ typedef struct {
   RTD_Wire_e wire; // Typ połączenia (2, 3 lub 4-przewodowe)
   RTD_Reject_e reject; // Filtracja zakłóceń (sieć 50Hz lub 60Hz)
   uint16_t oversampling; // Liczba próbek dla nadpróbkowania software'owego
-  uint32_t interval_ms; // Interwał pomiarowy w milisekundach
+	uint16_t expiry_ms;     // Czas, po którym brak odpowiedzi od czujnika skutkuje ustawieniem NaN
+	uint16_t interval_ms;   // Interwał pomiędzy pomiarami (powinien być co najmniej o 200ms krótszy niż 'expiry_ms')
   uint16_t raw;
   float raw_float;
   volatile float temperature;
   uint8_t buff[3];
-  uint64_t tick;
+  uint64_t expiry_tick;
+  uint64_t interval_tick;
 } MAX31865_t;
 
 void MAX31865_Init(MAX31865_t *rtd); // Inicjalizacja modułu MAX31865

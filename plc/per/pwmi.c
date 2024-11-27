@@ -62,7 +62,7 @@ static void PWMI_Reset(PWMI_t *pwmi)
 
 uint8_t PWMI_Run(PWMI_t *pwmi)
 {
-  pwmi->watchdog = gettick(pwmi->timeout_ms);
+  pwmi->watchdog = tick_keep(pwmi->timeout_ms);
   if(pwmi->count == pwmi->oversampling) pwmi->inc++;
   else {
     switch(pwmi->inc) {
@@ -173,7 +173,7 @@ void PWMI_Init(PWMI_t *pwmi)
 bool PWMI_Loop(PWMI_t *pwmi)
 {
   if(!pwmi_begin) return false;
-  if(waitfor(&pwmi->watchdog)) PWMI_Skip(pwmi);
+  if(tick_over(&pwmi->watchdog)) PWMI_Skip(pwmi);
   if(!PWMI_IsInterrupt(pwmi)) {
     for(uint8_t i = 0; i < 4; i++) {
       pwmi->frequency[i] = PWMI_GetFrequency(pwmi, i);

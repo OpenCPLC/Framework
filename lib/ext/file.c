@@ -122,6 +122,16 @@ int32_t FILE_Int(FILE_t *file, int32_t nbr, uint8_t base, bool sign, uint8_t fil
 int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space)
 {
   if(file->mutex) return 0;
+  if(isNaN(nbr)) {
+    uint8_t len = fill_space > 3 ? fill_space : 3;
+    char nan[len + 1];
+    memset(nan, ' ', len - 3);
+    nan[len - 3] = 'N';
+    nan[len - 2] = 'a';
+    nan[len - 1] = 'N';
+    nan[len] = '\0';
+    return FILE_String(file, nan);
+  }
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
   if(!fill_space) fill_space = 1;
   int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, accuracy + 1, fill_space - 1);

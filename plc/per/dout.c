@@ -96,7 +96,7 @@ void DOUT_Rst(DOUT_t *dout)
     if(!dout->value) return;
     dout->value = false;
     if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
-    if(dout->relay) dout->_stun = gettick(DOUT_RELAY_DELAY);
+    if(dout->relay) dout->_stun = tick_keep(DOUT_RELAY_DELAY);
   }
 }
 
@@ -214,7 +214,7 @@ static inline void DOUT_RelayCyclesInc(DOUT_t *dout)
  */
 void DOUT_Loop(DOUT_t *dout)
 {
-  if(waitfor(&dout->_stun)) return;
+  if(tick_over(&dout->_stun)) return;
   if(dout->_pulse) { // Gdy zostanie ustawiony tryb pulse
     if(dout->relay && !DOUT_State(dout)) DOUT_RelayCyclesInc(dout);
     if(dout->pwm) {
@@ -222,7 +222,7 @@ void DOUT_Loop(DOUT_t *dout)
       PWM_SetValue(dout->pwm, dout->channel, value);
     }
     else GPIO_Tgl(&dout->gpio);
-    dout->_stun = gettick(dout->_pulse);
+    dout->_stun = tick_keep(dout->_pulse);
     dout->_pulse = 0;
     dout->pulse = true;
     return;
@@ -241,7 +241,7 @@ void DOUT_Loop(DOUT_t *dout)
         dout->value = false;
       }
     }
-    if(dout->relay) dout->_stun = gettick(DOUT_RELAY_DELAY);
+    if(dout->relay) dout->_stun = tick_keep(DOUT_RELAY_DELAY);
   }
   return;
 }

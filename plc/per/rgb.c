@@ -15,19 +15,19 @@ static void RGB_RstBlue(RGB_t *rgb) { if(rgb->blue) GPIO_Rst(rgb->blue); }
 
 void RGB_Init(RGB_t *rgb)
 {
-  // if(rgb->red) {
-  //   rgb->red->mode = GPIO_Mode_Output;
-  //   GPIO_Init(rgb->red);
-  // }
-  // if(rgb->green) {
-  //   rgb->green->mode = GPIO_Mode_Output;
-  //   GPIO_Init(rgb->green);
-  // }
-  // if(rgb->blue) {
-  //   rgb->blue->mode = GPIO_Mode_Output;
-  //   GPIO_Init(rgb->blue);
-  // }
-  // RGB_Set(rgb, rgb->state);
+  if(rgb->red) {
+    rgb->red->mode = GPIO_Mode_Output;
+    GPIO_Init(rgb->red);
+  }
+  if(rgb->green) {
+    rgb->green->mode = GPIO_Mode_Output;
+    GPIO_Init(rgb->green);
+  }
+  if(rgb->blue) {
+    rgb->blue->mode = GPIO_Mode_Output;
+    GPIO_Init(rgb->blue);
+  }
+  RGB_Set(rgb, rgb->state);
   rgb_focus = rgb;
 }
 
@@ -47,8 +47,8 @@ static void RGB_Preset(RGB_t *rgb, RGB_e color)
 
 void RGB_Set(RGB_t *rgb, RGB_e color)
 {
-  // RGB_Preset(rgb, color);
-  // rgb->state = color;
+  RGB_Preset(rgb, color);
+  rgb->state = color;
 }
 
 void RGB_Rst(RGB_t *rgb)
@@ -65,7 +65,7 @@ void RGB_Tgl(RGB_t *rgb)
 void RGB_Loop(RGB_t *rgb)
 {
   if(rgb->blink_ms && rgb->state) {
-    if(waitfor(&rgb->tick)) {
+    if(tick_over(&rgb->tick)) {
       rgb->blink_on = !rgb->blink_on;
       if(rgb->blink_on) RGB_Preset(rgb, rgb->state);
       else {
@@ -77,7 +77,7 @@ void RGB_Loop(RGB_t *rgb)
       }
     };
     if(!rgb->tick) {
-      rgb->tick = gettick(rgb->blink_ms);
+      rgb->tick = tick_keep(rgb->blink_ms);
     }
   }
 }

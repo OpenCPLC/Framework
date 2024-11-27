@@ -5,7 +5,7 @@
 static inline void I2C_Master_ReadEV(I2C_Master_t *i2c)
 {
   i2c->busy = 0;
-  I2C_Master_JustRead(i2c, i2c->address, i2c->rx_location, i2c->size);
+  I2C_Master_Read(i2c, i2c->address, i2c->rx_location, i2c->size);
   i2c->size = 0;
 }
 
@@ -203,7 +203,7 @@ state_t I2C_Master_WriteRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *write_ary
   i2c->address = addr;
   i2c->rx_location = read_ary;
   i2c->size = read_n;
-  return I2C_Master_JustRead(i2c, addr, write_ary, write_n);
+  return I2C_Master_Read(i2c, addr, write_ary, write_n);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -167,32 +167,32 @@ void GPIF_Init(GPIF_t *gpif)
   if(!gpif->toggle_ms) gpif->toggle_ms = GPIF_TOGGLE_DELAULT;
   GPIO_Init(&gpif->gpio);
   gpif->value = GPIO_In(&gpif->gpio);
-  gpif->_tio_tick = gpif->value ? gettick(gpif->toff_ms) : gettick(gpif->ton_ms);
+  gpif->_tio_tick = gpif->value ? tick_keep(gpif->toff_ms) : tick_keep(gpif->ton_ms);
 }
 
 bool GPIF_Loop(GPIF_t *gpif)
 {
   bool in = GPIO_In(&gpif->gpio);
   if(in == gpif->value) {
-    gpif->_tio_tick = in ? gettick(gpif->toff_ms) : gettick(gpif->ton_ms);
+    gpif->_tio_tick = in ? tick_keep(gpif->toff_ms) : tick_keep(gpif->ton_ms);
   }
   else {
-    if(waitfor(&gpif->_tio_tick)) {
+    if(tick_over(&gpif->_tio_tick)) {
       gpif->value = in;
-      gpif->_toggle_tick = gettick(gpif->toggle_ms);
+      gpif->_toggle_tick = tick_keep(gpif->toggle_ms);
       if(gpif->value) {
-        gpif->_res_rise_tick = gettick(GPIF_TRESET);
+        gpif->_res_rise_tick = tick_keep(GPIF_TRESET);
         gpif->rise = true;
       }
       else {
-        gpif->_res_fall_tick = gettick(GPIF_TRESET);
+        gpif->_res_fall_tick = tick_keep(GPIF_TRESET);
         gpif->fall = true;
       }
     }
   }
-  waitfor(&gpif->_toggle_tick);
-  if(waitfor(&gpif->_res_rise_tick)) gpif->rise = false;
-  if(waitfor(&gpif->_res_fall_tick)) gpif->fall = false;
+  tick_over(&gpif->_toggle_tick);
+  if(tick_over(&gpif->_res_rise_tick)) gpif->rise = false;
+  if(tick_over(&gpif->_res_fall_tick)) gpif->fall = false;
   return gpif->value;
 }
 

@@ -115,13 +115,39 @@ uint8_t vrts_active_thread(void)
 }
 
 /**
- * @brief Returns the current system tick with an added offset
- * @param offset_ms Offset in milliseconds to add to the tick
- * @return The system tick plus the specified offset
+ * @brief Returns the adjusted system tick with an offset.
+ * @param offset_ms Milliseconds to add to the current tick.
+ * @return Adjusted tick.
+ *  @note Interoperates with 'tick_over', 'tick_away', 'delay_until', 'sleep_until' functions.
  */
-uint64_t gettick(uint32_t offset_ms)
+uint64_t tick_keep(uint32_t offset_ms)
 {
   return ticker + ((offset_ms + (tick_ms - 1)) / tick_ms);
+}
+
+/**
+ * @brief Checks if an event time has passed.
+ * @param tick Pointer to the event time tick.
+ * @return true if passed, resets tick; false otherwise.
+ */
+bool tick_over(uint64_t *tick)
+{
+  if(!*tick || *tick > ticker) return false;
+  *tick = 0;
+  return true;
+}
+
+/**
+ * @brief Checks if an event time is still to come.
+ * @param tick Pointer to the future event time tick.
+ * @return true if future, false if passed and resets tick.
+ */
+bool tick_away(uint64_t *tick)
+{
+  if(!*tick) return false;
+  if(*tick > ticker) return true;
+  *tick = 0;
+  return false;
 }
 
 /** 
@@ -131,7 +157,7 @@ uint64_t gettick(uint32_t offset_ms)
  */
 void delay(uint32_t ms)
 {
-  uint64_t end = gettick(ms);
+  uint64_t end = tick_keep(ms);
   while(end > ticker) let();
 }
 
@@ -142,7 +168,7 @@ void delay(uint32_t ms)
  */
 void sleep(uint32_t ms)
 {
-  uint64_t end = gettick(ms);
+  uint64_t end = tick_keep(ms);
   while(end > ticker) __WFI();
 }
 
@@ -155,7 +181,7 @@ void sleep(uint32_t ms)
  */
 bool timeout(uint32_t ms, bool (*Free)(void *), void *subject)
 {
-  uint64_t end = gettick(ms);
+  uint64_t end = tick_keep(ms);
   while(end > ticker) {
     if(Free(subject)) {
       return false;
@@ -187,18 +213,6 @@ void sleep_until(uint64_t *tick)
   if(!*tick) return;
   while(*tick > ticker) __WFI();
   *tick = 0;
-}
-
-/**
- * @brief Checks if the specified tick has been reached
- * @param tick Pointer to the target tick count
- * @return True if tick reached, false otherwise
- */
-bool waitfor(uint64_t *tick)
-{
-  if(!*tick || *tick > ticker) return false;
-  *tick = 0;
-  return true;
 }
 
 /**

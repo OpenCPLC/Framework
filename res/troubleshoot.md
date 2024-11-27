@@ -46,7 +46,7 @@ Jeśli utworzyłeś folder `opencplc`, upewnij się, że jego zawartość jest z
 
 Przeładuj okno VS Code: Jeśli zmiany nie zostaną od razu uwzględnione, przeładuj okno edytora:
 
-Otwórz paletę poleceń (Ctrl+Shift+P).
+Otwórz paletę poleceń (Ctrl+Shift+P) li b `F1`
 Wpisz Reload Window i wybierz odpowiednią opcję.
 Wyczyść pamięć podręczną IntelliSense: W przypadku dalszych problemów z wczytywaniem zmian, wyczyść pamięć podręczną IntelliSense:
 
@@ -76,8 +76,8 @@ Debuger skończył pracę na `HardFault_Handler`.
 
 
 ```
-undefined reference to `thread'
-undefined reference to `VRTS_Init'
+undefined reference to `vrts_thread'
+undefined reference to `vrts_init'
 ```
 
 Ustaw wartość definicji `VRTS_SWITCHING` na `1` w pliku `main.h` 

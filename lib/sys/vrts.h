@@ -38,20 +38,21 @@ typedef struct {
   void (*handler)(void);
 } VRTS_Task_t;
 
-
+uint64_t tick_keep(uint32_t offset_ms); // Returns adjusted system tick with added offset
+bool tick_over(uint64_t *tick); // Checks and resets if event time has passed
+bool tick_away(uint64_t *tick); // Verifies if event time is upcoming and not yet passed
 void let(void); // Yield control to the next thread
 void delay(uint32_t ms); // Delay execution by ms
 void sleep(uint32_t ms); // Sleep for ms without thread switching
 bool timeout(uint32_t ms, bool (*Free)(void *), void *subject); // Timeout with condition check
-uint64_t gettick(uint32_t offset_ms); // Get system tick with offset
 void delay_until(uint64_t *tick); // Delay until specific tick
 void sleep_until(uint64_t *tick); // Sleep until specific tick
-bool waitfor(uint64_t *tick); // Check if tick is reached
 int32_t watch(uint64_t tick); // Measure time since a specific tick
 
 bool vrts_thread(void (*handler)(void), uint32_t *stack, uint16_t size);
 #define stack(name, size) static uint32_t name[8 * ((size + 7) / 8)] __attribute__((aligned(8)))
 #define thread(fnc, stack_name) vrts_thread(&fnc, (uint32_t *)stack_name, sizeof(stack_name) / sizeof(uint32_t));
+#define thread_fnc(name, init, loop) void name(void) { init(); while(1) { loop(); let(); } }
 
 void vrts_init(void); // Initialize VRTS system
 void vrts_lock(void); // Disable thread switching

@@ -7,6 +7,9 @@
 
 //-------------------------------------------------------------------------------------------------
 
+#define NaN NAN
+#define isNaN(nbr) isnan(nbr)
+
 uint32_t ieee754_pack(float nbr);
 float ieee754_unpack(uint32_t value);
 

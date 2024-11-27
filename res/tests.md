@@ -39,3 +39,67 @@ int main(void)
   while(1);
 }
 ```
+
+
+## AIN
+
+```c
+// Import podstawowych funkcji sterownika.
+#include "opencplc.h"
+
+// Pobieranie wartości wejść analogowych AI
+void loop(void)
+{
+  // Ustawienie trybu pracy AI2 na 4-20mA
+  // AI2.mode_4_20mA = true;
+  while(1) {
+    // Odczyt napięcia z wejścia analogowego AI1
+    float V1 = AIN_Voltage_V(&AI1);
+    if(AIN_Value_Error(V1)) {
+
+      LOG_Error("Analog input AI1 error voltage");
+    }
+    else {
+      // Logowanie odczytanego napięcia
+      LOG_Info("Analog input AI1 voltage: %fV", V1);
+    }
+   
+    // Odczyt napięcia z wejścia analogowego AI1
+    float V2 = AIN_Voltage_V(&AI2);
+    if(AIN_Value_Error(V2)) {
+      LOG_Error("Analog input AI2 error voltage");
+    }
+    else {
+      // Logowanie odczytanego napięcia
+      LOG_Info("Analog input AI2 voltage: %fV", V2);
+    }
+    // Pomiary wykonywane co ok. 1s
+    delay(1000);
+  }
+}
+
+// Stos pamięci dla wątku PLC
+stack(stack_plc, 256);
+// Stos pamięci dla wątku Debugera (bash + dbg + log)
+stack(stack_dbg, 256);
+// Stos pamięci dla funkcji loop
+stack(stack_loop, 1024);
+
+int main(void)
+{
+  // Dodanie wątku sterownika
+  thread(PLC_Thread, stack_plc);
+  
+  // Dodanie wątku debuger'a (bash + dbg + log)
+  thread(DBG_Loop, stack_dbg);
+  
+  // Dodanie funkcji loop jako wątek
+  thread(loop, stack_loop);
+  
+  // Włączenie systemy przełączania wątków VRTS
+  vrts_init();
+  
+  // W to miejsce program nigdy nie powinien dojść
+  while(1);
+}
+```

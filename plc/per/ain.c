@@ -36,12 +36,12 @@ void AIN_Threshold(AIN_t *ain, float down, float up, AIN_Threshold_e scale)
  */
 float AIN_Raw(AIN_t *ain)
 {
-  if(waitfor(&ain->tick)) return ain->value;
+  if(tick_over(&ain->tick)) return ain->value;
   uint16_t size = ain->count / 3;
   sort_inc_uint16(ain->data, ain->count);
   ain->value = average_uint16(&(ain->data[size]), size);
-  ain->tick = gettick(AIN_AVERAGE_TIME_MS / 2);
-  // TODO: LOG_Debug();
+  ain->tick = tick_keep(AIN_AVERAGE_TIME_MS / 2);
+  LOG_Debug("Analog input %s raw-value: %F", ain->name, ain->value);
   return ain->value;
 }
 

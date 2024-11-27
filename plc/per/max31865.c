@@ -16,6 +16,7 @@ void MAX31865_Init(MAX31865_t *rtd)
   GPIO_Init(rtd->ready);
   if(!rtd->nominal_ohms) rtd->nominal_ohms = RTD_Type_PT100;
   if(!rtd->reference_ohms) rtd->reference_ohms = 4 * rtd->nominal_ohms;
+  rtd->raw_float = NaN;
 }
 
 static state_t MAX31865_GetData(MAX31865_t *rtd)
@@ -44,7 +45,10 @@ static state_t MAX31865_SetConfig(MAX31865_t *rtd, uint8_t config)
 */
 state_t MAX31865_Loop(MAX31865_t *rtd)
 {
-  delay_until(&rtd->tick);
+  if(tick_away(&rtd->interval_tick)) return OK;
+  if(tick_over(&rtd->expiry_tick)) {
+    rtd->raw_float = NaN;
+  }
   if(rtd->cs) rtd->spi->cs_gpio = rtd->cs;
   uint8_t cfg = (rtd->wire << 4) | rtd->reject;
   if(SPI_Master_IsBusy(rtd->spi)) return BUSY;
@@ -67,7 +71,8 @@ state_t MAX31865_Loop(MAX31865_t *rtd)
   // Read Errors
   if(MAX31865_SetConfig(rtd, MAX31865_CFG_FSCLR | cfg)) return ERR;
   LOG_Debug("MAX31865 %s raw value: %.2f", rtd->name, rtd->raw_float);
-  rtd->tick = gettick(rtd->interval_ms);
+  rtd->expiry_tick = tick_keep(rtd->expiry_ms);
+  rtd->interval_tick = gettick(rtd->interval_ms);
   return OK;
 }
 
@@ -85,6 +90,7 @@ state_t MAX31865_Loop(MAX31865_t *rtd)
  */
 float RTD_Resistance_Ohm(MAX31865_t *rtd)
 {
+  if(isNaN(rtd->raw_float)) return NaN;
   return rtd->raw_float * rtd->reference_ohms / 32768;
 }
 
@@ -96,6 +102,7 @@ float RTD_Resistance_Ohm(MAX31865_t *rtd)
  */
 float RTD_Temperature_C(MAX31865_t *rtd)
 {
+  if(isNaN(rtd->raw_float)) return NaN;
   float ohms = RTD_Resistance_Ohm(rtd);
   float z3 = (4 * MAX31865_B) / rtd->nominal_ohms;
   float z4 = 2 * MAX31865_B;

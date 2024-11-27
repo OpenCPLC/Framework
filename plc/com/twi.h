@@ -4,7 +4,7 @@
 #include "i2c-master.h"
 #include "vrts.h"
 
-bool TWI_Init(I2C_Master_t *i2c);
+void TWI_Init(I2C_Master_t *i2c);
 bool TWI_IsBusy(void);
 bool TWI_IsFree(void);
 bool TWI_Read(uint8_t addr, uint8_t *ary, uint16_t n);

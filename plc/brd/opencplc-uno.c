@@ -168,7 +168,7 @@ UART_t RS2 = {
   .timeout = 40
 };
 
-//------------------------------------------------------------------------------------------------- I2C
+//------------------------------------------------------------------------------------------------- I2C+1WIRE
 
 I2C_Master_t i2c_master = {
   .reg = I2C1,
@@ -179,26 +179,16 @@ I2C_Master_t i2c_master = {
   .I2C_TIMING_100kHz
 };
 
-GPIO_t onewire_power_gpio = { .port = GPIOA, .pin = 9, .mode = GPIO_Mode_Output, .set = true };
-GPIO_t onewire_data_gpio = { .port = GPIOA, .pin = 10 };
-WIRE_t onewire = { .gpio = &onewire_power_gpio };
+GPIO_t _1wire_gpio = { .port = GPIOA, .pin = 10 };
 TIM_t sleep_us_tim = { .reg = TIM7 };
 
-bool ONE_WIRE_Init(void)
+void _1WIRE_Active(void)
 {
   sleep_us_init(&sleep_us_tim);
   I2C_Master_Disable(&i2c_master);
-  GPIO_Init(&onewire_data_gpio);
-  return WIRE_Init(&onewire);
+  // WIRE_Init(&onewire);
+  return;
 }
-
-bool ONE_1WIRE_Reset(void) { return WIRE_Reset(&onewire); }
-void ONE_WIRE_Write(uint8_t value) { WIRE_Write(&onewire, value); }
-void ONE_WIRE_WriteParasitePower(uint8_t value) { WIRE_WriteParasitePower(&onewire, value); }
-uint8_t ONE_WIRE_Read(void) { return WIRE_Read(&onewire); }
-void ONE_WIRE_Select(uint8_t *addr) { WIRE_Select(&onewire, addr); }
-void ONE_WIRE_Skip(void) { WIRE_Skip(&onewire); }
-bool ONE_WIRE_Search(uint8_t *addr) { return WIRE_Search(&onewire, addr); }
 
 //------------------------------------------------------------------------------------------------- RGB+BTN
 
@@ -340,9 +330,7 @@ void PLC_Loop(void)
     ADC_Record(&ain_adc);
   }
   if(ain_adc.overrun) {
-    // DBG_String("ADC overrun:");
-    // DBG_uDec(ain_adc.overrun);
-    // DBG_Enter();
+    LOG_Warning("ADC over-run %d", ain_adc.overrun);
     ain_adc.overrun = 0;
   }
 }

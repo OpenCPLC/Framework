@@ -3,10 +3,6 @@
 
 // Stos pamięci dla wątku PLC
 static uint32_t stack_plc[256];
-
-
-
-
 // Stos pamięci dla wątku Debugera (bash + dbg + log)
 stack(stack_dbg, 256);
 // Stos pamięci dla funkcji loop

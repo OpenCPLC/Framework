@@ -2,20 +2,20 @@
 
 I2C_Master_t *twi_interface;
 
-bool TWI_Init(I2C_Master_t *i2c)
+void TWI_Init(I2C_Master_t *i2c)
 {
-  twi_interface = &i2c;
+  twi_interface = i2c;
   I2C_Master_Init(twi_interface);
 }
 
 bool TWI_IsBusy(void)
 {
-  I2C_Master_IsBusy(twi_interface);
+  return I2C_Master_IsBusy(twi_interface);
 }
 
 bool TWI_IsFree(void)
 {
-  I2C_Master_IsFree(twi_interface);
+  return I2C_Master_IsFree(twi_interface);
 }
 
 bool TWI_Read(uint8_t addr, uint8_t *ary, uint16_t n)

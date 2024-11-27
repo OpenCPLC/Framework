@@ -5,8 +5,7 @@
  *        Dzięki takiemu rozwiązaniu można nadpisać różnego rodzaju definicje (zmienne) konfiguracyjne.
  *        Biblioteki OpenCPLC w pierwszej kolejności będą pobierały zawarte tutaj zmienne,
  *        zamiast korzystać z domyślnych wartości zawartych we własnych plikach nagłówkowych '.h'.
- * @date  2024-11-13
+ * @date  2024-11-27
  */
 
-#define LOG_LEVEL LOG_LEVEL_INFO
 #define SYS_CLOCK_FREQ 59904000
