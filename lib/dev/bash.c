@@ -1,358 +1,543 @@
 #include "bash.h"
-#include "dbg.h"
 
 //------------------------------------------------------------------------------------------------- STRUCT
 
-struct {
-  FILE_t *file[BASH_FILE_LIMIT];
-  uint8_t file_count;
-  bool (*callback[BASH_CALLBACK_LIMIT])(char **, uint16_t);
-  uint8_t callback_count;
+static struct {
+  FILE_t *files[BASH_FILE_LIMIT];
+  uint32_t files_hash[BASH_FILE_LIMIT];
+  uint8_t files_count;
+  void (*callbacks[BASH_CALLBACK_LIMIT])(char **, uint16_t);
+  uint32_t callbacks_hash[BASH_CALLBACK_LIMIT];
+  uint8_t callbacks_count;
   bool flash_autosave;
-  FILE_t *cache;
-  FILE_t *src;
-  FILE_t *dsc;
+  FILE_t *file_active;
   void (*Sleep)(PWR_SleepMode_e);
   void (*Reset)(void);
-} bash_state;
+} bash;
 
+/**
+ * @brief Dodaje plik do systemu BASH.
+ * @param file Wskaźnik do struktury pliku do dodania.
+ */
 void BASH_AddFile(FILE_t *file)
 {
-  bash_state.file[bash_state.file_count] = file;
-  if(!bash_state.file_count) {
-    bash_state.cache = file;
-    bash_state.src = file;
-    bash_state.dsc = file;
+  if(bash.files_count >= BASH_FILE_LIMIT) {
+    LOG_Error("BASH Exceeded file limit (max %u)", BASH_FILE_LIMIT);
+    return;
   }
-  bash_state.file_count++;
+  bash.files[bash.files_count] = file;
+  char *name = strcopy(file->name);
+  bash.files_hash[bash.files_count] = hash(str2lower_this(name));
+  if(!bash.files_count) {
+    bash.file_active = file;
+  }
+  bash.files_count++;
   FILE_Flash_Load(file);
 }
 
-void BASH_AddCallback(bool (*callback)(char **, uint16_t))
+/**
+ * @brief Dodaje nową komendę do systemu BASH, powiązaną z funkcją callback.
+ * @param callback Funkcja obsługująca komendę
+ * @param argv0 Nazwa komendy, przypisywana do funkcji callback.
+ */
+void BASH_AddCallback(void (*callback)(char **, uint16_t), char *argv0)
 {
-  bash_state.callback[bash_state.callback_count] = callback;
-  bash_state.callback_count++;
+  if(bash.callbacks_count >= BASH_CALLBACK_LIMIT) {
+    LOG_Error("BASH Exceeded callback limit (max %u)", BASH_CALLBACK_LIMIT);
+    return;
+  }
+  bash.callbacks[bash.callbacks_count] = callback;
+  char *argv = strcopy(argv0);
+  bash.callbacks_hash[bash.callbacks_count] = hash(str2lower_this(argv));
+  bash.callbacks_count++;
 }
 
-void BASH_SetFlashAutosave(void (*callback)(char **, uint16_t))
+/**
+ * @brief Włącza lub wyłącza automatyczne zapisywanie danych do pamięci flash.
+ * @param autosave Flaga włączająca (true) lub wyłączająca (false) autosave.
+ */
+void BASH_FlashAutosave(bool autosave)
 {
-  bash_state.flash_autosave = true;
+  bash.flash_autosave = autosave;
+}
+
+/**
+ * @brief Wyświetla ostrzeżenie o nieprawidłowej liczbie argumentów dla danej komendy.
+ * @param command Nazwa komendy, która została wywołana z błędną liczbą argumentów.
+ */
+void BASH_WrongArgc(char *command)
+{
+  #if(LOG_COLORS)
+    LOG_Warning("Command \e[33m%s\e[0m called with incorrect arguments count", command);
+  #else
+    LOG_Warning("Command %s called with incorrect arguments count", command);
+  #endif
+}
+
+/**
+ * @brief Wyświetla ostrzeżenie o nieprawidłowym argumencie dla danej komendy.
+ * @param command Nazwa komendy, która została wywołana z błędnym argumentem.
+ * @param nbr Numer argumentu, który jest nieprawidłowy.
+ */
+void BASH_WrongArgv(char *command, char nbr)
+{
+  #if(LOG_COLORS)
+    LOG_Warning("Command '\e[33m%s\e[0m' received invalid argument \e[33m%u\e[0m", command, nbr);
+  #else
+    LOG_Warning("Command '%s' received invalid argument %u", command, nbr);
+  #endif
 }
 
 //------------------------------------------------------------------------------------------------- DATA
 
 static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
 {
-  stream->counter--;
-  #if(BASH_DBG)
-    DBG_String("FILE data ");
-    DBG_String((char *)bash_state.cache->name);
-    DBG_String(" frame:"); DBG_uDec(stream->counter);
+  stream->packages--;
+  LOG_Debug("File %s transfer, packages left: %d ", (char *)bash.file_active->name);
+  bash.file_active->mutex = false;
+  FILE_Append(bash.file_active, data, size);
+  if(!stream->packages) {
+    STREAM_ArgsMode(stream);
     DBG_Enter();
-  #endif
-  bash_state.cache->mutex = false;
-  FILE_Append(bash_state.cache, data, size);
-  if(!stream->counter) {
-    stream->mode = STREAM_Mode_String;
-    if(bash_state.flash_autosave) FILE_Flash_Save(bash_state.cache);
+    if(bash.flash_autosave) FILE_Flash_Save(bash.file_active);
   }
-  else bash_state.cache->mutex = true;
+  else {
+    bash.file_active->mutex = true;
+  }
 }
 
 //------------------------------------------------------------------------------------------------- FILE
 
-static void _BASH_AccessDenied(FILE_t *file)
+static FILE_t *BASH_FindFile(char *file_name)
 {
-  #if(BASH_DBG)
-    DBG_String("FILE ");
-    DBG_String((char *)file->name);
-    DBG_String(" access-denied");
-    DBG_Enter();
+  uint32_t file_hash = hash(file_name);
+  for(uint8_t i = 0; i < bash.files_count; i++) {
+    if(file_hash == bash.files_hash[i]) {
+      return bash.files[i];
+    }
+  }
+  #if(LOG_COLORS)
+    LOG_Warning("File \e[33m%s\e[0m not exist", (char *)file_name);
+  #else
+    LOG_Warning("File %s not exist", (char *)file_name);
   #endif
+  return NULL;
+}
+
+static void BASH_AccessDenied(FILE_t *file)
+{
+  LOG_Warning("File %s access denied", (char *)file->name);
 }
 
 static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
 {
-  if(argc < 2) return;
-  #if(BASH_DBG)
-  if(!strcmp(argv[1], "list") && argc == 2) { // FILE list
-    DBG_String("FILE "); DBG_uDec(bash_state.file_count);
-    DBG_String(" 0.."); DBG_uDec(bash_state.file_count - 1);
-    DBG_Enter();
-    for(uint8_t i = 0; i < bash_state.file_count; i++) {
-      DBG_String("  "); DBG_uDec(i);
-      DBG_Char(':'); DBG_String((char *)bash_state.file[i]->name);
-      DBG_Enter();
+  if(!bash.files_count) {
+    LOG_Warning("No file added to bash");
+    return;
+  }
+  if(argc < 2) { BASH_WrongArgc(argv[0]); return; }
+  switch(hash(argv[1])) {
+    case BASH_Hash_List: { // FILE list
+      if(argc != 2) { BASH_WrongArgc(argv[0]); return; }
+      const char *file_names[bash.files_count];
+      for(uint16_t i = 0; i < bash.files_count; i++) {
+        file_names[i] = bash.files[i]->name;
+      }
+      LOG_Bash("Files: %a%s", bash.files_count, file_names);
+      break;
     }
-    return;
-  }
-  #endif
-  if(!strcmp(argv[1], "cache") && argc == 3) { // FILE cache [file-nbr]
-    uint8_t nbr = atoi(argv[2]);
-    if(nbr < bash_state.file_count) bash_state.cache = bash_state.file[nbr];
-    #if(BASH_DBG)
-      DBG_File_Print(bash_state.cache);
-    #endif
-    return;
-  }
-  if(!strcmp(argv[1], "src-dsc") && argc == 4) { // FILE src-dsc [src-file-nbr] [dsc-file-nbr]
-    uint8_t a = atoi(argv[2]);
-    uint8_t b = atoi(argv[3]);
-    if(a < bash_state.file_count) bash_state.src = bash_state.file[a];
-    if(b < bash_state.file_count) bash_state.dsc = bash_state.file[b];
-    #if(BASH_DBG)
-      DBG_File_Print(bash_state.src);
-      DBG_File_Print(bash_state.dsc);
-    #endif
-    return;
-  }
-  if(!strcmp(argv[1], "clear") && argc == 2) { // FILE clear
-    if(FILE_Clear(bash_state.cache)) _BASH_AccessDenied(bash_state.cache);
-    DBG_File_Print(bash_state.cache);
-    return;
-  }
-  if(!strcmp(argv[1], "load") && argc <= 4) { // FILE load [limit] [offset]
-    uint16_t limit = bash_state.cache->size;
-    uint16_t offset = 0;
-    if(argc >= 3) limit = atoi(argv[2]);
-    if(argc >= 4) offset = atoi(argv[3]);
-    if(offset >= bash_state.cache->size) offset = 0;
-    if(limit + offset > bash_state.cache->size) limit = bash_state.cache->size - offset;
-    if(!bash_state.cache->mutex) {
-      DBG_SendFile(bash_state.cache);
+    case BASH_Hash_Active:
+    case BASH_Hash_Select: { // FILE select <file_name:str>
+      if(argc != 3) { BASH_WrongArgc(argv[0]); return; }
+      FILE_t *file = BASH_FindFile(argv[2]);
+      if(!file) return;
+      bash.file_active = file;
+      LOG_Bash("File %s was selected", bash.file_active->name);
+      break;
     }
-    else _BASH_AccessDenied(bash_state.cache);
-    return;
-  }
-  if(!strcmp(argv[1], "save") && (argc == 2 || argc == 3)) { // FILE save [frames]
-    if(FILE_Clear(bash_state.cache)) _BASH_AccessDenied(bash_state.cache);
-    else {
-      stream->mode = STREAM_Mode_Data;
-      stream->counter = argc == 3 ? atoi(argv[2]) : 1;
-      bash_state.cache->mutex = true;
-      #if(BASH_DBG)
-        DBG_String("FILE save ");
-        DBG_String((char *)bash_state.cache->name);
-        DBG_String(" frame:"); DBG_uDec(stream->counter);
-        DBG_Enter();
-      #endif
+    case BASH_Hash_Info: {  // FILE info
+      if(argc != 2) { BASH_WrongArgc(argv[0]); return; }
+      LOG_Bash("File %o", bash.file_active, &DBG_File);
+      break;
     }
-    return;
-  }
-  if(!strcmp(argv[1], "append") && argc == 3) { // FILE append [frames]
-    if(bash_state.cache->mutex) _BASH_AccessDenied(bash_state.cache);
-    else {
-      stream->mode = STREAM_Mode_Data;
-      stream->counter = atoi(argv[2]);
-      bash_state.cache->mutex = true;
-      #if(BASH_DBG)
-        DBG_String("FILE append ");
-        DBG_String((char *)bash_state.cache->name);
-        DBG_String(" frame:"); DBG_uDec(stream->counter);
-        DBG_Enter();
-      #endif
+    case BASH_Hash_Clear: { // FILE clear
+      if(argc != 2) { BASH_WrongArgc(argv[0]); return; }
+      if(FILE_Clear(bash.file_active)) {
+        BASH_AccessDenied(bash.file_active);
+        return;
+      }
+      LOG_Bash("File %s is empty", bash.file_active->name);
+      return;
     }
-    return;
-  }
-  if(!strcmp(argv[1], "flash") && argc == 3) { // FILE flash {save|load}
-    if(!strcmp(argv[2], "save")) FILE_Flash_Save(bash_state.cache);
-    else if(!strcmp(argv[2], "load")) FILE_Flash_Load(bash_state.cache);
-    return;
-  }
-  if(!strcmp(argv[1], "mutex") && argc == 3) { // FILE mutex {set|rst}
-    if(!strcmp(argv[2], "set")) bash_state.cache->mutex = true;
-    else if(!strcmp(argv[2], "rst")) bash_state.cache->mutex = false;
-    #if(BASH_DBG)
-      DBG_File_Print(bash_state.cache);
-    #endif
-    return;
-  }
-  if(!strcmp(argv[1], "copy") && (argc == 2 || argc == 4)) { // FILE copy ([tx-nbr] [rx-nbr])
-    FILE_t *src = NULL;
-    FILE_t *dsc = NULL;
-    if(argc == 2) {
-      src = bash_state.src;
-      dsc = bash_state.dsc;
-    } else if(argc == 4) {
-      src = bash_state.file[atoi(argv[2])];
-      dsc = bash_state.file[atoi(argv[3])];
+    case BASH_Hash_Save: { // FILE save <packages:uint16>?
+      if(argc > 3) { BASH_WrongArgc(argv[0]); return; }
+      if(FILE_Clear(bash.file_active)) BASH_AccessDenied(bash.file_active);
+      else {
+        STREAM_DataMode(stream);
+        if(str2uint16_fault(argv[2])) { BASH_WrongArgv(argv[0], 2); return; }
+        stream->packages = argc == 3 ? str2nbr(argv[2]) : 1;
+        bash.file_active->mutex = true;
+        LOG_Bash("File %s save, packages: %d", bash.file_active->name, stream->packages);
+      }
+      break;
     }
-    if(FILE_Copy(dsc, src))
-      _BASH_AccessDenied(dsc);
-    else {
-      DBG_File_Print(src);
-      DBG_File_Print(dsc);
+    case BASH_Hash_Append: { // FILE append <packages:uint16>?
+      if(argc > 3) { BASH_WrongArgc(argv[0]); return; }
+      if(bash.file_active->mutex) BASH_AccessDenied(bash.file_active);
+      else {
+        STREAM_DataMode(stream);
+        if(str2uint16_fault(argv[2])) { BASH_WrongArgv(argv[0], 2); return; }
+        stream->packages = argc == 3 ? str2nbr(argv[2]) : 1;
+        bash.file_active->mutex = true;
+        LOG_Bash("File %s append, packages: %d", bash.file_active->name, stream->packages);
+      }
+      break;
     }
+    case BASH_Hash_Load: { // FILE append <limit:uint16>? <offset:uint16>?
+      if(argc > 4) { BASH_WrongArgc(argv[0]); return; }
+      if(bash.file_active->mutex) BASH_AccessDenied(bash.file_active);
+      uint16_t limit = bash.file_active->size;
+      uint16_t offset = 0;
+      if(argc >= 3) {
+        if(str2uint16_fault(argv[2])) { BASH_WrongArgv(argv[0], 2); return; }
+        limit = str2nbr(argv[2]);
+      }
+      if(argc == 4) {
+        if(str2uint16_fault(argv[3])) { BASH_WrongArgv(argv[0], 3); return; }
+        offset = str2nbr(argv[3]);
+      }
+      if(offset >= bash.file_active->size) offset = 0;
+      if(limit + offset > bash.file_active->size) limit = bash.file_active->size - offset;
+      bash.file_active->mutex = true;
+      DBG_Send(&bash.file_active->buffer[offset], limit);
+      bash.file_active->mutex = false;
+      break;
+    }
+    case BASH_Hash_Flash: { // FILE flash {save|load}
+      if(argc != 3) { BASH_WrongArgc(argv[0]); return; }
+      switch(hash(argv[2])) {
+        case BASH_Hash_Save:
+          if(FILE_Flash_Save(bash.file_active)) LOG_Error("File %s flash save fault");
+          else LOG_Bash("File %s flash save success");
+          break;
+        case BASH_Hash_Load: case BASH_Hash_Reset: 
+          if(FILE_Flash_Load(bash.file_active)) LOG_Error("File %s flash load fault");
+          else LOG_Bash("File %s flash load success");
+          break;
+        default: BASH_WrongArgv("file flash", 2);
+      }
+    }
+    case BASH_Hash_Mutex: { // FILE mutex {set|rst}
+      if(argc != 3) { BASH_WrongArgc("file mutex"); return; }
+      switch(hash(argv[2])) {
+        case BASH_Hash_Set: bash.file_active->mutex = true; break;
+        case BASH_Hash_Rst: case BASH_Hash_Reset: bash.file_active->mutex = false; break;
+        default: BASH_WrongArgv("file mutex", 2);
+      }
+      break;
+    }
+    case BASH_Hash_Copy: { // FILE copy {from|to} <file_name:str>
+      if(argc != 4) { BASH_WrongArgc("file copy"); return; }
+      FILE_t *file = BASH_FindFile(argv[3]);
+      if(!file) return;
+      switch(hash(argv[2])) {
+        case BASH_Hash_To:
+          if(FILE_Copy(file, bash.file_active)) LOG_Error("File copy fault");
+          else LOG_Bash("File copy %s → %s success", bash.file_active, file);
+          break;
+        case BASH_Hash_From:
+          if(FILE_Copy(bash.file_active, file)) LOG_Error("File copy fault");
+          else LOG_Bash("File copy %s → %s success", file, bash.file_active);
+          break;
+        default: BASH_WrongArgv("file copy", 2);
+      }
+      break;
+    }
+    // TODO: FILE (struct) print <limit:uint16>? <offset:uint16>?
   }
 }
 
 //------------------------------------------------------------------------------------------------- UID
 
-void BASH_Uid(char **argv, uint16_t argc)
+static void BASH_Uid(char **argv, uint16_t argc)
 {
-  if(argc != 1) return;
-  DBG_String("UID ");
+  if(argc > 1) {
+    BASH_WrongArgc(argv[0]);
+    return;
+  }
   uint8_t *uid = (uint8_t *)UID_BASE;
-  for(uint8_t i = 0; i < 12; i++) DBG_Hex8(uid[i]);
-  DBG_Enter();
+  LOG_Bash("UID %a%02x", 12, uid);
 }
 
 //------------------------------------------------------------------------------------------------- RTC
 #ifdef RTC_H_
 
-void BASH_Rtc(char **argv, uint16_t argc)
+static RTC_Weekday_e RTC_Str2Weekday(const char *str)
 {
-  if(argc == 1) {
-    RTC_Datetime_t datetime = RTC_Datetime();
-    #if(BASH_DBG)
-      DBG_String("RTC ");
-      DBG_Datetime(&datetime);
-      DBG_Char(' ');
-      DBG_String((char *)rtc_weakdays[datetime.week_day]);
-      DBG_Enter();
-    #else
-      DBG_Dec(RTC_DatetimeUnix(&datetime));
-    #endif
-    return;
-  }
-  if(argc == 2) {
-    if(!strcmp(argv[1], "reset") || !strcmp(argv[1], "rst")) {
-      RTC_Reset();
-      DBG_String("RTC reset");
-      DBG_Enter();
-      return;
-    }
-    #if(BASH_DBG)
-      DBG_String("RTC set-by-timestamp");
-      DBG_Enter();
-    #endif
-    RTC_SetTimestamp(strtoul(argv[1], NULL, 10));
-    return;
-  }
-  if(argc == 3) {
-    #if(BASH_DBG)
-      DBG_String("RTC set-by-datatime");
-      DBG_Enter();
-    #endif
-    char *date = replace_this_char("\"/,:+-_", ',',  argv[1]);
-    char *time = replace_this_char("\"/,:+-_", ',',  argv[2]);
-    RTC_Datetime_t datetime = {
-      .year = atoi(extraction(date, ',', 0)) % 100,
-      .month = atoi(extraction(date, ',', 1)),
-      .month_day = atoi(extraction(date, ',', 2)),
-      .hour = atoi(extraction(time, ',', 0)),
-      .minute = atoi(extraction(time, ',', 1)),
-      .second = atoi(extraction(time, ',', 2))
-    };
-    RTC_SetDatetime(&datetime);
-    return;
+  switch(hash(str)) {
+    case RTC_Hash_Everyday: case RTC_Hash_Evd: case HASH_Number_0: return RTC_Weekday_Everyday;
+    case RTC_Hash_Monday: case RTC_Hash_Mon: case HASH_Number_1: return RTC_Weekday_Monday;
+    case RTC_Hash_Tuesday: case RTC_Hash_Tue: case HASH_Number_2: return RTC_Weekday_Tuesday;
+    case RTC_Hash_Wednesday: case RTC_Hash_Wed: case HASH_Number_3: return RTC_Weekday_Wednesday;
+    case RTC_Hash_Thursday: case RTC_Hash_Thu: case HASH_Number_4: return RTC_Weekday_Thursday;
+    case RTC_Hash_Friday: case RTC_Hash_Fri: case HASH_Number_5: return RTC_Weekday_Friday;
+    case RTC_Hash_Saturday: case RTC_Hash_Sat: case HASH_Number_6: return RTC_Weekday_Saturday;
+    case RTC_Hash_Sunday: case RTC_Hash_Sun: case HASH_Number_7: return RTC_Weekday_Sunday;
+    default: return RTC_Weekday_Error;
   }
 }
 
-void BASH_Alarm(char **argv, uint16_t argc)
+static void BASH_Rtc(char **argv, uint16_t argc)
 {
-  if(argc < 2) return;
-  RTC_ALARM_e ab;
-  if(!strcmp(argv[1], "a")) ab = RTC_ALARM_A;
-  else if(!strcmp(argv[1], "b")) ab = RTC_ALARM_B;
-  else return;
-  if(argc == 4) {
-    uint8_t week_day = atoi(argv[2]);
-    bool week_day_mask = true;
-    if(week_day) week_day_mask = false;
-    char *hms = replace_this_char("\"/,.:+-_", ',',  argv[3]);
-    RTC_Alarm_t alarm = {
-      .week = true,
-      .day_mask = week_day_mask,
-      .day = week_day,
-      .hour_mask = false,
-      .hour = atoi(extraction(hms, ',', 0)),
-      .minute_mask = false,
-      .minute = atoi(extraction(hms, ',', 1)),
-      .second_mask = false,
-      .second = atoi(extraction(hms, ',', 2))
-    };
-    #if(BASH_DBG)
-      DBG_String("ALARM "); DBG_String(" set-"); DBG_String(argv[1]);
-      DBG_Enter();
-    #endif
-    RTC_Alarm_Enable(ab, &alarm);
-    return;
+  switch(argc) {
+    case 1: { // RTC
+      RTC_Datetime_t dt = RTC_Datetime();
+      LOG_Bash("RTC %o %s", &dt, &DBG_Datetime, (char *)rtc_weakdays[dt.week_day]);
+      break;
+    }
+    case 2: { // RTC rst|<timestamp:uint32>
+      uint32_t argv1_hash = hash(argv[1]);
+      if(argv1_hash == BASH_Hash_Rst || argv1_hash == BASH_Hash_Reset) {
+        RTC_Reset();
+        LOG_Bash("RTC was reset");
+        return;
+      }
+      if(str2uint64_fault(argv[1])) { BASH_WrongArgv(argv[0], 1); return; }
+      uint64_t stamp = str2nbr64(argv[1]);
+      LOG_Bash("RTC was set by timestamp");
+      RTC_SetTimestamp(stamp);
+      break;
+    }
+    case 3: { // RTC <date:str(YYYY-MM-DD)> <time:str(hh:mm:ss)>
+      char *date = replace_char("\"/,:+-_", ',', argv[1]);
+      char *year_str = extraction(date, ',', 0);
+      char *month_str = extraction(date, ',', 1);
+      char *day_str = extraction(date, ',', 2);
+      if(str2uint16_fault(year_str) || str2uint16_fault(month_str) || str2uint16_fault(day_str)) {
+        BASH_WrongArgv(argv[0], 1);
+        return;
+      }
+      uint16_t year_nbr = str2nbr(year_str);
+      if(year_nbr >= 2000) year_nbr -= 2000;
+      uint16_t month_nbr = str2nbr(month_str);
+      uint16_t day_nbr = str2nbr(day_str);
+      if(year_nbr >= 100 || month_nbr == 0 || month_nbr > 12 || day_nbr == 0 || day_nbr > 31) {
+        BASH_WrongArgv(argv[0], 1);
+        return;
+      }
+      char *time = replace_char("\"/,:+-_", ',', argv[2]);
+      char *hour_str = extraction(time, ',', 0);
+      char *minute_str = extraction(time, ',', 1);
+      char *second_str = extraction(time, ',', 2);
+      if(str2uint16_fault(hour_str) || str2uint16_fault(minute_str) || str2uint16_fault(second_str)) {
+        BASH_WrongArgv(argv[0], 2);
+        return;
+      }
+      uint16_t hour_nbr = str2nbr(hour_str);
+      if(hour_nbr == 24) hour_nbr = 0;
+      uint16_t minute_nbr = str2nbr(minute_str);
+      uint16_t second_nbr = str2nbr(second_str);
+      if(hour_nbr >= 24 || minute_nbr >= 60 || second_nbr >= 60) {
+        BASH_WrongArgv(argv[0], 2);
+        return;
+      }
+      RTC_Datetime_t dt = {
+        .year = year_nbr,
+        .month = month_nbr,
+        .month_day = day_nbr,
+        .hour = hour_nbr,
+        .minute = minute_nbr,
+        .second = second_nbr
+      };
+      RTC_SetDatetime(&dt);
+      LOG_Bash("RTC was set by datatime");
+      break;
+    }
+    default: {
+      BASH_WrongArgc(argv[0]);
+      break;
+    }
   }
-  #if(BASH_DBG)
-  if(argc == 2) {
-    RTC_Alarm_t alarm = RTC_Alarm(ab);
-    DBG_String("ALARM "); DBG_Alarm(&alarm);
-    DBG_Enter();
-    return;
+}
+
+static void BASH_Alarm(char **argv, uint16_t argc)
+{
+  RTC_ALARM_e alarm_type;
+  char alarm_char;
+  if(argc >= 2) {
+    uint32_t argv1_hash = hash(argv[1]);
+    switch(argv1_hash) {
+      case BASH_Hash_A: alarm_type = RTC_ALARM_A; alarm_char = 'A'; break;
+      case BASH_Hash_B: alarm_type = RTC_ALARM_B; alarm_char = 'B'; break;
+      default:
+        BASH_WrongArgv(argv[0], 1);
+        return;
+    }
   }
-  #endif
+  switch(argc) {
+    case 2: {
+      RTC_Alarm_t alarm = RTC_Alarm(alarm_type);
+      if(RTC_Alarm_IsEnabled(alarm_type)) return LOG_Bash("Alarm %c %o", alarm_char, &alarm, &DBG_Alarm);
+      else return LOG_Bash("Alarm %c disabled", alarm_char);
+      break;
+    }
+    case 4: {
+      RTC_Weekday_e weekday = RTC_Str2Weekday(argv[2]);
+      if(weekday == RTC_Weekday_Error) {
+        BASH_WrongArgv(argv[0], 2);
+        return;
+      }
+      bool weekday_mask = weekday ? false : true;
+      char *time = replace_char("\"/,:+-_", ',', argv[3]);
+      char *hour_str = extraction(time, ',', 0);
+      char *minute_str = extraction(time, ',', 1);
+      char *second_str = extraction(time, ',', 2);
+      if(str2uint16_fault(hour_str) || str2uint16_fault(minute_str) || str2uint16_fault(second_str)) {
+        BASH_WrongArgv(argv[0], 3);
+        return;
+      }
+      uint16_t hour_nbr = str2nbr(hour_str);
+      if(hour_nbr == 24) hour_nbr = 0;
+      uint16_t minute_nbr = str2nbr(minute_str);
+      uint16_t second_nbr = str2nbr(second_str);
+      if(hour_nbr >= 24 || minute_nbr >= 60 || second_nbr >= 60) {
+        BASH_WrongArgv(argv[0], 3);
+        return;
+      }
+      RTC_Alarm_t alarm = {
+        .week = true,
+        .day_mask = weekday_mask,
+        .day = weekday,
+        .hour_mask = false,
+        .hour = hour_nbr,
+        .minute_mask = false,
+        .minute = minute_nbr,
+        .second_mask = false,
+        .second = second_nbr
+      };
+      RTC_Alarm_Enable(alarm_type, &alarm);
+      LOG_Bash("Alarm %c %o", alarm_char, &alarm, &DBG_Alarm);
+      break;
+    }
+    default: {
+      BASH_WrongArgc(argv[0]);
+      break;
+    }
+  }
 }
 
 #endif
 //------------------------------------------------------------------------------------------------- PWR
 
-static void BASH_Pwr(char **argv, uint16_t argc)
+PWR_SleepMode_e PWR_Str2SleepMode(const char *str)
 {
-  if(!strcmp(argv[1], "sleep")) {
-    uint8_t mode = atoi(argv[1]);
-    if(argc == 3) {
-      if(bash_state.Sleep) bash_state.Sleep(mode);
-      else PWR_Sleep(mode);
-    }
-    else if(!strcmp(argv[2], "now") && argc == 4) PWR_Sleep(mode);
-    return;
-  }
-  if(!strcmp(argv[1], "reset")) {
-    if(argc == 2) {
-      if(bash_state.Reset) bash_state.Reset();
-      else PWR_Reset();
-    }
-    else if(!strcmp(argv[2], "now") && argc == 3) PWR_Reset();
-    return;
+  switch(hash(str)) {
+    case PWR_Hash_Stop0: case HASH_Number_0: return PWR_SleepMode_Stop0;
+    case PWR_Hash_Stop: case PWR_Hash_Stop1: case HASH_Number_1: return PWR_SleepMode_Stop1;
+    case PWR_Hash_StandbySram: case PWR_Hash_Standbysram: case HASH_Number_2: return PWR_SleepMode_StandbySRAM;
+    case PWR_Hash_Standby: case HASH_Number_3: return PWR_SleepMode_Standby;
+    case PWR_Hash_Shutdown: case HASH_Number_4: return PWR_SleepMode_Shutdown;
+    default: return PWR_SleepMode_Error;
   }
 }
 
+static void BASH_Power(char **argv, uint16_t argc)
+{
+  if(argc == 1) { BASH_WrongArgc(argv[0]); return; }
+  switch(hash(argv[1])) {
+    case BASH_Hash_Sleep: {
+      PWR_SleepMode_e mode = PWR_Str2SleepMode(argv[2]);
+      if(mode == PWR_SleepMode_Error) { BASH_WrongArgv(argv[0], 2); return; }
+      if(argc == 3) {
+        if(bash.Sleep) bash.Sleep(mode);
+        else PWR_Sleep(mode);
+      }
+      else if(argc == 4) {
+        if(hash(argv[3]) == BASH_Hash_Now) PWR_Sleep(mode);
+        else { BASH_WrongArgv(argv[0], 3); return; }
+      }
+      else { BASH_WrongArgc(argv[0]); return; }
+      break;
+    }
+    case BASH_Hash_Reboot:
+    case BASH_Hash_Restart: {
+      if(argc == 2) {
+        if(bash.Reset) bash.Reset();
+        else PWR_Reset();
+      }
+      else if(argc == 3) {
+        if(hash(argv[2]) == BASH_Hash_Now) PWR_Reset();
+        else { BASH_WrongArgv(argv[0], 2); return; }
+      }
+      else { BASH_WrongArgc(argv[0]); return; }
+      break;
+    }
+    default: {
+      BASH_WrongArgv(argv[0], 1);
+      break;
+    }
+  }
+}
+
+//------------------------------------------------------------------------------------------------- Addr
+
+#if(STREAM_ADDRESS)
+static void BASH_Addr(char **argv, uint16_t argc)
+{
+  if(argc > 2) { BASH_WrongArgc(argv[0]); return; }
+  if(argc == 2) {
+    stream->address = atoi(argv[1]);
+    if(stream->Readdress) stream->Readdress(stream->address);
+  }
+  LOG_Bash("ADDR %u", stream->address);
+}
+#endif
+
 //------------------------------------------------------------------------------------------------- LOOP
 
+/**
+ * @brief Obsługuje komendy odczytane ze strumienia w systemie BASH.
+ * Obsługuje wbudowane komendy oraz te dodane przez użytkownika.
+ * @param stream Strumień wejściowy (np. UART) z komendami lub danymi.
+ * @return `true` jeśli komenda została obsłużona, `false` w przypadku błędu lub nieznanej komendy.
+ */
 bool BASH_Loop(STREAM_t *stream)
 {
   char **argv = NULL;
   uint16_t argc = STREAM_Read(stream, &argv);
   if(argc) {
-    if(stream->mode == STREAM_Mode_Data) BASH_Data((uint8_t *)argv[0], argc, stream);
+    if(stream->data_mode) BASH_Data((uint8_t *)argv[0], argc, stream);
     else {
-      #if(BASH_DBG)
-        if(!strcmp(argv[0], "ping") && argc == 1) {
-          DBG_String("PING pong");
-          DBG_Enter();
+      uint32_t argv0_hash = hash(argv[0]);
+      switch(argv0_hash) {
+        case BASH_Hash_Ping: {
+          if(argc == 1) LOG_Bash("PING pong");
+          else BASH_WrongArgc(argv[0]);
+          break;
         }
-        else if(!strcmp(argv[0], "enter") && argc == 1) {
-          DBG_Enter();
-        }
-        else
-      #endif
-      if(!strcmp(argv[0], "file") && bash_state.file_count) BASH_File(argv, argc, stream);
-      else if(!strcmp(argv[0], "uid")) BASH_Uid(argv, argc);
-      #if(BASH_RTC)
-        else if(!strcmp(argv[0], "rtc")) BASH_Rtc(argv, argc);
-        else if(!strcmp(argv[0], "alarm")) BASH_Alarm(argv, argc);
-      #endif
-      else if(!strcmp(argv[0], "pwr")) BASH_Pwr(argv, argc);
-      #if(STREAM_ADDRESS)
-        else if(!strcmp(argv[0], "addr")) {
-          if(argc == 2) {
-            stream->address = atoi(argv[1]);
-            if(stream->Readdress) stream->Readdress(stream->address);
+        case BASH_Hash_File: BASH_File(argv, argc, stream); break;
+        case BASH_Hash_Uid: BASH_Uid(argv, argc); break;
+        case BASH_Hash_Power: case BASH_Hash_Pwr: BASH_Power(argv, argc); break;
+        #ifdef RTC_H_
+          case BASH_Hash_Rtc: BASH_Rtc(argv, argc); break;
+          case BASH_Hash_Alarm: BASH_Alarm(argv, argc); break;
+        #endif
+        #if(STREAM_ADDRESS)
+          case BASH_Hash_Addr: break;
+        #endif
+        default: {
+          for(uint8_t i = 0; i < bash.callbacks_count; i++) {
+            if(argv0_hash == bash.callbacks_hash[i]) {
+              bash.callbacks[i](argv, argc);
+              return true;
+            }
           }
-          DBG_String("ADDR ");
-          DBG_uDec(stream->address);
-          DBG_Enter();
-        }
-      #endif
-      else {
-        for(uint8_t i = 0; i < bash_state.callback_count; i++) {
-          if(bash_state.callback[i](argv, argc)) break;
+          #if(LOG_COLORS)
+            LOG_Warning("Command \e[33m%s\e[0m not found", argv[0]);
+          #else
+            LOG_Warning("Command %s not found", argv[0]);
+          #endif
+          return false;
         }
       }
     }

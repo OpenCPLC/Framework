@@ -6,14 +6,14 @@ static void PWMI_Interrupt(PWMI_t *pwmi)
   if(pwmi->reg->SR & TIM_SR_TIF) PWMI_Run(pwmi);
 }
 
-const uint16_t pwmi_pow2[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 9192 };
+static const uint16_t PWMI_POW2[] = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 9192 };
 
 static float PWMI_GetTimeoutMaxMs(PWMI_t *pwmi)
 {
   uint32_t auto_reload;
   if(pwmi->reg == TIM2) auto_reload = 0xFFFFFFFF;
   else auto_reload = 0xFFFF;
-  return ((float)pwmi->prescaler + 1) * pwmi_pow2[pwmi->input_prescaler] * auto_reload * 1000 / SystemCoreClock;
+  return ((float)pwmi->prescaler + 1) * PWMI_POW2[pwmi->input_prescaler] * auto_reload * 1000 / SystemCoreClock;
 }
 
 static void PWMI_Begin(PWMI_t *pwmi)
@@ -22,8 +22,8 @@ static void PWMI_Begin(PWMI_t *pwmi)
   pwmi->reg->PSC = pwmi->prescaler;
   pwmi->reg->ARR = 0xFFFF;
   if(pwmi->channel[TIM_CH3] && pwmi->trig3) {
-    pwmi->trig3->port = tim_channel_map[pwmi->channel[TIM_CH3]].port;
-    pwmi->trig3->pin = tim_channel_map[pwmi->channel[TIM_CH3]].pin;
+    pwmi->trig3->port = TIM_CHx_MAP[pwmi->channel[TIM_CH3]].port;
+    pwmi->trig3->pin = TIM_CHx_MAP[pwmi->channel[TIM_CH3]].pin;
     pwmi->trig3->rise = true;
     pwmi->trig3->fall = false;
     pwmi->trig3->interrupt_level = pwmi->interrupt_level;
@@ -32,8 +32,8 @@ static void PWMI_Begin(PWMI_t *pwmi)
     EXTI_Init(pwmi->trig3);
   }
   if(pwmi->channel[TIM_CH4] && pwmi->trig4) {
-    pwmi->trig4->port = tim_channel_map[pwmi->channel[TIM_CH4]].port;
-    pwmi->trig4->pin = tim_channel_map[pwmi->channel[TIM_CH4]].pin;
+    pwmi->trig4->port = TIM_CHx_MAP[pwmi->channel[TIM_CH4]].port;
+    pwmi->trig4->pin = TIM_CHx_MAP[pwmi->channel[TIM_CH4]].pin;
     pwmi->trig4->rise = true;
     pwmi->trig4->fall = false;
     pwmi->trig4->interrupt_level = pwmi->interrupt_level;
@@ -42,7 +42,7 @@ static void PWMI_Begin(PWMI_t *pwmi)
     EXTI_Init(pwmi->trig4);
   }
   for(uint8_t i = TIM_CH1; i < 4; i++)
-    if(pwmi->channel[i]) GPIO_AlternateInit(&tim_channel_map[pwmi->channel[i]], true);
+    if(pwmi->channel[i]) GPIO_AlternateInit(&TIM_CHx_MAP[pwmi->channel[i]], true);
   INT_EnableTIM(pwmi->reg, pwmi->interrupt_level, (void (*)(void *))&PWMI_Interrupt, pwmi);
   if(!pwmi->oversampling) pwmi->oversampling = 1;
   if(!pwmi->timeout_ms) pwmi->timeout_ms = PWMI_GetTimeoutMaxMs(pwmi);
@@ -141,15 +141,15 @@ static bool PWMI_IsInterrupt(PWMI_t *pwmi)
   else return false;
 }
 
-static float PWMI_GetFrequency(PWMI_t *pwmi, TIM_Channel_e channel)
+static float PWMI_GetFrequency(PWMI_t *pwmi, TIM_Channel_t channel)
 {
   float frequency = 0;
   if(pwmi->reload[channel])
-    frequency = (float)SystemCoreClock * pwmi->oversampling/ (pwmi->prescaler + 1) / pwmi_pow2[pwmi->input_prescaler] / pwmi->reload[channel];
+    frequency = (float)SystemCoreClock * pwmi->oversampling/ (pwmi->prescaler + 1) / PWMI_POW2[pwmi->input_prescaler] / pwmi->reload[channel];
   return frequency;
 }
 
-static float PWMI_GetFill(PWMI_t *pwmi, TIM_Channel_e channel)
+static float PWMI_GetFill(PWMI_t *pwmi, TIM_Channel_t channel)
 {
   float fill = 0;
   if(pwmi->reload[channel])

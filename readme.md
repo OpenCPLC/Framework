@@ -1,3 +1,9 @@
+#
+
+Sprytne włączanie i wyłączanie timeout w UART dla wiadomości i wyłączanie Console Mode...
+Printf dodanie obsługi tablic
+
+
 # 💡 OpenCPLC
 
 Projekt zapewnia warstwę pośrednią pomiędzy Twoją aplikacją, a peryferiami mikrokontrolera. Trochę podobnie jak w **Arduino**, jednak bardziej w kierunku automatyki. Bez własnego IDE oraz angażowania C++.

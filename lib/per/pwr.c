@@ -167,7 +167,7 @@ uint32_t RCC_48MHz(void)
 uint32_t RCC_64MHz(void)
 {
   RCC_FLASH_SetLatency(64000000);
-  return RCC_PLL(false, 2, 14, 2);
+  return RCC_PLL(false, 2, 16, 2);
 }
 
 //------------------------------------------------------------------------------------------------- PWR
@@ -181,9 +181,9 @@ void PWR_Sleep(PWR_SleepMode_e mode)
 {
   RCC->APBENR1 |= RCC_APBENR1_PWREN;
 	const uint8_t PWR_MODE_ARRAY[] = { 0b000, 0b001, 0b011, 0b011, 0b100 };
-	if((PWR->SR2 & PWR_SR2_REGLPF) && (mode == PWR_Mode_Stop0)) return;
+	if((PWR->SR2 & PWR_SR2_REGLPF) && (mode == PWR_SleepMode_Stop0)) return;
 	PWR->CR1 |= PWR_MODE_ARRAY[mode];
-	if(mode == PWR_Mode_StandbySram) PWR->CR3 |= PWR_CR3_RRS;
+	if(mode == PWR_SleepMode_StandbySRAM) PWR->CR3 |= PWR_CR3_RRS;
 	else PWR->CR3 &= ~PWR_CR3_RRS;
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	PWR->SCR |= PWR_SCR_CLEAR;

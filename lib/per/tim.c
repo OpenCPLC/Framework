@@ -2,7 +2,7 @@
 
 //------------------------------------------------------------------------------------------------- Channel-Map
 
-const GPIO_Map_t tim_channel_map[] = {
+const GPIO_Map_t TIM_CHx_MAP[] = {
   [TIM1_CH1_PA8] = { .port = GPIOA, .pin = 8, .alternate = 2 },
   [TIM1_CH1_PC8] = { .port = GPIOC, .pin = 8, .alternate = 2 },
   [TIM1_CH1N_PA7] = { .port = GPIOA, .pin = 7, .alternate = 2 },
@@ -173,7 +173,7 @@ void TIM_Init(TIM_t *tim)
 	tim->reg->CR1 |= (!(tim->one_pulse_mode) << TIM_CR1_ARPE_Pos) | (tim->one_pulse_mode << TIM_CR1_OPM_Pos);
 	if(tim->enable) TIM_Enable(tim);
 	if(tim->enable_interrupt) {
-	  INT_EnableTIM(tim->reg, tim->interrupt_level, (void (*)(void *))&TIM_Interrupt, tim);
+	  INT_EnableTIM(tim->reg, tim->int_prioryty, (void (*)(void *))&TIM_Interrupt, tim);
 	  TIM_InterruptEnable(tim);
 	}
 }
@@ -184,11 +184,28 @@ void TIM_Init(TIM_t *tim)
  * @param mode - type of master mode
  * @retval void
  */
-void TIM_MasterMode(TIM_t *tim, TIM_MasterMode_e mode)
+void TIM_MasterMode(TIM_t *tim, TIM_MasterMode_t mode)
 {
   tim->reg->CR1 &= ~TIM_CR1_UDIS;
   tim->reg->CR2 &=  ~TIM_CR2_MMS_Msk;
   tim->reg->CR2 |= (mode << TIM_CR2_MMS_Pos);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void DELAY_Init(TIM_t *tim, TIM_BaseTime_t base_time)
+{
+  tim->_reserve = base_time;
+  TIM_SetPrescaler(tim, (SystemCoreClock / base_time) - 1);
+  TIM_Init(tim);
+}
+
+inline void DELAY_Wait(TIM_t *tim, uint32_t value)
+{
+  tim->reg->ARR = value;
+  tim->reg->CR1 = TIM_CR1_CEN;
+  while(!tim->reg->SR);
+  tim->reg->SR = 0;
 }
 
 //-------------------------------------------------------------------------------------------------

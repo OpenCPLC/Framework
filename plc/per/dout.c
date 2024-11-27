@@ -10,7 +10,7 @@
 
 float PWM_GetFrequency(PWM_t *pwm)
 {
-  return (float)SystemCoreClock / (pwm->prescaler + 1) / pwm->auto_reload / (pwm->center_aligned + 1);
+  return (float)SystemCoreClock / pwm->prescaler  / pwm->auto_reload / (pwm->center_aligned + 1);
 }
 
 /**
@@ -24,7 +24,7 @@ float PWM_GetFrequency(PWM_t *pwm)
  */
 float PWM_Frequency(PWM_t *pwm, float frequency)
 {
-  uint32_t auto_reload = (float)SystemCoreClock / (pwm->prescaler + 1) / frequency / (pwm->center_aligned + 1);
+  uint32_t auto_reload = (float)SystemCoreClock / pwm->prescaler / frequency / (pwm->center_aligned + 1);
   PWM_SetAutoreload(pwm, auto_reload);
   if(pwm->channel[TIM_CH1]) PWM_SetValue(pwm, TIM_CH1, 0);
   if(pwm->channel[TIM_CH2]) PWM_SetValue(pwm, TIM_CH2, 0);
@@ -293,78 +293,78 @@ void DOUT_BashInit(DOUT_t *douts[])
   }
 }
 
-bool DOUT_Bash(char **argv, uint16_t argc)
-{
-  if(!dout_list) return false;
-  if(strcmp(argv[0], "dout")) return false;
-  DOUT_t *dout = NULL;
-  uint8_t index = 255;
-  if(argc >= 3) {
-    if(str2nbr_valid(argv[1])) {
-      index = str2nbr(argv[1]);
-      if(index >= dout_count) return false;
-      dout += index;
-    }
-    else {
-      dout = *dout_list;
-      uint8_t i;
-      while(dout) {
-        if(!strcmp(argv[1], strtolower(dout->name))) {
-          index = i;
-          break;
-        }
-        dout++;
-        i++;
-      }
-    }
-    if(!dout) return false;
-    char *str;
-    switch(hash(argv[2])) {
-      case DOUT_Hash_Set:
-      case DOUT_Hash_On:
-      case DOUT_Hash_Enable:
-        DOUT_Set(dout);
-        break;
-      case DOUT_Hash_Rst:
-      case DOUT_Hash_Reset:
-      case DOUT_Hash_Off:
-      case DOUT_Hash_Disable:
-        DOUT_Rst(dout);
-        break;
-      case DOUT_Hash_Tgl:
-      case DOUT_Hash_Toggle:
-      case DOUT_Hash_Sw:
-      case DOUT_Hash_Switch:
-        DOUT_Tgl(dout);
-        break;
-      case DOUT_Hash_Pulse:
-      case DOUT_Hash_Impulse:
-      case DOUT_Hash_Burst:
-        if(argc < 4) return false;
-        str = argv[3];
-        if(!str2nbr_valid(str)) return false;
-        uint16_t pulse = str2nbr(str);
-        DOUT_Pulse(dout, pulse);
-        break;
-      case DOUT_Hash_Duty:
-      case DOUT_Hash_Fill:
-        if(argc < 4) return false;
-        str = argv[3];
-        if(!str2float_valid(str)) return false;
-        float duty = str2float(str);
-        DOUT_Duty(dout, duty);
-        break;
-    }
-  }
-  dout = *dout_list;
-  DBG_String("DOUT:");
-  DBG_Enter();
-  while(dout) {    
-    DBG_String("  ");
-    DOUT_Print(dout);
-    dout++;
-  }
-  return true;
-}
+// bool DOUT_Bash(char **argv, uint16_t argc)
+// {
+//   if(!dout_list) return false;
+//   if(strcmp(argv[0], "dout")) return false;
+//   DOUT_t *dout = NULL;
+//   uint8_t index = 255;
+//   if(argc >= 3) {
+//     if(str2nbr_valid(argv[1])) {
+//       index = str2nbr(argv[1]);
+//       if(index >= dout_count) return false;
+//       dout += index;
+//     }
+//     else {
+//       dout = *dout_list;
+//       uint8_t i;
+//       while(dout) {
+//         if(!strcmp(argv[1], strtolower(dout->name))) {
+//           index = i;
+//           break;
+//         }
+//         dout++;
+//         i++;
+//       }
+//     }
+//     if(!dout) return false;
+//     char *str;
+//     switch(hash(argv[2])) {
+//       case DOUT_Hash_Set:
+//       case DOUT_Hash_On:
+//       case DOUT_Hash_Enable:
+//         DOUT_Set(dout);
+//         break;
+//       case DOUT_Hash_Rst:
+//       case DOUT_Hash_Reset:
+//       case DOUT_Hash_Off:
+//       case DOUT_Hash_Disable:
+//         DOUT_Rst(dout);
+//         break;
+//       case DOUT_Hash_Tgl:
+//       case DOUT_Hash_Toggle:
+//       case DOUT_Hash_Sw:
+//       case DOUT_Hash_Switch:
+//         DOUT_Tgl(dout);
+//         break;
+//       case DOUT_Hash_Pulse:
+//       case DOUT_Hash_Impulse:
+//       case DOUT_Hash_Burst:
+//         if(argc < 4) return false;
+//         str = argv[3];
+//         if(!str2nbr_valid(str)) return false;
+//         uint16_t pulse = str2nbr(str);
+//         DOUT_Pulse(dout, pulse);
+//         break;
+//       case DOUT_Hash_Duty:
+//       case DOUT_Hash_Fill:
+//         if(argc < 4) return false;
+//         str = argv[3];
+//         if(!str2float_valid(str)) return false;
+//         float duty = str2float(str);
+//         DOUT_Duty(dout, duty);
+//         break;
+//     }
+//   }
+//   dout = *dout_list;
+//   DBG_String("DOUT:");
+//   DBG_Enter();
+//   while(dout) {    
+//     DBG_String("  ");
+//     DOUT_Print(dout);
+//     dout++;
+//   }
+//   return true;
+// }
 
 //-------------------------------------------------------------------------------------------------

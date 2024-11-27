@@ -30,16 +30,15 @@ static void VRTS_TaskFinished(void)
  * @brief Adds a new thread to the VRTS system
  * @param handler Function pointer to the thread's main function
  * @param stack Pointer to the memory allocated for the thread's stack
- * @param size Size of the stack in 32-bit words
+ * @param size Size of the stack in 32-bit words (minimum: 80)
  * @return True if the thread was successfully added, false if the thread limit is reached
  */
-bool thread(void (*handler)(void), uint32_t *stack, uint16_t size)
+bool vrts_thread(void (*handler)(void), uint32_t *stack, uint16_t size)
 {
   if(vrts.count >= VRTS_THREAD_LIMIT - 1) return false;
   VRTS_Task_t *thread = &vrts.threads[vrts.count];
   thread->handler = handler;
   thread->stack = (uint32_t)(stack + size - 16);
-  thread->status = VRTS_Status_Idle;
   stack[size - 1] = 0x01000000; // XPSR: Default value
   stack[size - 2] = (uint32_t)handler; // PC: Point to the handler function
   // LR: Point to a function to be called when the handler returns
@@ -52,7 +51,7 @@ bool thread(void (*handler)(void), uint32_t *stack, uint16_t size)
 /**
  * @brief Initializes the VRTS system and starts the first thread
  */
-void VRTS_Init(void)
+void vrts_init(void)
 {
   NVIC_SetPriority(PendSV_IRQn, 3);
   vrts_now_thread = &vrts.threads[vrts.i];
@@ -65,7 +64,7 @@ void VRTS_Init(void)
 }
 
 /** @brief Disables thread switching by setting the enabled flag to false */
-void VRTS_Lock(void)
+void vrts_lock(void)
 {
   vrts.enabled = false;
 }
@@ -74,7 +73,7 @@ void VRTS_Lock(void)
  * @brief Enables thread switching if VRTS is initialized
  * @return True if thread switching was enabled, false otherwise
  */
-bool VRTS_Unlock(void)
+bool vrts_unlock(void)
 {
   if(!vrts.init) return false;
   vrts.enabled = true;
@@ -88,12 +87,10 @@ void let(void)
 {
   if(!vrts.enabled) return;
   vrts_now_thread = &vrts.threads[vrts.i];
-  vrts_now_thread->status = VRTS_Status_Idle;
   vrts.i++;
   if(vrts.i >= vrts.count)
     vrts.i = 0;
   vrts_next_thread = &vrts.threads[vrts.i];
-  vrts_next_thread->status = VRTS_Status_Active;
   SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 }
 
@@ -108,7 +105,7 @@ void let(void)
  * @brief Gets the index of the currently active thread 
  * @return Index of the current thread
  */
-uint8_t VRTS_ActiveThread(void)
+uint8_t vrts_active_thread(void)
 {
   #if(VRTS_SWITCHING)
     return vrts.i;
@@ -181,8 +178,8 @@ void delay_until(uint64_t *tick)
 }
 
 /** 
- * @brief Sleeps until the specified tick is reached.
- * Uses '__WFI()', so no thread switching occurs.
+ * @brief Sleeps until the specified tick is reached
+ * Uses '__WFI()', so no thread switching occurs
  * @param tick Pointer to the target tick count
  */
 void sleep_until(uint64_t *tick)
@@ -216,14 +213,15 @@ int32_t watch(uint64_t tick)
 
 /**
  * @brief Initializes SysTick with a specified interval
+ * The accuracy of timing functions (e.g., 'sleep' and 'delay') will match this interval
  * @param systick_ms Interval duration in milliseconds
- * @return True if initialization successful, false otherwise
+ * @return True if initialization is successful, false otherwise
  */
-bool SYSTICK_Init(uint32_t systick_ms)
+bool systick_init(uint32_t systick_ms)
 {
   tick_ms = systick_ms;
   uint32_t overflow = (uint32_t)((float)tick_ms * SystemCoreClock / 1000);
-  if(SysTick_Config(overflow) != 0) return false;
+  if(SysTick_Config(overflow)) return false;
   NVIC_SetPriority(SysTick_IRQn, 3);
   return true;
 }

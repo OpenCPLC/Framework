@@ -29,7 +29,7 @@ typedef enum {
   ADC_StatusFree = 0,
   ADC_StatusSingle = 1,
   ADC_StatusRecord = 2
-} ADC_Status_e;
+} ADC_Status_t;
 
 typedef enum {
   ADC_IN_PA0 = 0,
@@ -51,7 +51,7 @@ typedef enum {
   ADC_IN_PB12 = 16,
   ADC_IN_PC4 = 17,
   ADC_IN_PC5 = 18
-} ADC_IN_e;
+} ADC_IN_t;
 
 typedef enum {
   ADC_OversamplingRatio_2 = 0,
@@ -62,7 +62,7 @@ typedef enum {
   ADC_OversamplingRatio_64 = 5,
   ADC_OversamplingRatio_128 = 6,
   ADC_OversamplingRatio_256 = 7
-} ADC_OversamplingRatio_e;
+} ADC_OversamplingRatio_t;
 
 typedef enum {
   ADC_SamplingTime_1 = 0,
@@ -73,7 +73,7 @@ typedef enum {
   ADC_SamplingTime_39 = 5,
   ADC_SamplingTime_79 = 6,
   ADC_SamplingTime_160 = 7
-} ADC_SamplingTime_e;
+} ADC_SamplingTime_t;
 
 typedef enum {
   ADC_Frequency_16MHz = 0,  // Prescaler:1
@@ -88,7 +88,7 @@ typedef enum {
   ADC_Frequency_250kHz = 9, // Prescaler:64
   ADC_Frequency_125kHz = 10, // Prescaler:128
   ADC_Frequency_62_5kHz = 11 // Prescaler:256
-} ADC_Frequency_e;
+} ADC_Frequency_t;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -96,9 +96,9 @@ typedef struct {
   uint8_t *channels; // TODO array
   uint8_t count;
   uint16_t *output; // TODO std output
-  ADC_SamplingTime_e sampling_time;
+  ADC_SamplingTime_t sampling_time;
   bool oversampling_enable;
-  ADC_OversamplingRatio_e oversampling_ratio;
+  ADC_OversamplingRatio_t oversampling_ratio;
   uint8_t oversampling_shift; // 0-8 [bit]
   uint8_t _active;
 } ADC_Measurements_t;
@@ -109,9 +109,9 @@ typedef struct {
   uint8_t count;
   TIM_t *tim;
   uint8_t dma_channel;
-  ADC_SamplingTime_e sampling_time;
+  ADC_SamplingTime_t sampling_time;
   bool oversampling_enable;
-  ADC_OversamplingRatio_e oversampling_ratio;
+  ADC_OversamplingRatio_t oversampling_ratio;
   uint8_t oversampling_shift; // 0-8 [bit]
   uint16_t *buffer;
   uint16_t buffer_length;
@@ -122,7 +122,7 @@ typedef struct {
 
 typedef struct {
   uint8_t interrupt_level;
-  ADC_Frequency_e frequency;
+  ADC_Frequency_t frequency;
   ADC_Measurements_t measurements;
   #if(ADC_RECORD)
     ADC_Record_t record;

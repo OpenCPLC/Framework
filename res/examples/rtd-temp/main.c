@@ -8,11 +8,11 @@ static uint32_t stack_dbg[256];
 // Stos pamięci dla czujnika RTD (PT100 / PT1000)
 static uint32_t stack_rtd[256];
 // Stos pamięci dla funkcji loop
-static uint32_t stack_loop[1024];
+uint32_t stack_loop[1024];
 
 void loop(void)
 {
-  while(1) {
+  while(1) {    
     // Pobieranie wartości temperatury
     float temp = RTD_Temperature_C(&RTD1);
     // Wyświetlanie wartości temperatury

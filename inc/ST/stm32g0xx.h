@@ -82,7 +82,20 @@ typedef enum {
   DMA_Channel_5 = 5,
   DMA_Channel_6 = 6,
   DMA_Channel_7 = 7
-} DMA_Channel_e;
+} DMA_Channel_t;
+
+typedef enum {
+  HASH_Number_0 = 177621,
+  HASH_Number_1 = 177622,
+  HASH_Number_2 = 177623,
+  HASH_Number_3 = 177624,
+  HASH_Number_4 = 177625,
+  HASH_Number_5 = 177626,
+  HASH_Number_6 = 177627,
+  HASH_Number_7 = 177628,
+  HASH_Number_8 = 177629,
+  HASH_Number_9 = 177630
+} HASH_Number_t;
 
 // Exported macros
 #define SET_BIT(REG, BIT)   ((REG) |= (BIT))

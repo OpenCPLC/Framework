@@ -1,8 +1,7 @@
 #ifndef STREAM_H_
 #define STREAM_H_
 
-#include "exstring.h"
-#include "crc.h"
+#include "log.h"
 #include "main.h"
 
 #ifndef STREAM_ADDRESS
@@ -13,16 +12,7 @@
   #define STREAM_CRC 0
 #endif
 
-#ifndef STREAM_DBG
-  #define STREAM_DBG 0
-#endif
-
 //-------------------------------------------------------------------------------------------------
-
-typedef enum {
-  STREAM_Mode_String = 0,
-  STREAM_Mode_Data = 1
-} STREAM_Mode_e;
 
 typedef enum {
   STREAM_Modify_Free = 0,
@@ -32,15 +22,18 @@ typedef enum {
 
 typedef struct {
   const char *name;
-  STREAM_Mode_e mode;
+  bool data_mode;
   STREAM_Modify_e modify;
   char *(*Read)(void);
   uint16_t (*Size)(void);
-  uint16_t counter;
+  void (*Send)(uint8_t *, uint16_t);
+  uint16_t packages;
   #if(STREAM_ADDRESS)
     void (*Readdress)(uint8_t);
     uint8_t address;
   #endif
+  FILE_t *file; // Plik przekazywany buildera odpowiedzi (takiego jak bash)
+  void (*SwitchMode)(bool);
   #if(STREAM_CRC)
     CRC_t *crc;
   #endif
@@ -48,7 +41,9 @@ typedef struct {
 
 //-------------------------------------------------------------------------------------------------
 
-uint16_t STREAM_Read(STREAM_t *stream, char *** argv);
+uint16_t STREAM_Read(STREAM_t *stream, char ***argv);
+void STREAM_DataMode(STREAM_t *stream);
+void STREAM_ArgsMode(STREAM_t *stream);
 
 //-------------------------------------------------------------------------------------------------
 #endif

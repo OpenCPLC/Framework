@@ -9,13 +9,13 @@ void GPIO_Init(GPIO_t *gpio)
   gpio->port->OSPEEDR = (gpio->port->OSPEEDR & ~(3 << (2 * gpio->pin))) | (gpio->speed << (2 * gpio->pin));
   if(gpio->out_type) gpio->port->OTYPER |= (1 << gpio->pin);
   else gpio->port->OTYPER &= ~(1 << gpio->pin);
+  if(gpio->mode == GPIO_Mode_Alternate) {
+    if(gpio->pin < 8) gpio->port->AFR[0] = (gpio->port->AFR[0] & ~(0x0F << (4 * gpio->pin))) | (gpio->alternate << (4 * gpio->pin));
+    else gpio->port->AFR[1] = (gpio->port->AFR[1] & ~(0x0F << (4 * (gpio->pin - 8)))) | (gpio->alternate << (4 * (gpio->pin - 8)));
+  }
+  gpio->port->MODER = (gpio->port->MODER & ~(3 << (2 * gpio->pin))) | (gpio->mode << (2 * gpio->pin));
   if(gpio->set) GPIO_Set(gpio);
   else GPIO_Rst(gpio);
-  gpio->port->MODER = (gpio->port->MODER & ~(3 << (2 * gpio->pin))) | (gpio->mode << (2 * gpio->pin));
-  if(gpio->mode == GPIO_Mode_Alternate) {
-    if(gpio->pin < 8) gpio->port->AFR[0] = (gpio->port->AFR[0] & ~(0xF << (4 * gpio->pin))) | (gpio->alternate << (4 * gpio->pin));
-    else gpio->port->AFR[1] = (gpio->port->AFR[1] & ~(0xF << (4 * (gpio->pin - 8)))) | (gpio->alternate << (4 * (gpio->pin - 8)));
-  }
   #if(GPIO_INCLUDE_WAKEUP)
   if(gpio->wakeup_pull) {
     RCC->APBENR1 |= RCC_APBENR1_PWREN;

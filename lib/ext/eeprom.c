@@ -81,9 +81,12 @@ uint8_t EEPROM_Init(EEPROM_t *eeprom)
   }
   else if(s0 == EEPROM_FULL_PAGE || s1 == EEPROM_FULL_PAGE) { // Restart in progress
     if(s1 == EEPROM_FULL_PAGE) {
-      FLASH_Erase(eeprom->page_a); _EEPROM_Rewrite(eeprom, 1);
-    } else {
-      FLASH_Erase(eeprom->page_b); _EEPROM_Rewrite(eeprom, 0);
+      FLASH_Erase(eeprom->page_a);
+      _EEPROM_Rewrite(eeprom, 1);
+    }
+    else {
+      FLASH_Erase(eeprom->page_b);
+      _EEPROM_Rewrite(eeprom, 0);
     }
   }
   else if(s0 == EEPROM_EMPTY_PAGE || s1 == EEPROM_EMPTY_PAGE) { // Standard Work

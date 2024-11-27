@@ -197,7 +197,7 @@ void ADC_Init(ADC_t *adc)
         case (uint32_t)TIM6: ADC1->CFGR1 |= (5 << 6); break;
         case (uint32_t)TIM15: ADC1->CFGR1 |= (4 << 6); break;
       }
-      adc->record.tim->interrupt_level = adc->interrupt_level;
+      adc->record.tim->int_prioryty = adc->interrupt_level;
       adc->record.tim->one_pulse_mode = false;
       adc->record.tim->enable = false;
       adc->record.tim->enable_interrupt = false;

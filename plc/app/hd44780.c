@@ -1,12 +1,11 @@
 #include "hd44780.h"
 
-#ifdef PLC_I2C
 //-------------------------------------------------------------------------------------------------
 
 static bool HD44780_ExpanderWrite(HD44780_t *hd, uint8_t data)
 {
   data |= hd->_backlight;
-  return I2C_JustWrite(hd->address, &data, 1);
+  return TWI_Write(hd->address, &data, 1);
 }
 
 static bool HD44780_Set4Bits(HD44780_t *hd, uint8_t value)
@@ -238,4 +237,3 @@ bool HD44780_ExtraChars(HD44780_t *hd)
 }
 
 //-------------------------------------------------------------------------------------------------
-#endif

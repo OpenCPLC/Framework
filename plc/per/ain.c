@@ -17,6 +17,19 @@ void AIN_Sort(uint16_t *buff, uint16_t channels, uint16_t samples, uint16_t data
 }
 
 /**
+ * @brief Ustawia dolny i górny próg błędu dla wejścia analogowego.
+ * @param ain Wskaźnik na strukturę AIN_t.
+ * @param down Dolny próg błędu.
+ * @param up Górny próg błędu.
+ * @param scale Opcja: napięcie[V], prąd[mA], procenty[%]
+ */
+void AIN_Threshold(AIN_t *ain, float down, float up, AIN_Threshold_e scale)
+{
+  ain->threshold_down = down / scale;
+  ain->threshold_up = up / scale;
+}
+
+/**
  * @brief Zwraca przefiltrowaną wartość pomiaru ADC, bez konwersji.
  * @param ain Wskaźnik na strukturę AIN_t reprezentującą wejście analogowe (AI).
  * @return Wartość przetwornika ADC w zakresie liczby 16-bitowej.
@@ -28,6 +41,7 @@ float AIN_Raw(AIN_t *ain)
   sort_inc_uint16(ain->data, ain->count);
   ain->value = average_uint16(&(ain->data[size]), size);
   ain->tick = gettick(AIN_AVERAGE_TIME_MS / 2);
+  // TODO: LOG_Debug();
   return ain->value;
 }
 
@@ -39,7 +53,20 @@ float AIN_Raw(AIN_t *ain)
 static float AIN_Volts(AIN_t *ain)
 {
   float raw = AIN_Raw(ain);
-  return resistor_divider_factor(3.3, 340, 160, 16) * raw;
+  float volts = resistor_divider_factor(3.3, 340, 160, 16) * raw;
+  if(volts > 10.25 || (ain->threshold_up && volts > ain->threshold_up)) return AIN_Error_OverValue;
+  if((ain->mode_4_20mA && (volts < 0.1)) || volts < ain->threshold_down) return AIN_Error_UnderValue;
+  return volts;
+}
+
+static void AIN_PrintError(AIN_t *ain, float value, char *subject)
+{
+  if(value == AIN_Error_OverValue) {
+    LOG_Message(AIN_LOG_LEVEL, "Analog input %s over-%s", ain->name, subject);
+  }
+  else if(value == AIN_Error_UnderValue) {
+    LOG_Message(AIN_LOG_LEVEL, "Analog input %s under-%s", ain->name, subject);
+  }
 }
 
 /**
@@ -50,14 +77,7 @@ static float AIN_Volts(AIN_t *ain)
 float AIN_Voltage_V(AIN_t *ain)
 {
   float volts = AIN_Volts(ain);
-  if(volts > 10.2) {
-    LOG_Message(AIN_LOG_LEVEL, "Analog input %s over-voltage", ain->name);
-    return AIN_Error_OverValue;
-  }
-  if(ain->mode_4_20mA & (volts < 1.8)) {
-    LOG_Message(AIN_LOG_LEVEL, "Analog input %s under-voltage", ain->name);
-    return AIN_Error_UnderValue;
-  }
+  AIN_PrintError(ain, volts, "voltage");
   return volts;  
 }
 
@@ -68,16 +88,9 @@ float AIN_Voltage_V(AIN_t *ain)
  */
 float AIN_Current_mA(AIN_t *ain)
 {
-  float mamps = 2 * AIN_Volts(ain);
-  if(mamps > 20.4) {
-    LOG_Message(AIN_LOG_LEVEL, "Analog input %s over-current", ain->name);
-    return AIN_Error_OverValue;
-  }
-  if(ain->mode_4_20mA & (mamps < 3.6)) {
-    LOG_Message(AIN_LOG_LEVEL, "Analog input %s under-current", ain->name);
-    return AIN_Error_UnderValue;
-  }
-  return mamps;
+  float volts = AIN_Volts(ain);
+  AIN_PrintError(ain, volts, "current");
+  return volts * 2;
 }
 
 /**
@@ -87,21 +100,15 @@ float AIN_Current_mA(AIN_t *ain)
  */
 float AIN_Percent(AIN_t *ain)
 {
-  float value = 10 * AIN_Volts(ain);
-  if(value > 102) {
-    LOG_Message(AIN_LOG_LEVEL, "Analog input %s over-value", ain->name);
-    return AIN_Error_OverValue;
-  }
-  if(ain->mode_4_20mA & (value < 18)) {
-    LOG_Message(AIN_LOG_LEVEL, "Analog input %s under-value", ain->name);
-    return AIN_Error_UnderValue;
-  }
+  float volts = AIN_Volts(ain);
+  AIN_PrintError(ain, volts, "value");
+  float percent = 10 * volts;
   if(ain->mode_4_20mA) {
-    value = (value - 20) * 5 / 4;
-    if(value < 0) value = 0;
+    percent = (percent - 20) * 5 / 4;
+    if(percent < 0) percent = 0;
   }
-  if(value > 100) value = 100;
-  return value;
+  if(percent > 100) percent = 100;
+  return percent;
 }
 
 /**

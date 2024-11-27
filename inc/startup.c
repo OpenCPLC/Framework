@@ -12,7 +12,7 @@ extern uint32_t _ebss; // End address of bss
 extern uint32_t _estack; // Top od stack
 
 extern void __libc_init_array(); // Static constructor initializator form libc
-extern int main(); // Main program point
+extern int main(void); // Main program point
 
 void Reset_Handler(void) {
   uint32_t *dataInit = &_sidata;

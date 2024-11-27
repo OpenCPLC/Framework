@@ -6,12 +6,7 @@
 #include "stm32g0xx.h"
 #include "main.h"
 
-#ifndef INCLUDE_CRC
-  #define INCLUDE_CRC 1
-#endif
-
 //-------------------------------------------------------------------------------------------------
-#if(INCLUDE_CRC)
 
 #ifndef CRC_STANDARD_USED
   #define CRC_STANDARD_USED 1
@@ -41,6 +36,5 @@ state_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count);
   extern const CRC_t crc8;
 #endif
 
-#endif
 //-------------------------------------------------------------------------------------------------
 #endif

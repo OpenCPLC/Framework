@@ -58,7 +58,7 @@ void LED_Rst(void);
 void LED_Blink_ON(uint16_t ms);
 void LED_Blink_OFF(void);
 void LED_OneShoot(RGB_e color, uint16_t ms);
-bool LED_Bash(char **argv, uint16_t argc);
+void LED_Bash(char **argv, uint16_t argc);
 
 //-------------------------------------------------------------------------------------------------
 #endif

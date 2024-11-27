@@ -2,63 +2,574 @@
 
 //-------------------------------------------------------------------------------------------------
 
-uint32_t hash(char *str) {
+/**
+ * @brief Funkcja pomocnicza do konwersji liczby całkowitej na odwrócony ciąg znaków w zadanym systemie liczbowym.
+ * @param nbr Liczba do konwersji.
+ * @param str Bufor wynikowy (ciąg znaków odwrócony).
+ * @param base Podstawa systemu liczbowego (zakres 2–36).
+ * @param sign Czy uwzględnić znak liczby (true dla liczb ze znakiem, false dla bez znaku).
+ * @param fill_zero Minimalna liczba cyfr (uzupełniane zerami).
+ * @param fill_space Minimalna długość ciągu (uzupełniane spacjami).
+ * @return uint8_t Liczba znaków zapisanych w `str`.
+ */
+uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+{
+  static const char ITOA_ARRAY[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  uint8_t n = 0;
+  bool is_negative = false;
+  uint32_t unbr;
+  if(!fill_zero) fill_zero = 1;
+  if(fill_space < fill_zero) fill_space = fill_zero;
+  if(sign && nbr < 0) {
+    is_negative = true;
+    unbr = (uint32_t)(-nbr);
+  }
+  else unbr = (uint32_t)nbr;
+  do {
+    str[n++] = ITOA_ARRAY[unbr % base];
+    unbr /= base;
+  } while(unbr > 0);
+  while(n < fill_zero - is_negative) {
+    str[n++] = '0';
+  }
+  if(is_negative) str[n++] = '-';
+  while(n < fill_space) str[n++] = ' ';
+  return n;
+}
+
+/**
+ * @brief Główna funkcja konwersji liczby całkowitej na ciąg znaków w odpowiednim systemie liczbowym.
+ * @param nbr Liczba do konwersji.
+ * @param base Podstawa systemu liczbowego (np. 10 dla dziesiętnego, 16 dla szesnastkowego).
+ * @param sign Czy uwzględnić znak liczby.
+ * @param fill_zero Minimalna liczba cyfr (uzupełniane zerami).
+ * @param fill_space Minimalna długość ciągu (uzupełniane spacjami).
+ * @return char* Wskaźnik na nowo zaalokowany łańcuch znaków (należy zwolnić pamięć).
+ */
+char *itoa_int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+{
+  char temp[33];
+  uint8_t len = itoa_base(nbr, temp, base, sign, fill_zero, fill_space);
+  char *string = new(len + 1);
+  if(!string) return NULL;
+  for(uint8_t i = 0; i < len; i++) {
+    string[i] = temp[len - i - 1];
+  }
+  string[len] = '\0';
+  return string;
+}
+
+/**
+ * @brief Funkcja konwertuje liczbę całkowitą na ciąg w systemie dziesiętnym (ze znakiem).
+ * @param nbr Liczba do konwersji.
+ * @return char* Wskaźnik na wynikowy ciąg znaków.
+ */
+char *itoa_dec(int32_t nbr)
+{
+  return itoa_int(nbr, 10, true, 0, 0);
+}
+
+/**
+ * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie dziesiętnym.
+ * @param nbr Liczba do konwersji.
+ * @return char* Wskaźnik na wynikowy ciąg znaków.
+ */
+char *itoa_udec(uint32_t nbr)
+{
+  return itoa_int((int32_t)nbr, 10, false, 0, 0);
+}
+
+/**
+ * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie szesnastkowym (8 bitów).
+ * @param nbr Liczba do konwersji.
+ * @return char* Wskaźnik na wynikowy ciąg znaków.
+ */
+char *itoa_hex8(uint32_t nbr)
+{
+  return itoa_int((int32_t)nbr, 16, false, 2, 2);
+}
+
+/**
+ * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie szesnastkowym (16 bitów).
+ * @param nbr Liczba do konwersji.
+ * @return char* Wskaźnik na wynikowy ciąg znaków.
+ */
+char *itoa_hex16(uint32_t nbr)
+{
+  return itoa_int((int32_t)nbr, 16, false, 4, 4);
+}
+
+/**
+ * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie szesnastkowym (32 bity).
+ * @param nbr Liczba do konwersji.
+ * @return char* Wskaźnik na wynikowy ciąg znaków.
+ */
+char *itoa_hex32(uint32_t nbr)
+{
+  return itoa_int((int32_t)nbr, 16, false, 8, 8);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na liczbę uint16_t.
+ * Funkcja obsługuje liczby w systemie dziesiętnym, szesnastkowym (prefiks "0x") i binarnym (prefiks "0b").
+ * Weryfikuje poprawność ciągu znaków oraz zakres liczby (maksymalnie 65535 dla uint16_t).
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny, pusty lub wykracza poza zakres uint16_t; false w przeciwnym razie.
+ */
+bool str2uint16_fault(const char *str) 
+{
+  if(!str || *str == '\0') return true;
+  if(str[0] == '0' && str[1] == 'b' && str[2] == '\0') {
+    str += 2;
+    if(*str == '\0') return true;
+    size_t bin_digits = 0;
+    while(*str) {
+      if(*str != '0' && *str != '1') return true;
+      bin_digits++;
+      str++;
+    }
+    if(bin_digits > 16) return true;
+  }
+  else if(str[0] == '0' && str[1] == 'x' && str[2] == '\0') {
+    str += 2;
+    size_t hex_digits = 0;
+    while(*str) {
+      if(!((*str >= '0' && *str <= '9') || (*str >= 'A' && *str <= 'F') || (*str >= 'a' && *str <= 'f'))) return true;
+      hex_digits++;
+      str++;
+    }
+    if(hex_digits > 4) return true;
+  }
+  else {
+    size_t dec_digits = 0;
+    while(*str) {
+      if(*str < '0' || *str > '9') return true;
+      dec_digits++;
+      str++;
+    }
+    if(dec_digits > 5) return true;
+    if(dec_digits == 5) {
+      const char *start = str - dec_digits;
+      if(strncmp(start, "65535", 5) > 0) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na liczbę int16_t.
+ * Funkcja obsługuje liczby w systemie dziesiętnym. Weryfikuje poprawność ciągu znaków
+ * oraz zakres liczby (od -32768 do 32767 dla int16_t).
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny, pusty lub wykracza poza zakres int16_t; false w przeciwnym razie.
+ */
+bool str2int16_fault(const char *str)
+{
+  if(!str || *str == '\0') return true;
+  bool is_negative = false;
+  if(*str == '-') {
+    is_negative = true;
+    str++;
+  }
+  size_t dec_digits = 0;
+  while(*str) {
+    if(*str < '0' || *str > '9') return true;
+    dec_digits++;
+    str++;
+  }
+  if(dec_digits > 5) return true;
+  if(dec_digits == 5) {
+    const char *start = str - dec_digits;
+    if(!is_negative && strncmp(start, "32767", 5) > 0) return true;
+    else if(is_negative && strncmp(start, "32768", 5) > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * @brief Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na liczbę uint32_t.
+ * Funkcja obsługuje liczby w systemie dziesiętnym, szesnastkowym (prefiks "0x") i binarnym (prefiks "0b").
+ * Weryfikuje poprawność ciągu znaków oraz zakres liczby (maksymalnie 4294967295 dla uint32_t).
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny, pusty lub wykracza poza zakres uint32_t; false w przeciwnym razie.
+ */
+bool str2uint32_fault(const char *str) 
+{
+  if(!str || *str == '\0') return true;
+  if(str[0] == '0' && str[1] == 'b' && str[2] == '\0') {
+    str += 2;
+    if(*str == '\0') return true;
+    size_t bin_digits = 0;
+    while(*str) {
+      if(*str != '0' && *str != '1') return true;
+      bin_digits++;
+      str++;
+    }
+    if(bin_digits > 32) return true;
+  }
+  else if(str[0] == '0' && str[1] == 'x' && str[2] == '\0') {
+    str += 2;
+    size_t hex_digits = 0;
+    while(*str) {
+      if(!((*str >= '0' && *str <= '9') || (*str >= 'A' && *str <= 'F') || (*str >= 'a' && *str <= 'f'))) return true;
+      hex_digits++;
+      str++;
+    }
+    if(hex_digits > 8) return true;
+  }
+  else {
+    size_t dec_digits = 0;
+    while(*str) {
+      if(*str < '0' || *str > '9') return true;
+      dec_digits++;
+      str++;
+    }
+    if(dec_digits > 10) return true;
+    if(dec_digits == 10) {
+      const char *start = str - dec_digits;
+      if(strncmp(start, "4294967295", 10) > 0) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na liczbę int32_t.
+ * Funkcja obsługuje liczby w systemie dziesiętnym. Weryfikuje poprawność ciągu znaków
+ * oraz zakres liczby (od -2147483648 do 2147483647 dla int32_t).
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny, pusty lub wykracza poza zakres int32_t; false w przeciwnym razie.
+ */
+bool str2int32_fault(const char *str) 
+{
+  if(!str || *str == '\0') return true;
+  bool is_negative = false;
+  if(*str == '-') {
+    is_negative = true;
+    str++;
+  }
+  size_t dec_digits = 0;
+  while(*str) {
+    if(*str < '0' || *str > '9') return true;
+    dec_digits++;
+    str++;
+  }
+  if(dec_digits > 10) return true;
+  if(dec_digits == 10) {
+    const char *start = str - dec_digits;
+    if(!is_negative && strncmp(start, "2147483647", 10) > 0) return true;
+    else if(is_negative && strncmp(start, "2147483648", 10) > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * @brief Konwertuje ciąg znaków na liczbę całkowitą.
+ * Funkcja obsługuje formaty dziesiętne, szesnastkowe (prefiks "0x") i binarne (prefiks "0b").
+ * Obsługiwane są zarówno liczby dodatnie, jak i ujemne (dla dziesiętnych).
+ * Jeśli wynik wymaga typu int32_t, należy wykonać rzutowanie na odpowiedni typ.
+ * @note Przed wywołaniem tej funkcji zaleca się użycie funkcji walidacji:
+ * W zależności od typu: `str2uint16_fault` lub `str2int16_fault` lub `str2uint32_fault` lub `str2int32_fault`.
+ * @param str Wskaźnik do ciągu znaków do konwersji.
+ * @return Liczba całkowita uint32_t uzyskana z ciągu znaków.
+ */
+uint32_t str2nbr(const char *str) 
+{
+  int base = 10;
+  bool is_negative = false;
+  if(*str == '-') {
+    is_negative = true;
+    str++;
+  }
+  if(str[0] == '0' && str[1] == 'b') {
+    base = 2;
+    str += 2;
+  } 
+  else if (str[0] == '0' && str[1] == 'x') {
+    base = 16;
+    str += 2;
+  }
+  char *endptr;
+  uint32_t result = strtol(str, &endptr, base);
+  return is_negative ? -(int32_t)result : result;
+}
+
+
+/**
+ * @brief Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na liczbę uint64_t.
+ * Funkcja obsługuje liczby w systemie dziesiętnym, szesnastkowym (prefiks "0x") i binarnym (prefiks "0b").
+ * Weryfikuje poprawność ciągu znaków oraz zakres liczby (maksymalnie 18446744073709551615 dla uint64_t).
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny, pusty lub wykracza poza zakres uint64_t; false w przeciwnym razie.
+ */
+bool str2uint64_fault(const char *str) 
+{
+  if(!str || *str == '\0') return true;
+  if(str[0] == '0' && str[1] == 'b' && str[2] == '\0') {
+    str += 2;
+    if(*str == '\0') return true;
+    size_t bin_digits = 0;
+    while(*str) {
+      if(*str != '0' && *str != '1') return true;
+      bin_digits++;
+      str++;
+    }
+    if(bin_digits > 64) return true;
+  }
+  else if(str[0] == '0' && str[1] == 'x' && str[2] == '\0') {
+    str += 2;
+    size_t hex_digits = 0;
+    while(*str) {
+      if(!((*str >= '0' && *str <= '9') || (*str >= 'A' && *str <= 'F') || (*str >= 'a' && *str <= 'f'))) return true;
+      hex_digits++;
+      str++;
+    }
+    if(hex_digits > 16) return true;
+  }
+  else {
+    size_t dec_digits = 0;
+    while(*str) {
+      if(*str < '0' || *str > '9') return true;
+      dec_digits++;
+      str++;
+    }
+    if(dec_digits > 20) return true;
+    if(dec_digits == 20) {
+      const char *start = str - dec_digits;
+      if(strncmp(start, "18446744073709551615", 20) > 0) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Konwertuje ciąg znaków na liczbę całkowitą.
+ * Funkcja obsługuje formaty dziesiętne, szesnastkowe (prefiks "0x") i binarne (prefiks "0b").
+ * Obsługiwane są zarówno liczby dodatnie, jak i ujemne (dla dziesiętnych).
+ * Jeśli wynik wymaga typu int64_t, należy wykonać rzutowanie na odpowiedni typ.
+ * @note Przed wywołaniem tej funkcji zaleca się użycie funkcji walidacji `str2uint64_fault`
+ * @param str Wskaźnik do ciągu znaków do konwersji.
+ * @return Liczba całkowita uint64_t uzyskana z ciągu znaków.
+ */
+uint32_t str2nbr64(const char *str) 
+{
+  int base = 10;
+  bool is_negative = false;
+  if(*str == '-') {
+    is_negative = true;
+    str++;
+  }
+  if(str[0] == '0' && str[1] == 'b') {
+    base = 2;
+    str += 2;
+  } 
+  else if (str[0] == '0' && str[1] == 'x') {
+    base = 16;
+    str += 2;
+  }
+  char *endptr;
+  uint64_t result = strtoull(str, &endptr, base); // Użycie strtoull dla uint64_t
+  return is_negative ? -(int64_t)result : result;
+}
+
+/**
+ * Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na liczbę float.
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny lub pusty, false w przeciwnym razie.
+ */
+bool str2float_fault(const char *str)
+{
+  if(!str || *str == '\0') return true;
+  bool dot = false;
+  bool digit = false;
+  if(*str == '-' || *str == '+') str++;
+  while(*str) {
+    if(*str >= '0' && *str <= '9') {
+      digit = true;
+    }
+    else if(*str == '.') {
+      if(dot) return true;
+      dot = true;
+    }
+    else {
+      return true;
+    }
+    str++;
+  }
+  return !digit;
+}
+
+/**
+ * Konwertuje ciąg znaków na liczbę zmiennoprzecinkową typu float.
+ * Wymaga uprzedniej walidacji przy użyciu funkcji 'str2float_fault'!
+ * @param str Wskaźnik do ciągu znaków do konwersji.
+ * @return Liczba zmiennoprzecinkowa typu float uzyskana z ciągu.
+ */
+float str2float(const char *str)
+{
+  char *endptr;
+  float result = strtof(str, &endptr);
+  return result;
+}
+
+/**
+ * @brief Sprawdza, czy ciąg znaków może być poprawnie przekonwertowany na float z opcjonalnym przyrostkiem jednostki.
+ * @param str Wskaźnik do ciągu znaków do sprawdzenia.
+ * @return true, jeśli ciąg jest niepoprawny; false, jeśli ciąg jest poprawny.
+ */
+bool str2unitfloat_fault(const char *str)
+{
+  if(!str || *str == '\0') return true;
+  const char *unit = str;
+  while((*unit >= '0' && *unit <= '9') || *unit == '-' || *unit == '.') {
+    unit++;
+  }
+  char nbr[unit - str + 1];
+  strncpy(nbr, str, unit - str);
+  nbr[unit - str] = '\0';
+  return str2float_fault(nbr);
+}
+
+
+/**
+ * @brief Konwertuje ciąg znaków na liczbę zmiennoprzecinkową typu float z obsługą jednostek.
+ * Obsługiwane jednostki:
+ * - 't': Tera
+ * - 'g': Giga
+ * - 'meg','e': Mega
+ * - 'k': Kilo
+ * - '%': Procent
+ * - 'm': Mili
+ * - 'u': Mikro
+ * - 'n': Nano
+ * - 'p': Piko
+ * Jeśli jednostka nie jest rozpoznana, wartość pozostaje niezmieniona.
+ * Wymaga uprzedniej walidacji przy użyciu funkcji 'str2unitfloat_fault'!
+ * @param str Wskaźnik do ciągu znaków do konwersji.
+ * @return Wartość zmiennoprzecinkowa typu float uzyskana z ciągu.
+ *         Jeśli ciąg jest niepoprawny, zwraca 0.0.
+ */
+float str2unitfloat(const char *str)
+{
+  const char *unit = str;
+  while((*unit >= '0' && *unit <= '9') || *unit == '-' || *unit == '.') {
+    unit++;
+  }
+  char nbr[unit - str + 1];
+  strncpy(nbr, str, unit - str);
+  nbr[unit - str] = '\0';
+  float value = str2float(nbr);
+  switch(*unit) {
+    case 't': value *= 1000000000000; break;
+    case 'g': value *= 1000000000; break;
+    case 'e': value *= 1000000; break;
+    case 'k': value *= 1000; break;
+    case '%': value /= 100; break;
+    case 'm':
+      if(*(str + 1) == 'e' && *(str + 2) == 'g') value *= 1000000;
+      else value /= 1000;
+      break;
+    case 'u': value /= 1000000; break;
+    case 'n': value /= 1000000000; break;
+    case 'p': value /= 1000000000000; break;
+    default: break;
+  }
+  return value;
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Oblicza skrót (hash) dla ciągu znaków za pomocą algorytmu djb2.
+ * @param str Wskaźnik na ciąg znaków (null-terminowany).
+ * @return uint32_t Wartość skrótu obliczona na podstawie wejściowego ciągu.
+ */
+uint32_t hash(const char *str)
+{
   uint32_t hash = 5381;
   uint32_t c;
-  while((c = *str++))
-    hash = ((hash << 5) + hash) + c;
+  while((c = *str++)) {
+    hash = ((hash << 5) + hash) + c; // hash * 33 + c
+  }
   return hash;
 }
 
+/**
+ * @brief Wyodrębnia podciąg z zadanego ciągu znaków.
+ * @param str Wskaźnik na wejściowy ciąg znaków (null-terminowany).
+ * @param start Indeks początkowy podciągu (może być ujemny, aby liczyć od końca).
+ * @param length Długość podciągu (jeśli <= 0, obliczana od `start` do końca).
+ * @return Wskaźnik na nowo zaalokowany podciąg. Należy zwolnić pamięć po użyciu.
+ */
 char *substr(char *str, int16_t start, int16_t length)
 {
   int16_t size = strlen(str);
   if(start < 0) start += size;
-  if(length <= 0) length = length + size - start;
+  if(length <= 0) length = size - start;
+  if(start < 0 || start >= size || length <= 0 || start + length > size) {
+    return NULL;
+  }
   char *str_out = new(length + 1);
   memcpy(str_out, &str[start], length);
-  str_out[length] = 0;
+  str_out[length] = '\0';
   return str_out;
 }
 
+/**
+ * @brief Łączy wiele ciągów znaków w jeden ciąg.
+ * @param count Liczba ciągów do połączenia.
+ * @param str Wskaźnik na pierwszy ciąg znaków.
+ * @param ... Kolejne ciągi znaków do połączenia.
+ * @return Wskaźnik na nowo zaalokowany ciąg wynikowy. Należy zwolnić pamięć po użyciu.
+ */
 char *joinstr(unsigned int count, const char *str, ...)
 {
-  unsigned int i;
+  if(!str || count == 0) return NULL;
   va_list args;
-  size_t size = 1, sizeary[count];
+  unsigned int i;
+  size_t total_size = 1;
+  size_t sizes[count];
   va_start(args, str);
-  char *tmp = (char *)str;
+  const char *tmp = str;
   for(i = 0; i < count; i++) {
-    sizeary[i] = strlen(tmp);
-    size += sizeary[i];
+    sizes[i] = strlen(tmp);
+    total_size += sizes[i];
     tmp = va_arg(args, char *);
   }
   va_end(args);
-  char *strout = new(size);
-  strout[size-1] = 0;
+  char *strout = new(total_size);
+  if(!strout) return NULL;
+  strout[total_size - 1] = '\0';
   char *marker = strout;
   va_start(args, str);
-  tmp = (char *)str;
-  for(i = 0; i < count; i++){
-    memcpy(marker, tmp, sizeary[i]);
-    marker += sizeary[i];
-    tmp = va_arg(args, char*);
+  tmp = str;
+  for(i = 0; i < count; i++) {
+    memcpy(marker, tmp, sizes[i]);
+    marker += sizes[i];
+    tmp = va_arg(args, char *);
   }
   va_end(args);
   return strout;
 }
 
-char *strcopy(char *str)
+/**
+ * @brief Kopiuje ciąg znaków do nowo zaalokowanego bufora.
+ * @param str Wskaźnik na wejściowy ciąg znaków (null-terminowany).
+ * @return char* Wskaźnik na nowo zaalokowany ciąg znaków. Należy zwolnić pamięć po użyciu.
+ */
+char *strcopy(const char *str)
 {
+  if(!str) return NULL;
   size_t size = strlen(str) + 1;
   char *cp = new(size);
+  if(!cp) return NULL;
   memcpy(cp, str, size);
   return cp;
 }
 
-//-------------------------------------------------------------------------------------------------
-
-const char lowercase[256] =
+const char LowerCase[256] =
 {
   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
   0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
@@ -78,7 +589,7 @@ const char lowercase[256] =
   0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
 };
 
-const char uppercase[256] =
+const char UpperCase[256] =
 {
   0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
   0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
@@ -98,338 +609,212 @@ const char uppercase[256] =
   0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
 };
 
-char *strtolower_this(char *str)
+/**
+ * @brief Zamienia wszystkie znaki w ciągu na małe litery, modyfikując oryginalny ciąg.
+ * @param str Wskaźnik na ciąg znaków (null-terminowany).
+ * @return Wskaźnik na zmodifikowany ciąg.
+ */
+char *str2lower_this(char *str)
 {
+  if(!str) return NULL; // Obsługa błędnego wskaźnika
   char *p = str;
   while(*p) {
-    *p = lowercase[(uint8_t)*p];
+    *p = LowerCase[(uint8_t)*p];
     p++;
   }
   return str;
 }
 
-char *strtolower(char *str)
+/**
+ * @brief Zamienia wszystkie znaki w ciągu na wielkie litery, modyfikując oryginalny ciąg.
+ * @param str Wskaźnik na ciąg znaków (null-terminowany).
+ * @return Wskaźnik na zmodifikowany ciąg.
+ */
+char *str2upper_this(char *str)
 {
-  char *cp = strcopy(str);
-  return strtolower_this(cp);
-}
-
-char *strtoupper_this(char *str)
-{
+  if(!str) return NULL; // Obsługa błędnego wskaźnika
   char *p = str;
   while(*p) {
-    *p = uppercase[(uint8_t)*p];
+    *p = UpperCase[(uint8_t)*p];
     p++;
   }
   return str;
 }
 
-char *strtoupper(char *str)
+/**
+ * @brief Tworzy kopię ciągu z zamienionymi znakami na małe litery.
+ * @param str Wskaźnik na wejściowy ciąg znaków (null-terminowany).
+ * @return char* Wskaźnik na nowo zaalokowany ciąg znaków. Należy zwolnić pamięć po użyciu.
+ */
+char *str2lower(char *str)
 {
+  if(!str) return NULL; // Obsługa błędnego wskaźnika
   char *cp = strcopy(str);
-  return strtoupper_this(cp);
-}
-
-//-------------------------------------------------------------------------------------------------
-
-/**
- * @brief Funkcja konwertuje zmienne liczbowe z typu całkowitego ze znakiem na łańcuch znaków (charów).
- * @param int32_t nbr: Liczba do konwersji.
- * @param uint8_t* str: Wyjściowy łańcuch znaków (odwrócony),
- *   tnz. musi być ładowany do bufora od końca [n-1] do początku [0].
- * @param uint8_t base: Podstawa systemu liczbowego.
- * @param uint8_t fill_zero: Wypełnienie zerami (fill_zero >= 1).
- * @param uint8_t fill_space: Wypełnienie spacjami (fill_space >= fill_zero).
- * @retval uint8_t: Liczba znaczących znaków w ciągu 'str'.
- */
-uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
-{
-  static const uint8_t ITOA_ARRAY[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  uint16_t n = 0;
-  bool is_negative = false;
-  uint32_t unbr;
-  if(!fill_zero) fill_zero = 1;
-  if(fill_space < fill_zero) fill_space = fill_zero;  
-  if(sign && nbr < 0) {
-    is_negative = true;
-    unbr = (uint32_t)(-nbr);
-  }
-  else unbr = (uint32_t)nbr;
-  while (unbr != 0) {
-    str[n++] = ITOA_ARRAY[unbr % base];
-    unbr = unbr/base;
-  }
-  while(n < fill_zero - is_negative) str[n++] = '0';
-  if(is_negative) str[n++] = '-';
-  while(n < fill_space) str[n++] = ' ';
-  return n;
-}
-
-char *itoa_int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_spac)
-{
-  char temp[32];
-  uint8_t len = itoa_base(nbr, temp, base, sign, fill_zero, fill_spac);
-  uint8_t inc = 0;
-  char *string = new(len + 1);
-  string[len] = 0;
-  while(len) string[inc++] = temp[--len];
-  return string;
+  return str2lower_this(cp);
 }
 
 /**
- * @brief Funkcje konwertuje zmienne liczbowe typu całkowitego na łańcuch string w odpowiednim formacie.
- * @param int32_t nbr: Liczba do konwersji.
- * @retval char *: Wskaźnik na wynikowy łańcuch string
+ * @brief Tworzy kopię ciągu z zamienionymi znakami na wielkie litery.
+ * @param str Wskaźnik na wejściowy ciąg znaków (null-terminowany).
+ * @return Wskaźnik na nowo zaalokowany ciąg znaków. Należy zwolnić pamięć po użyciu.
  */
-char *itoa_dec(int32_t nbr) { return itoa_int(nbr, 10, true, 0, 0); }
-char *itoa_udec(uint32_t nbr) { return itoa_int((int32_t)nbr, 10, false, 0, 0); }
-char *itoa_hex8(uint32_t nbr) { return itoa_int((int32_t)nbr, 16, false, 2, 2); }
-char *itoa_hex16(uint32_t nbr) { return itoa_int((int32_t)nbr, 16, false, 4, 4); }
-char *itoa_hex32(uint32_t nbr) { return itoa_int((int32_t)nbr, 16, false, 8, 8); }
-
-char *itoa_array(uint8_t *ary, uint16_t len)
+char *str2upper(char *str)
 {
-  uint16_t i;
-  char *string = new((2 * len) + 1);
-  char str_value[2];
-  for(i = 0; i < len; i++) {
-    uint8_t value = ary[i];
-    itoa_base(value, str_value, 16, false, 2, 2);
-    string[2 * i] = str_value[1];
-    string[2 * i + 1] = str_value[0];
-  }
-  string[2 * i] = 0;
-  return string;
-};
-
-double uatof(char *str)
-{
-  double value = atof(str);
-  while((*str >= '0' && *str <= '9') || *str == '-' || *str == '.') str++;
-  switch(*str)
-  {
-    case 'g': value *= 1000000000; break;
-    case 'm':
-      if(*(str + 1) == 'e' && *(str + 2) == 'g') value *= 1000000;
-      else value /= 1000;
-      break;
-    case 'k': value *= 1000; break;
-    case '%': value /= 100; break;
-    case 'u': value /= 1000000; break;
-    case 'n': value /= 1000000000; break;
-  }
-  return value;
+  if(!str) return NULL; // Obsługa błędnego wskaźnika
+  char *cp = strcopy(str);
+  return str2upper_this(cp);
 }
 
-uint32_t str2nbr(const char *str)
+/**
+ * @brief Odwraca kolejność znaków w ciągu 'str' w miejscu (in-place).
+ * @param str Wskaźnik do ciągu znaków, który zostanie odwrócony.
+ * @return Wskaźnik do odwróconego ciągu.
+ */
+char *reverse_this_string(char *str) 
 {
-  uint8_t len = strlen(str);
-  int base = 10;
-  if(len >= 3 && strncmp(str, "0b", 2) == 0) {
-    base = 2;
-    str += 2; // without "0b"
-  }
-  else if (len >= 3 && strncmp(str, "0x", 2) == 0) {
-    base = 16;
-    str += 2; // without "0x"
-  }
-  char *endptr;
-  uint32_t result = strtoul(str, &endptr, base);
-  return result;
-}
-
-bool str2nbr_valid(const char *str)
-{
-  uint8_t len = strlen(str);
-  if(len >= 3 && strncmp(str, "0b", 2) == 0) {
-    for(size_t i = 2; i < len; i++) {
-      if(str[i] != '0' && str[i] != '1')
-        return false;
-    }
-  }
-  else if(len >= 3 && strncmp(str, "0x", 2) == 0) {
-    for(uint8_t i = 2; i < len; i++) {
-      if((str[i] < '0' || str[i] > '9') && (str[i] < 'A' || str[i] > 'F') && (str[i] < 'a' || str[i] > 'f'))
-        return false;
-    }
-  }
-  else {
-    for(uint8_t i = 0; i < len; i++) {
-      if(str[i] < '0' || str[i] > '9')
-        return false;
-    }
-  }
-  return true;
-}
-
-float str2float(const char *str)
-{
-  char *endptr;
-  float result = strtof(str, &endptr);
-  return result;
-}
-
-bool str2float_valid(const char *str)
-{
-  uint8_t len = strlen(str);
-  bool dot = false;
-  for(uint8_t i = 0; i < len; i++) {
-    if((str[i] < '0' || str[i] > '9') && str[i] != '.') {
-      return false;
-    }
-    if(str[i] == '.') {
-      if(dot) {
-        return false;
-      }
-      dot = true;
-    }
-  }
-  return true;
-}
-
-
-//-------------------------------------------------------------------------------------------------
-
-char *reverse_this_string(char *str)
-{
-  char *begin, *end, box;
+  if(!str) return NULL;
   size_t size = strlen(str);
-
-  begin = str;
-  end = str;
-
-  if(size) {
-    for(size_t i = 0; i < size - 1; i++) end++;
-    for (size_t i = 0; i < size / 2; i++) {
-      box = *end;
-      *end = *begin;
-      *begin = box;
-      begin++;
-        end--;
-    }
+  if(size <= 1) return str;
+  char *begin = str;
+  char *end = str + size - 1;
+  char temp;
+  while(begin < end) {
+    temp = *begin;
+    *begin = *end;
+    *end = temp;
+    begin++;
+    end--;
   }
   return str;
 }
 
-char *reverse_string(char *str_in)
-{
+/**
+ * @brief Tworzy nową kopię ciągu 'str_in', w której znaki są odwrócone.
+ * @param str_in Wskaźnik do oryginalnego ciągu znaków.
+ * @return Wskaźnik do nowo zaalokowanego odwróconego ciągu lub NULL w przypadku błędu.
+ * Pamięć na wynikowy ciąg musi być zwolniona przez użytkownika.
+ */
+char *reverse_string(const char *str_in) {
+  if(!str_in) return NULL;
   size_t size = strlen(str_in);
   char *str_out = new(size + 1);
+  if(!str_out) return NULL;
   memcpy(str_out, str_in, size + 1);
-  reverse_this_string(str_out);
-  return str_out;
+  return reverse_this_string(str_out);
 }
 
-int find(char *str, char *pattern)
-{
-  uint8_t marker = 0;
-  int pointer = 1;
+//-------------------------------------------------------------------------------------------------
 
+/**
+ * @brief Znajduje pierwsze wystąpienie 'pattern' w 'str'.
+ * @param str Ciąg, w którym należy szukać.
+ * @param pattern Wzorzec do znalezienia.
+ * @return Indeks pierwszego wystąpienia (0-based) lub -1, jeśli nie znaleziono.
+ */
+int find(const char *str, const char *pattern) 
+{
+  if(!str || !pattern || !*pattern) return -1;
+  int marker = 0;
+  int pointer = 0;
   while(*str) {
     if(*str == pattern[marker]) {
       marker++;
-      if(!pattern[marker]) return pointer;
+      if(!pattern[marker]) return pointer - marker + 1;
     }
     else marker = 0;
     pointer++;
     str++;
   }
-  return 0;
+  return -1;
 }
 
-int find_right(char *str, char *pattern)
-{
-  char *reverse_str = reverse_string(str);
-  char *reverse_pattern = reverse_string(pattern);
-  return find(reverse_str, reverse_pattern);
-}
-
-//-------------------------------------------------------------------------------------------------
-#if(EXSTRING_INCLUDE_ARRAY)
-
-void reverse_this_array(uint8_t *array, uint16_t length)
-{
-  uint16_t start = 0;
-  uint16_t end = length;
-
-  while(start < end) {
-    int temp = array[start];
-    array[start] = array[end];
-    array[end] = temp;
-    start++;
-    end--;
-  }
-}
-
-uint8_t *reverse_array(uint8_t *array, uint16_t length)
-{
-  uint8_t *new_array = (uint8_t *)new(length);
-  memcpy(new_array, array, length);
-  reverse_this_array(new_array, length);
-  return new_array;
-}
-
-int find_array(uint8_t *array, uint16_t length, char *pattern)
-{
-  uint8_t marker = 0;
-  int pointer = 0;
-  while(length) {
-    if(array[pointer] == pattern[marker]) {
-      marker++;
-      if(!pattern[marker]) return pointer + 1;
+/**
+ * @brief Znajduje ostatnie wystąpienie 'pattern' w 'str'.
+ * @param str Ciąg, w którym należy szukać.
+ * @param pattern Wzorzec do znalezienia.
+ * @return Indeks ostatniego wystąpienia (0-based) lub -1, jeśli nie znaleziono.
+ */
+int find_right(const char *str, const char *pattern) {
+  if(!str || !pattern || !*pattern) return -1;
+  int last_index = -1;
+  int current_index = 0;
+  while(*str) {
+    if(strncmp(str, pattern, strlen(pattern)) == 0) {
+      last_index = current_index;
     }
-    else marker = 0;
-    pointer++;
-    length--;
+    str++;
+    current_index++;
   }
-  return 0;
+  return last_index;
 }
 
-#endif
 //-------------------------------------------------------------------------------------------------
 
-char *cut_this(char *str, char *pattern, CUT_e mode)
-{
-  int x;
-  switch(mode) {
-    case CUT_StartLeft_GetLeft:
-      x = find(str, pattern);
-      if(x) str[find(str, pattern) - strlen(pattern)] = 0;
+/**
+ * @brief Funkcja wycina część ciągu na podstawie trybu 'mode' i wzorca 'pattern'.
+ * @param str: Ciąg wejściowy do modyfikacji.
+ * @param pattern: Wzorzec do znalezienia.
+ * @param mode: Tryb wycinania (CUT_e).
+ * @return: Zmodyfikowany wskaźnik do ciągu lub oryginalny ciąg, jeśli 'pattern' nie znaleziono.
+ */
+char *cut_this(char *str, const char *pattern, CUT_e mode) {
+  if(!str || !pattern || !*pattern) return str;
+  int index;
+  size_t pattern_len = strlen(pattern);
+  switch (mode) {
+    case CUT_BeforeFirst: {
+      index = find(str, pattern);
+      if(index >= 0) str[index] = '\0';
       break;
-    case CUT_StartRight_GetLeft:
-      x = find_right(str, pattern);
-      if(x) str[strlen(str) - x] = 0;
+    }
+    case CUT_BeforeLast: {
+      index = find_right(str, pattern);
+      if(index >= 0) str[index] = '\0';
       break;
-    case CUT_StartLeft_GetRight:
-      x = find(str, pattern);
-      if(x) str = &str[x];
+    }
+    case CUT_AfterFirst: {
+      index = find(str, pattern);
+      if(index >= 0) str += index + pattern_len;
       break;
-    case CUT_StartRight_GetRight:
-      x = find_right(str, pattern);
-      if(x) str = &str[strlen(str) - x + strlen(pattern)];
+    }
+    case CUT_AfterLast: {
+      index = find_right(str, pattern);
+      if(index >= 0) str += index + pattern_len;
       break;
-    default:
-      break;
+    }
+    default: break;
   }
   return str;
 }
 
-char *cut(char *str_in, char *pattern, CUT_e mode)
-{
-  size_t size = strlen(str_in);
-  char *str_out = new(size + 1);
-  memcpy(str_out, str_in, size + 1);
-  str_out = cut_this(str_out, pattern, mode);
-  return str_out;
+/**
+ * @brief Tworzy nowy ciąg na podstawie oryginału, wycinając fragment zgodnie z trybem 'mode'.
+ * @param str_in: Oryginalny ciąg znaków.
+ * @param pattern: Wzorzec do znalezienia.
+ * @param mode: Tryb wycinania (CUT_e).
+ * @return: Nowo zaalokowany ciąg z wynikiem lub NULL w przypadku błędu.
+ */
+char *cut(const char *str_in, const char *pattern, CUT_e mode) {
+  if(!str_in || !pattern) return NULL;
+  size_t size = strlen(str_in) + 1;
+  char *str_out = new(size);
+  if(!str_out) return NULL;
+  strcpy(str_out, str_in);
+  return cut_this(str_out, pattern, mode);
 }
 
 //-------------------------------------------------------------------------------------------------
 
-static int _find_char(char byte, char *list)
+/**
+ * @brief Sprawdza, czy znak 'byte' znajduje się w ciągu 'list'.
+ * @param byte Znak do sprawdzenia.
+ * @param list Lista znaków, w której należy szukać.
+ * @return Pozycja (indeks od 1) znaku w liście lub 0, jeśli znak nie został znaleziony.
+ */
+static int find_char(char byte, const char *list)
 {
   int pointer = 1;
-  while(*list)
-  {
+  while(*list) {
     if(byte == *list) return pointer;
     pointer++;
     list++;
@@ -437,39 +822,72 @@ static int _find_char(char byte, char *list)
   return 0;
 }
 
-char *ltrim_list(char *str, char *list)
+/**
+ * @brief Usuwa wszystkie znaki z początku ciągu 'str', które znajdują się w liście 'list'.
+ * @param str Ciąg wejściowy do modyfikacji.
+ * @param list Lista znaków do usunięcia z początku ciągu.
+ * @return Wskaźnik do przyciętego ciągu.
+ */
+char *ltrim_list(char *str, const char *list)
 {
-  while(_find_char(*str, list)) str++;
+  while(find_char(*str, list)) str++;
   return str;
 }
 
+/**
+ * @brief Usuwa wszystkie białe znaki z początku ciągu 'str'.
+ * @param str Ciąg wejściowy do modyfikacji.
+ * @return Wskaźnik do przyciętego ciągu.
+ */
 char *ltrim(char *str)
 {
-  while(isspace((int)*str)) str++;
+  while(isspace((unsigned char)*str)) str++;
   return str;
 }
 
-char *rtrim_list(char *str, char *list)
+/**
+ * @brief Usuwa wszystkie znaki z końca ciągu 'str', które znajdują się w liście 'list'.
+ * @param str Ciąg wejściowy do modyfikacji.
+ * @param list Lista znaków do usunięcia z końca ciągu.
+ * @return Wskaźnik do przyciętego ciągu.
+ */
+char *rtrim_list(char *str, const char *list)
 {
-  char* back = str + strlen(str);
-  while(_find_char(*--back, list));
-  *(back+1) = '\0';
+  char *back = str + strlen(str);
+  while(back > str && find_char(*--back, list));
+  *(back + 1) = '\0';
   return str;
 }
 
+/**
+ * @brief Usuwa wszystkie białe znaki z końca ciągu 'str'.
+ * @param str Ciąg wejściowy do modyfikacji.
+ * @return Wskaźnik do przyciętego ciągu.
+ */
 char *rtrim(char *str)
 {
-  char* back = str + strlen(str);
-  while(isspace((int)*--back));
-  *(back+1) = '\0';
+  char *back = str + strlen(str);
+  while(back > str && isspace((unsigned char)*--back));
+  *(back + 1) = '\0';
   return str;
 }
 
-char *trim_list(char *str, char *list)
+/**
+ * @brief Usuwa wszystkie znaki z początku i końca ciągu 'str', które znajdują się w liście 'list'.
+ * @param str Ciąg wejściowy do modyfikacji.
+ * @param list Lista znaków do usunięcia z początku i końca ciągu.
+ * @return Wskaźnik do przyciętego ciągu.
+ */
+char *trim_list(char *str, const char *list)
 {
   return ltrim_list(rtrim_list(str, list), list);
 }
 
+/**
+ * @brief Usuwa wszystkie białe znaki z początku i końca ciągu 'str'.
+ * @param str Ciąg wejściowy do modyfikacji.
+ * @return Wskaźnik do przyciętego ciągu.
+ */
 char *trim(char *str)
 {
   return ltrim(rtrim(str));
@@ -477,97 +895,112 @@ char *trim(char *str)
 
 //-------------------------------------------------------------------------------------------------
 
-uint16_t count_of_char(char *str, char val)
+/**
+ * @brief wyciąga dany łańcuch znaków pomiędzy wskazanymi znakami separującymi.
+ * @param str Wejściowy łańcuch znaków.
+ * @param delimiter Znak, który jest separatorem.
+ * @param position Wskazuje, który z kolei fragment ma zostać zwrócony (indeks zaczyna się od 0).
+ * @return Fragment łańcucha znaków lub NULL, jeśli fragment nie istnieje.
+ */
+char *extraction(const char *str, char delimiter, int position)
 {
-  uint16_t count = 0;
+  if(!str || position < 0) return NULL;
+  const char *start = str;
+  size_t size = 0;
   while(*str) {
-    if(*str == val) count++;
+    if(*str == delimiter) {
+      if(position == 0) break;
+      position--;
+      start = str + 1;
+    }
     str++;
   }
-  return count;
+  if(position > 0) return NULL;
+  size = str - start;
+  char *str_out = new(size + 1);
+  if(!str_out) return NULL;
+  memcpy(str_out, start, size);
+  str_out[size] = '\0';
+  return str_out;
 }
+
+
+/**
+ * @brief Funkcja dzieli ciąg znaków na fragmenty na podstawie delimitera.
+ * Wszystkie fragmenty i tablica wskaźników są przechowywane w jednej alokacji pamięci
+ * i zarządzane przez niestandardowy mechanizm 'new'.
+ * @param arr_ptr Wskaźnik na tablicę wynikową (zostanie zaalokowana w tej funkcji).
+ * @param str Ciąg wejściowy do podzielenia. Nie może być NULL.
+ * @param delimiter Znak, który rozdziela fragmenty.
+ * @return Liczba fragmentów w tablicy lub -1 w przypadku błędu.
+ */
+int explode(char ***arr_ptr, const char *str, char delimiter)
+{
+  if(!arr_ptr || !str) return -1;
+  char *src = (char *)str, *end, *dst;
+  int size = 1;
+  int i;
+  while((end = strchr(src, delimiter)) != NULL) {
+    ++size;
+    src = end + 1;
+  }
+  char **arr = new(size * sizeof(char *) + (strlen(str) + 1) * sizeof(char));
+  if(!arr) return -1;
+  src = (char *)str;
+  dst = (char *)arr + size * sizeof(char *);
+  for(i = 0; i < size; ++i) {
+    if((end = strchr(src, delimiter)) == NULL) end = src + strlen(src);
+    arr[i] = dst;
+    strncpy(dst, src, end - src);
+    dst[end - src] = '\0';
+    dst += end - src + 1;
+    src = end + 1;
+  }
+  *arr_ptr = arr;
+  return size;
+}
+
 
 //-------------------------------------------------------------------------------------------------
 
 /**
- * Funkcja wyciąga dany łańcuch znaków pomiędzy wskazanymi znakami separującymi.
- * @param *str: Wejściowy łańcuch znaków.
- * @param position: Wskazuje, który z kolei łańcuch znaków ma zostać zwrócony.
- * @param delimiter: Znak, który jest separatorem.
- * @retval: Fragment łańcuch znaków, o który prosiliśmy.
+ * @brief Funkcja zamienia wszystkie wystąpienia znaków z 'pattern' na 'replacement' w ciągu 'str'.
+ * @param pattern Ciąg znaków określających znaki do zamiany.
+ * @param replacement Znak, na który mają być zamieniane znaki.
+ * @param str Ciąg wejściowy do modyfikacji (zostanie zmodyfikowany).
+ * @return Zwraca wskaźnik do oryginalnego początku ciągu 'str'.
  */
-char *extraction(char *str, char delimiter, int position)
+char *replace_this_char(const char *pattern, char replacement, char *str)
 {
-  size_t size = 0;
-  char *pointner;
-  uint8_t counter_start = 0;
-  if(!position) {
-    pointner = str;
-    counter_start = 1;
-  }
+  if(!pattern || !str) return str;
+  char *original = str;
   while(*str) {
-    if(*str == delimiter) {
-      if(position) position--;
-      else break;
+    const char *ptr = pattern;
+    while(*ptr) {
+      if(*str == *ptr) {
+        *str = replacement;
+        break;
+      }
+      ptr++;
     }
     str++;
-    if(!position) {
-      if(counter_start) size++;
-      else {
-        pointner = str;
-        counter_start = 1;
-      }
-    }
   }
-  char *str_out = new(size + 1);
-  if(size) memcpy(str_out, pointner, size);
-  str_out[size] = 0;
-  return str_out;
+  return original; // Zwróć wskaźnik do początku ciągu
 }
 
-int explode(char ***arr_ptr, char *str, char delimiter)
+/**
+ * @brief Funkcja tworzy kopię ciągu 'original' i zamienia w niej wszystkie znaki z 'pattern' na 'replacement'.
+ * @param pattern Ciąg znaków określających znaki do zamiany.
+ * @param replacement Znak, na który mają być zamieniane znaki.
+ * @param original Ciąg wejściowy, który pozostaje niemodyfikowany.
+ * @return: Wskaźnik do nowo zaalokowanej kopii zmodyfikowanego ciągu.
+ */
+char *replace_char(const char *pattern, char replacement, const char *original)
 {
-  char *src = str, *end, *dst;
-  char **arr;
-  int size = 1, i;
-  while((end = strchr(src, delimiter)) != NULL) { ++size; src = end + 1; }
-  arr = new(size * sizeof(char *) + (strlen(str) + 1) * sizeof(char));
-	src = str;
-	dst = (char *)arr + size * sizeof(char *);
-	for(i = 0; i < size; ++i) {
-		if((end = strchr(src, delimiter)) == NULL) end = src + strlen(src);
-		arr[i] = dst;
-		strncpy(dst, src, end - src);
-		dst[end - src] = '\0';
-		dst += end - src + 1;
-		src = end + 1;
-	}
-	*arr_ptr = arr;
-  return size;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-char *replace_this_char(char *pattern, char replacement, char *str)
-{
-  char *pointner;
-  while(*pattern) {
-    pointner = strchr(str, *pattern);
-    if(*pattern != replacement) {
-      while(pointner) {
-        *pointner = replacement;
-        pointner = strchr(pointner, *pattern);
-      }
-    }
-    pattern++;
-  }
-  return str;
-}
-
-char *replace_char(char *pattern, char replacement, char *original)
-{
+  if(!pattern || !original) return NULL;
   size_t size = strlen(original) + 1;
   char *str = new(size);
+  if(!str) return NULL;
   memcpy(str, original, size);
   return replace_this_char(pattern, replacement, str);
 }
@@ -575,36 +1008,41 @@ char *replace_char(char *pattern, char replacement, char *original)
 //-------------------------------------------------------------------------------------------------
 
 /**
- * Funkcja podmienia wybrane znaki w danym łańcuchu.
- * @param *pattern: Lista znaków (jako string), które należy podmienić.
- * @param replacement: Znak, którym mają zostać zastąpione znaki z listy.
- * @param *original: Łańcuch znaków, w którym mają zostać podmienione znaki.
- * @retval: Łańcuch znaków z podmienionymi znakami
+ * Funkcja zamienia wszystkie wystąpienia podciągu 'pattern' na 'replacement' w ciągu 'original'.
+ * @param pattern Ciąg znaków do zamiany.
+ * @param replacement Ciąg znaków, który zastępuje 'pattern'.
+ * @param original Ciąg wejściowy, który pozostaje niemodyfikowany.
+ * @return: Wskaźnik do nowo zaalokowanego ciągu z dokonanymi zmianami lub NULL w przypadku błędu.
  */
-char *replace_string(char *pattern, char *replacement, char *original)
+char *replace_string(const char *pattern, const char *replacement, const char *original)
 {
-	size_t const replen = strlen(replacement);
-	size_t const patlen = strlen(pattern);
-	size_t const orilen = strlen(original);
-	size_t patcnt = 0;
-	const char *oriptr;
-	const char *patloc;
-	for(oriptr = original; (patloc = strstr(oriptr, pattern)); oriptr = patloc + patlen)
-		patcnt++;
-	size_t const retlen = orilen + patcnt * (replen - patlen);
-	char *const returned = new(sizeof(char) * (retlen + 1));
-	if(returned != NULL) {
-		char *retptr = returned;
-		for(oriptr = original; (patloc = strstr(oriptr, pattern)); oriptr = patloc + patlen) {
-			size_t const skplen = patloc - oriptr;
-			strncpy(retptr, oriptr, skplen);
-			retptr += skplen;
-			strncpy(retptr, replacement, replen);
-			retptr += replen;
-		}
-		strcpy(retptr, oriptr);
-	}
-	return returned;
+  if(!pattern || !replacement || !original || *pattern == '\0') return NULL;
+  size_t replen = strlen(replacement);
+  size_t patlen = strlen(pattern);
+  size_t orilen = strlen(original);
+  size_t patcnt = 0;
+  const char *oriptr = original;
+  const char *patloc;
+  while((patloc = strstr(oriptr, pattern)) != NULL) {
+    patcnt++;
+    oriptr = patloc + patlen;
+  }
+  size_t retlen = orilen + patcnt * (replen - patlen);
+  char *returned = new(sizeof(char) * (retlen + 1));
+  if(!returned) return NULL;
+  char *retptr = returned;
+  oriptr = original;
+  while((patloc = strstr(oriptr, pattern)) != NULL) {
+    size_t skplen = patloc - oriptr;
+    memcpy(retptr, oriptr, skplen);
+    retptr += skplen;
+    memcpy(retptr, replacement, replen);
+    retptr += replen;
+    oriptr = patloc + patlen;
+  }
+  strcpy(retptr, oriptr);
+  returned[retlen] = '\0';
+  return returned;
 }
 
-//------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------

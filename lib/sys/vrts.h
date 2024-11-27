@@ -32,20 +32,13 @@
 #define seconds(ms)  (1000 * ms) // Convert seconds to milliseconds
 #define minutes(min) (60 * 1000 * min) // Convert minutes to milliseconds
 
-// Enum for thread status
-typedef enum {
-  VRTS_Status_Idle = 1,
-  VRTS_Status_Active = 2,
-} VRTS_Status_e;
-
 // Struct to represent a thread in VRTS
 typedef struct {
   volatile uint32_t stack;
   void (*handler)(void);
-  volatile VRTS_Status_e status;
 } VRTS_Task_t;
 
-bool thread(void (*handler)(void), uint32_t *stack, uint16_t size);
+
 void let(void); // Yield control to the next thread
 void delay(uint32_t ms); // Delay execution by ms
 void sleep(uint32_t ms); // Sleep for ms without thread switching
@@ -56,10 +49,14 @@ void sleep_until(uint64_t *tick); // Sleep until specific tick
 bool waitfor(uint64_t *tick); // Check if tick is reached
 int32_t watch(uint64_t tick); // Measure time since a specific tick
 
-void VRTS_Init(void); // Initialize VRTS system
-void VRTS_Lock(void); // Disable thread switching
-bool VRTS_Unlock(void); // Enable thread switching if initialized
-uint8_t VRTS_ActiveThread(void); // Get index of the active thread
-bool SYSTICK_Init(uint32_t systick_ms); // Initialize SysTick with a specified interval
+bool vrts_thread(void (*handler)(void), uint32_t *stack, uint16_t size);
+#define stack(name, size) static uint32_t name[8 * ((size + 7) / 8)] __attribute__((aligned(8)))
+#define thread(fnc, stack_name) vrts_thread(&fnc, (uint32_t *)stack_name, sizeof(stack_name) / sizeof(uint32_t));
+
+void vrts_init(void); // Initialize VRTS system
+void vrts_lock(void); // Disable thread switching
+bool vrts_unlock(void); // Enable thread switching if initialized
+uint8_t vrts_active_thread(void); // Get index of the active thread
+bool systick_init(uint32_t systick_ms); // Initialize SysTick with a specified interval
 
 #endif

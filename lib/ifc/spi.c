@@ -2,8 +2,7 @@
 
 //-------------------------------------------------------------------------------------------------
 
-const GPIO_Map_t spi_sck_map[] = {
-  [SPI1_SCK_Free] = {},
+const GPIO_Map_t SPI_SCK_MAP[] = {
   [SPI1_SCK_PA1] = { .port = GPIOA, .pin = 1, .alternate = 0 },
   [SPI1_SCK_PA5] = { .port = GPIOA, .pin = 5, .alternate = 0 },
   [SPI1_SCK_PB3] = { .port = GPIOB, .pin = 3, .alternate = 0 },
@@ -15,8 +14,7 @@ const GPIO_Map_t spi_sck_map[] = {
   [SPI2_SCK_PD1] = { .port = GPIOD, .pin = 1, .alternate = 1 }
 };
 
-const GPIO_Map_t spi_miso_map[] = {
-  [SPI1_MISO_Free] = {},
+const GPIO_Map_t SPI_MISO_MAP[] = {
   [SPI1_MISO_PA6] = { .port = GPIOA, .pin = 6, .alternate = 0 },
   [SPI1_MISO_PA11] = { .port = GPIOA, .pin = 11, .alternate = 0 },
   [SPI1_MISO_PB4] = { .port = GPIOB, .pin = 4, .alternate = 0 },
@@ -30,8 +28,7 @@ const GPIO_Map_t spi_miso_map[] = {
   [SPI2_MISO_PD3] = { .port = GPIOD, .pin = 3, .alternate = 1 }
 };
 
-const GPIO_Map_t spi_mosi_map[] = {
-  [SPI1_MOSI_Free] = {},
+const GPIO_Map_t SPI_MOSI_MAP[] = {
   [SPI1_MOSI_PA2] = { .port = GPIOA, .pin = 2, .alternate = 0 },
   [SPI1_MOSI_PA7] = { .port = GPIOA, .pin = 7, .alternate = 0 },
   [SPI1_MOSI_PA12] = { .port = GPIOA, .pin = 12, .alternate = 0 },

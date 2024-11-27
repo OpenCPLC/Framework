@@ -8,6 +8,10 @@
 #define RTC_LEAP_YEAR(year) ((((year) % 4 == 0) && ((year) % 100 != 0)) || ((year) % 400 == 0))
 #define RTC_DAYS_IN_YEAR(x) RTC_LEAP_YEAR(x) ? 366 : 365
 #define RTC_OFFSET_YEAR 1970
+#define RTC_SECONDS_IN_WEEK 604800
+#define RTC_SECONDS_IN_DAY 86400
+#define RTC_SECONDS_IN_HOUR 3600
+#define RTC_SECONDS_IN_MINUTE 60
 
 //------------------------------------------------------------------------------------------------- VAR
 
@@ -23,10 +27,14 @@ const uint8_t RTC_DAYS_IN_MONTH[2][12] = {
 };
 
 const uint32_t alarm_mask[2] = { RTC_CR_ALRAE, RTC_CR_ALRBE };
-const char *rtc_weakdays[8] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
-// const char *rtc_weakdays[8] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+#if(RTC_WEEKDAYS_LONG)
+  const char *rtc_weakdays[8] = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+#else
+  const char *rtc_weakdays[8] = { "Evd", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+#endif
 const RTC_Datetime_t rtc_datetime_empty = {0, 0, 0, 0, 0, 0, 0, 0};
 bool rtc_ready;
+bool rtc_init;
 
 //------------------------------------------------------------------------------------------------- INIT
 
@@ -47,12 +55,13 @@ void RTC_Init(void)
 	RTC->WPR = 0xFF;
 	NVIC_ClearPendingIRQ(RTC_TAMP_IRQn);
 	NVIC_EnableIRQ(RTC_TAMP_IRQn);
-	NVIC_SetPriority(RTC_TAMP_IRQn, RTC_INTERRUPT_LEVEL);
+	NVIC_SetPriority(RTC_TAMP_IRQn, RTC_INT_PRIORYTY);
+  rtc_init = true;
 }
 
 //------------------------------------------------------------------------------------------------- Convert
 
-RTC_Datetime_t RTC_UnixToDatetime(uint32_t timestamp)
+RTC_Datetime_t RTC_UnixToDatetime(uint64_t timestamp)
 {
   RTC_Datetime_t date_result;
   uint16_t year;
@@ -90,13 +99,6 @@ RTC_Datetime_t RTC_UnixToDatetime(uint32_t timestamp)
   date_result.second = seconds;
   date_result.ms = 0;
   return date_result;
-}
-
-RTC_Datetime_t RTC_TimestampToDatetime(uint64_t timestamp)
-{
-  RTC_Datetime_t datetime = RTC_UnixToDatetime(timestamp / 1000);
-  datetime.ms = timestamp & 1000;
-  return datetime;
 }
 
 static uint8_t _RTC_WeekDay(RTC_Datetime_t *datatime)
@@ -237,7 +239,7 @@ void RTC_SetDatetime(RTC_Datetime_t *datetime)
 	RTC->WPR = 0xFF; // Write access OFF
 }
 
-void RTC_SetTimestamp(uint32_t timestamp)
+void RTC_SetTimestamp(uint64_t timestamp)
 {
   RTC_Datetime_t date = RTC_UnixToDatetime(timestamp);
   RTC_SetDatetime(&date);
@@ -345,7 +347,7 @@ uint32_t RTC_Daystamp_B(void)
 
 //------------------------------------------------------------------------------------------------- ALARM-ON-OFF
 
-static bool _RTC_Alarm_IsEnable(RTC_ALARM_e alarm)
+bool RTC_Alarm_IsEnabled(RTC_ALARM_e alarm)
 {
   if(RTC->CR & alarm_mask[alarm]) return true;
   else return false;
@@ -500,7 +502,7 @@ bool RTC_Check_Weekstamp(uint32_t stamp_alarm, uint32_t offset_min_sec, uint32_t
 static bool _RTC_Alarm_Check(RTC_ALARM_e alarm, uint32_t offset_min_sec, uint32_t offset_max_sec)
 {
   RTC_Alarm_t alarm_ab;
-  if(!_RTC_Alarm_IsEnable(alarm)) return false;
+  if(!RTC_Alarm_IsEnabled(alarm)) return false;
   switch(alarm) {
     case RTC_ALARM_A: alarm_ab = RTC_Alarm_A(); break;
     case RTC_ALARM_B: alarm_ab = RTC_Alarm_B(); break;

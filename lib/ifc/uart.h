@@ -3,16 +3,15 @@
 
 #include "int.h"
 #include "tim.h"
-#include "file.h"
 #include "buff.h"
 #include "main.h"
 
 //---------------------------------------------------------------------------------------------------------------------
 
-#define UART_115200 baud = 115200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0, .interrupt_level = 3
-#define UART_57600 baud = 57600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0, .interrupt_level = 3
-#define UART_19200 baud = 19200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0, .interrupt_level = 3
-#define UART_9600 baud = 9600, .parity = 0, .stop_bits = 1, .interrupt_level = 3
+#define UART_115200 baud = 115200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
+#define UART_57600 baud = 57600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
+#define UART_19200 baud = 19200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
+#define UART_9600 baud = 9600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -22,7 +21,7 @@ typedef enum {
   UART3_TX_PB2, UART3_TX_PB8, UART3_TX_PB10, UART3_TX_PC4, UART3_TX_PC10, UART3_TX_PD8,
   UART4_TX_PA0, UART4_TX_PC10,
   LPUART1_TX_PA2, LPUART1_TX_PB11, LPUART1_TX_PC1
-} UART_TX_e;
+} UART_TX_t;
 
 typedef enum {
   UART1_RX_PA10, UART1_RX_PB7, UART1_RX_PC5,
@@ -30,39 +29,32 @@ typedef enum {
   UART3_RX_PB0, UART3_RX_PB9, UART3_RX_PB11, UART3_RX_PC5, UART3_RX_PC11, UART3_RX_PD9,
   UART4_RX_PA1, UART4_RX_PC11,
   LPUART1_RX_PA3, LPUART1_RX_PB10, LPUART1_RX_PC0,
-} UART_RX_e;
+} UART_RX_t;
 
 typedef enum {
   UART_Parity_None = 0,
   UART_Parity_Odd = 1,
   UART_Parity_Even = 2
-} UART_Parity_e;
+} UART_Parity_t;
 
 typedef enum {
   UART_StopBits_0_5 = 0,
   UART_StopBits_1_0 = 1,
   UART_StopBits_2_0 = 2,
   UART_StopBits_1_5 = 3
-} UART_StopBits_e;
-
-typedef enum {
-  UART_Mode_Time = 0,
-  UART_Mode_String = 1
-} UART_Mode_e;
+} UART_StopBits_t;
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// uint8_t DBG_Char(char data)
-
 typedef struct {
   USART_TypeDef *reg;
-  UART_TX_e tx_pin;
-  UART_RX_e rx_pin;
-  uint8_t dma_channel;
-  uint8_t interrupt_level;
+  UART_TX_t tx_pin;
+  UART_RX_t rx_pin;
+  DMA_Channel_t dma_channel;
+  INT_Prioryty_t int_prioryty;
   uint32_t baud;
-  uint8_t parity;
-  uint8_t stop_bits;
+  UART_Parity_t parity;
+  UART_StopBits_t stop_bits;
   uint16_t timeout;
   GPIO_t *gpio_direction;
   TIM_t *tim;
@@ -78,6 +70,7 @@ typedef struct {
 
 void UART_Init(UART_t *uart);
 void UART_ReInit(UART_t *uart);
+void UART_SetTimeout(UART_t *uart, uint16_t timeout);
 bool UART_During(UART_t *uart);
 bool UART_Idle(UART_t *uart);
 bool UART_IsBusy(UART_t *uart);

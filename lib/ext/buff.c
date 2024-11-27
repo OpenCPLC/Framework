@@ -21,16 +21,13 @@ inline void BUFF_Init(BUFF_t *buff)
  */
 inline void BUFF_Break(BUFF_t *buff)
 {
-  if(buff->break_allow) {
-    buff->msg_size[buff->msg_head] = buff->msg_counter;
-    buff->msg_counter = 0;
-    buff->msg_head++;
-    if(buff->msg_head >= BUFF_MESSAGE_LIMIT) buff->msg_head = 0;
-    buff->break_allow = false;
-    if(buff->console_mode && buff->Enter) {
-      buff->Enter();
-    }
-  }
+  if(buff->console) buff->console->Enter();
+  if(!buff->break_allow) return;
+  buff->msg_size[buff->msg_head] = buff->msg_counter;
+  buff->msg_counter = 0;
+  buff->msg_head++;
+  if(buff->msg_head >= BUFF_MESSAGE_LIMIT) buff->msg_head = 0;
+  buff->break_allow = false;
 }
 
 /** 
@@ -47,7 +44,7 @@ uint16_t BUFF_Size(BUFF_t *buff)
 /** 
  * @brief Pomija bieżącą wiadomość w buforze.
  * @param buff Wskaźnik do struktury bufora.
- * @return Zwraca `true`, jeżeli wiadomość zostałą pominięta/
+ * @return Zwraca 'true', jeżeli wiadomość zostałą pominięta/
  */
 bool BUFF_Skip(BUFF_t *buff)
 {
@@ -75,40 +72,51 @@ void BUFF_Pop(BUFF_t *buff)
   }
 }
 
-inline bool BUFF_ConsoleMode(BUFF_t *buff, uint8_t value)
+static bool BUFF_ConsoleMode(BUFF_t *buff, uint8_t value)
 {
+  if(!buff->console) return false;
   if(value == '\r' || value == '\n') {
+    if(buff->break_allow) buff->console->Execute();
     BUFF_Break(buff);
+    buff->console->Run(true);
     return true;
   }
   if(value == '\f' || value == 0x03) {
+    buff->console->Skip();
     BUFF_Break(buff);
     BUFF_Skip(buff);
     return true;
   }
   if(value == '\b' || value == 0x7F) {
     BUFF_Pop(buff);
-    if(buff->Echo) buff->Echo(value);
+    buff->console->Echo(value);
     return true;
   }
+  if(value == 0x13) {
+    buff->console->Run(false);
+    BUFF_Break(buff);
+    BUFF_Skip(buff);
+    return true;
+  }
+  if(value < 0x20) return true;
+  buff->console->Echo(value);
   return false;
 }
 
 /** 
- * @brief Dodaje bajt `value` do bufora kołowego.
+ * @brief Dodaje bajt 'value' do bufora kołowego.
  * @param buff Wskaźnik do struktury bufora.
  * @param value Wartość do dodania.
  */
 inline void BUFF_Push(BUFF_t *buff, uint8_t value)
 {
-  if(buff->console_mode && BUFF_ConsoleMode(buff, value)) return;
+  if(BUFF_ConsoleMode(buff, value)) return;
   *buff->head = value;
   buff->msg_counter++;
   buff->head++;
   if(buff->head >= buff->end) buff->head = buff->mem;
   if(buff->head == buff->tail) BUFF_Skip(buff);
   buff->break_allow = true;
-  if(buff->Echo) buff->Echo(value);
 }
 
 /** 
@@ -150,8 +158,6 @@ char *BUFF_String(BUFF_t *buff)
   }
   return string;
 }
-
-
 
 /** 
  * @brief Czyści cały bufor przez pomijanie wiadomości, dopóki nie ma więcej wiadomości.

@@ -12,15 +12,15 @@
 
 typedef struct {
   SPI_TypeDef *spi_typedef;
-  DMA_Channel_e tx_dma_channel;
-  DMA_Channel_e rx_dma_channel;
-  INT_Level_e interrupt_level;
-  SPI_MISO_e miso_pin;
-  SPI_MOSI_e mosi_pin;
-  SPI_SCK_e sck_pin;
+  DMA_Channel_t tx_dma_channel;
+  DMA_Channel_t rx_dma_channel;
+  INT_Prioryty_t int_prioryty;
+  SPI_SCK_t sck_pin;
+  SPI_MISO_t miso_pin;
+  SPI_MOSI_t mosi_pin;
   GPIO_t *cs_gpio;
   uint32_t cs_delay_ms;
-  SPI_Prescaler_e prescaler;
+  SPI_Prescaler_t prescaler;
   bool lsb;
   bool cpol;
   bool cpha;

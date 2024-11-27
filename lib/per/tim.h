@@ -29,9 +29,9 @@ typedef enum {
   #ifdef STM32G0C1xx
     TIM14_CH1_PA4, TIM14_CH1_PA7, TIM14_CH1_PB1, TIM14_CH1_PC12
   #endif
-} TIM_CHx_e;
+} TIM_CHx_t;
 
-extern const GPIO_Map_t tim_channel_map[];
+extern const GPIO_Map_t TIM_CHx_MAP[];
 
 typedef enum {
   TIM_CH1 = 0,
@@ -42,7 +42,7 @@ typedef enum {
   TIM_CH2N = 5,
   TIM_CH3N = 6,
   TIM_CH4N = 7
-} TIM_Channel_e;
+} TIM_Channel_t;
 
 typedef enum {
   TIM_Filter_NoFilter = 0x0,
@@ -61,7 +61,7 @@ typedef enum {
   TIM_Filter_FDTS_32xN5 = 0xD,
   TIM_Filter_FDTS_32xN6 = 0xE,
   TIM_Filter_FDTS_32xN8 = 0xF
-} TIM_Filter_e;
+} TIM_Filter_t;
 
 typedef enum {
   TIM_MasterMode_Reset = 0,
@@ -72,13 +72,13 @@ typedef enum {
   TIM_MasterMode_OC2 = 5,
   TIM_MasterMode_OC3 = 6,
   TIM_MasterMode_OC4 = 7,
-} TIM_MasterMode_e;
+} TIM_MasterMode_t;
 
 //-------------------------------------------------------------------------------------------------
 
 typedef struct {
 	TIM_TypeDef *reg;
-	uint8_t interrupt_level;
+	INT_Prioryty_t int_prioryty;
 	bool one_pulse_mode;
 	uint32_t prescaler;
 	uint32_t auto_reload;
@@ -105,14 +105,19 @@ void TIM_SetAutoreload(TIM_t *tim, uint32_t auto_reload);
 void TIM_MaxAutoreload(TIM_t *tim);
 uint16_t TIM_Event(TIM_t *tim);
 void TIM_Init(TIM_t *tim);
-void TIM_MasterMode(TIM_t *tim, TIM_MasterMode_e mode);
+void TIM_MasterMode(TIM_t *tim, TIM_MasterMode_t mode);
 
 //-------------------------------------------------------------------------------------------------
 
-extern const GPIO_Map_t tim_channel_map[];
-extern uint32_t systick_us;
-extern uint32_t systick_tick;
+typedef enum {
+  TIM_BaseTime_1us = 1000000,
+  TIM_BaseTime_10us = 100000,
+  TIM_BaseTime_100us = 10000,
+  TIM_BaseTime_1ms = 1000,
+  TIM_BaseTime_10ms = 100 // TIM2 only!
+} TIM_BaseTime_t;
 
-//-------------------------------------------------------------------------------------------------
+void DELAY_Init(TIM_t *tim, TIM_BaseTime_t base_time);
+void DELAY_Wait(TIM_t *tim, uint32_t value);
 
 #endif

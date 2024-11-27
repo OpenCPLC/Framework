@@ -2,10 +2,9 @@
 #define HD44780_H_
 
 #include <stdint.h>
-#include "opencplc.h"
+#include "twi.h"
 
 //-------------------------------------------------------------------------------------------------
-#ifdef PLC_I2C
 
 #define HD44780_EN 0b0100
 #define HD44780_RW 0b0010
@@ -115,6 +114,5 @@ bool HD44780_Exec(HD44780_t *hd, HD44780_Exec_e exec);
 bool HD44780_Init(HD44780_t *hd);
 bool HD44780_ExtraChars(HD44780_t *hd);
 
-#endif
 //-------------------------------------------------------------------------------------------------
 #endif

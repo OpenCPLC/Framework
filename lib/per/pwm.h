@@ -10,7 +10,7 @@ typedef struct {
   TIM_TypeDef *reg;
   uint32_t prescaler;
   uint32_t auto_reload;
-  TIM_CHx_e channel[8];
+  TIM_CHx_t channel[8];
   bool invert[8];
   uint32_t value[4];
   bool center_aligned;
@@ -19,7 +19,7 @@ typedef struct {
 
 void PWM_SetPrescaler(PWM_t *pwm, uint32_t prescaler);
 void PWM_SetAutoreload(PWM_t *pwm, uint32_t auto_reload);
-void PWM_SetValue(PWM_t *pwm, TIM_Channel_e channel, uint32_t value);
+void PWM_SetValue(PWM_t *pwm, TIM_Channel_t channel, uint32_t value);
 void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime);
 void PWM_Init(PWM_t *pwm);
 

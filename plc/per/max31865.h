@@ -4,7 +4,7 @@
 //-------------------------------------------------------------------------------------------------
 
 #include "spi-master.h"
-#include "dbg.h"
+#include "log.h"
 #include "math.h"
 
 #define MAX31865_CFG_BIAS  (1 << 7)

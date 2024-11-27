@@ -34,9 +34,9 @@ void *new_static(size_t size)
  * @param limit The maximum number of variables the thread can allocate.
  * @retval NEW_t* Pointer to the stack structure for the active thread.
  */
-NEW_t *NEW_Init(uint16_t limit)
+NEW_t *new_init(uint16_t limit)
 {
-  uint8_t active_thread = VRTS_ActiveThread();
+  uint8_t active_thread = vrts_active_thread();
   NEW_t *stack = state.stacks[active_thread];
   if(stack) return stack;
   stack = new_static(sizeof(NEW_t));
@@ -74,10 +74,10 @@ void *new(size_t size)
 {
   void *pointer = NULL;
   if(!size) return pointer;
-  uint8_t active_thread = VRTS_ActiveThread();
+  uint8_t active_thread = vrts_active_thread();
   NEW_t *stack = state.stacks[active_thread];
   if(!stack) {
-    stack = NEW_Init(NEW_DEFAULT_LIMIT);
+    stack = new_init(NEW_DEFAULT_LIMIT);
   }
   if(stack->count >= stack->limit) MEM_ErrorHandler(NEW_ERROR_LIMIT);
   if((state.total + size) >= NEW_TOTAL) MEM_ErrorHandler(NEW_ERROR_SIZE);
@@ -95,7 +95,7 @@ void *new(size_t size)
  */
 void clear()
 {
-  uint8_t active_thread = VRTS_ActiveThread();
+  uint8_t active_thread = vrts_active_thread();
   NEW_t *stack = state.stacks[active_thread];
   if(!stack) return;
   if(stack->count) {

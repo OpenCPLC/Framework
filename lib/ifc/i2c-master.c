@@ -130,7 +130,7 @@ bool I2C_Master_IsFree(I2C_Master_t *i2c)
   return !(i2c->busy);
 }
 
-state_t I2C_Master_JustWrite(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
+state_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
   #if(I2C_DMA_TX)
@@ -151,7 +151,7 @@ state_t I2C_Master_JustWrite(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint
   return FREE;
 }
 
-state_t I2C_Master_JustRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
+state_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
   #if(I2C_DMA_RX)
@@ -172,16 +172,16 @@ state_t I2C_Master_JustRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint1
 
 //-------------------------------------------------------------------------------------------------
 
-state_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
+state_t I2C_Master_WriteReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
 	i2c->tx_buffer = aloc(n + 1);
   i2c->tx_buffer[0] = reg;
   memcpy(&i2c->tx_buffer[1], ary, n);
-  return I2C_Master_JustRead(i2c, addr, i2c->tx_buffer, n + 1);
+  return I2C_Master_Read(i2c, addr, i2c->tx_buffer, n + 1);
 }
 
-state_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
+state_t I2C_Master_ReadReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
 {
   if(i2c->busy) return BUSY;
   i2c->address = addr;

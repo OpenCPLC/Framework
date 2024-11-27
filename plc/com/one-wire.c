@@ -1,11 +1,6 @@
 #include "one-wire.h"
 
-// void sleep_core_us(void)
-// {
-//   // TODO
-// }
-
-bool WIRE_Init(ONEWIRE_t *onewire)
+bool WIRE_Init(WIRE_t *onewire)
 {
   onewire->gpio->out_type = GPIO_OutType_OpenDrain;
   onewire->gpio->speed = GPIO_Speed_VeryHigh;
@@ -18,7 +13,7 @@ bool WIRE_Init(ONEWIRE_t *onewire)
   return true;
 }
 
-bool WIRE_Reset(ONEWIRE_t *onewire)
+bool WIRE_Reset(WIRE_t *onewire)
 {
   GPIO_ModeInput(onewire->gpio);
   GPIO_Init(onewire->gpio);
@@ -27,44 +22,44 @@ bool WIRE_Reset(ONEWIRE_t *onewire)
   }
   GPIO_Rst(onewire->gpio);
   GPIO_ModeOutput(onewire->gpio);
-  sleep_core_us(480);
+  sleep_us(480);
   GPIO_Set(onewire->gpio);
   GPIO_ModeInput(onewire->gpio);
-  sleep_core_us(70);
+  sleep_us(70);
   bool value = !GPIO_In(onewire->gpio);
-  sleep_core_us(470);
+  sleep_us(470);
   return value;
 }
 
-static void WIRE_WriteBit(ONEWIRE_t *onewire, bool value)
+static void WIRE_WriteBit(WIRE_t *onewire, bool value)
 {
   GPIO_Rst(onewire->gpio);
   GPIO_ModeOutput(onewire->gpio);
   if(value) {
-    sleep_core_us(10);
+    sleep_us(10);
     GPIO_Set(onewire->gpio);
-    sleep_core_us(55);
+    sleep_us(55);
   }
   else {
-    sleep_core_us(65);
+    sleep_us(65);
     GPIO_Set(onewire->gpio);
-    sleep_core_us(5);
+    sleep_us(5);
   }
 }
 
-static bool WIRE_ReadBit(ONEWIRE_t *onewire)
+static bool WIRE_ReadBit(WIRE_t *onewire)
 {
   GPIO_Rst(onewire->gpio);
   GPIO_ModeOutput(onewire->gpio);
-  sleep_core_us(3);
+  sleep_us(3);
   GPIO_ModeInput(onewire->gpio);
-  sleep_core_us(10);
+  sleep_us(10);
   bool value = GPIO_In(onewire->gpio);
-  sleep_core_us(53);
+  sleep_us(53);
   return value;
 }
 
-void WIRE_Write(ONEWIRE_t *onewire, uint8_t value)
+void WIRE_Write(WIRE_t *onewire, uint8_t value)
 {
   for(uint8_t mask = 0x01; mask; mask <<= 1) {
     WIRE_WriteBit(onewire, mask & value ? true: false);
@@ -73,14 +68,14 @@ void WIRE_Write(ONEWIRE_t *onewire, uint8_t value)
   GPIO_Rst(onewire->gpio);
 }
 
-void WIRE_WriteParasitePower(ONEWIRE_t *onewire, uint8_t value)
+void WIRE_WriteParasitePower(WIRE_t *onewire, uint8_t value)
 {
   for(uint8_t mask = 0x01; mask; mask <<= 1) {
     WIRE_WriteBit(onewire, mask & value ? true: false);
   }
 }
 
-uint8_t WIRE_Read(ONEWIRE_t *onewire)
+uint8_t WIRE_Read(WIRE_t *onewire)
 {
   uint8_t value = 0;
   for(uint8_t mask = 0x01; mask; mask <<= 1) {
@@ -89,18 +84,18 @@ uint8_t WIRE_Read(ONEWIRE_t *onewire)
   return value;
 }
 
-void WIRE_Select(ONEWIRE_t *onewire, uint8_t *addr)
+void WIRE_Select(WIRE_t *onewire, uint8_t *addr)
 {
   WIRE_Write(onewire, ONEWIRE_CMD_MATCH_ROM);
   for(uint8_t i = 0; i < 8; i++) WIRE_Write(onewire, addr[i]);
 }
 
-void WIRE_Skip(ONEWIRE_t *onewire)
+void WIRE_Skip(WIRE_t *onewire)
 {
   WIRE_Write(onewire, ONEWIRE_CMD_SKIP_ROM);      
 }
 
-bool WIRE_Search(ONEWIRE_t *onewire, uint8_t *addr)
+bool WIRE_Search(WIRE_t *onewire, uint8_t *addr)
 {
   uint8_t id_bit_i = 1, id_bit, id_bit_comp;
   uint8_t rom_i = 0, last_zero = 0;

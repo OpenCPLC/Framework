@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <stdarg.h>
-#include "stm32g0xx.h"
 #include "flash.h"
 #include "main.h"
 

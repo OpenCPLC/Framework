@@ -9,10 +9,6 @@
 #include "exstring.h"
 #include "main.h"
 
-#ifndef FILE_DBG
-  #define FILE_DBG 1
-#endif
-
 #ifndef FILE_ENTER_RETURN
   #define FILE_ENTER_RETURN 1
 #endif
@@ -26,8 +22,9 @@ typedef struct {
   uint16_t limit;
   bool mutex;
   uint8_t flash_page;
-  uint16_t _offset;
+  uint16_t offset;
   uint16_t struct_size;
+  int32_t (*struct_print)(void *);
 } FILE_t;
 
 //-------------------------------------------------------------------------------------------------
@@ -58,8 +55,6 @@ int32_t FILE_Datetime(FILE_t *file, RTC_Datetime_t *datetime);
 int32_t FILE_DatetimeMs(FILE_t *file, RTC_Datetime_t *datetime);
 int32_t FILE_AlarmTime(FILE_t *file, RTC_Alarm_t *alarm);
 int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm);
-
-void FILE_Print(FILE_t *file, const char *format, va_list args);
 
 int32_t FILE_Clear(FILE_t *file);
 state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from);

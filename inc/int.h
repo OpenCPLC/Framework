@@ -45,23 +45,23 @@ typedef enum {
   INT_UART3456_LPUART1 = 29,
   INT_CEC = 30,
   INT_RNG = 31
-} INT_e;
+} INT_t;
 
 typedef enum {
-  INT_Level_VeryHigh = 0,
-  INT_Level_High = 1,
-  INT_Level_Medium = 2,
-  INT_Level_Low = 3
-} INT_Level_e;
+  INT_Prioryty_VeryHigh = 0,
+  INT_Prioryty_High = 1,
+  INT_Prioryty_Medium = 2,
+  INT_Prioryty_Low = 3
+} INT_Prioryty_t;
 
 //-------------------------------------------------------------------------------------------------
 
-void INT_EnableTIM(TIM_TypeDef *tim_typedef, uint8_t priority, void (*handler)(void *), void *object);
-void INT_EnableUART(USART_TypeDef *uart_typedef, uint8_t priority, void (*handler)(void *), void *object);
-void INT_EnableI2C(I2C_TypeDef *i2c_typedef, uint8_t priority, void (*handler)(void *), void *object);
-void INT_EnableADC(uint8_t priority, void (*handler)(void *), void *object);
-void INT_EnableDMA(uint8_t dma_nbr, uint8_t priority, void (*handler)(void *), void *object);
-void INT_EnableEXTI(uint8_t exti_nbr, uint8_t priority, void (*handler)(void *), void *object);
+void INT_EnableTIM(TIM_TypeDef *tim_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);
+void INT_EnableUART(USART_TypeDef *uart_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);
+void INT_EnableI2C(I2C_TypeDef *i2c_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);
+void INT_EnableADC(INT_Prioryty_t priority, void (*handler)(void *), void *object);
+void INT_EnableDMA(uint8_t dma_nbr, INT_Prioryty_t priority, void (*handler)(void *), void *object);
+void INT_EnableEXTI(uint8_t exti_nbr, INT_Prioryty_t priority, void (*handler)(void *), void *object);
 
 //-------------------------------------------------------------------------------------------------
 

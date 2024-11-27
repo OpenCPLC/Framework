@@ -13,13 +13,19 @@
 //-------------------------------------------------------------------------------------------------
 
 typedef struct {
+  int32_t (*Echo)(uint8_t);
+  int32_t (*Enter)(void);
+  int32_t (*Skip)(void);
+  int32_t (*Execute)(void);
+  void (*Run)(bool);
+} BUFF_Console_t;
+
+typedef struct {
   uint8_t *mem;
   uint16_t size;
   uint8_t *end;
   uint8_t *tail;
-  bool console_mode; // brakes message on new line, backspcae and clear incoming message after '0x03'
-  int32_t (*Echo)(uint8_t);
-  int32_t (*Enter)(void);
+  BUFF_Console_t *console;
   volatile uint8_t *head;
   volatile uint16_t msg_counter;
   uint16_t msg_size[BUFF_MESSAGE_LIMIT];

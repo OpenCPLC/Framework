@@ -1,4 +1,4 @@
-#include "opencplc-uno.h"
+#include "opencplc.h"
 
 //------------------------------------------------------------------------------------------------- EEPROM
 
@@ -179,54 +179,20 @@ I2C_Master_t i2c_master = {
   .I2C_TIMING_100kHz
 };
 
-bool I2C_JustRead(uint8_t addr, uint8_t *ary, uint16_t n)
-{
-  I2C_Master_JustRead(&i2c_master, addr, ary, n);
-  if(timeout(21 + n, WAIT_&I2C_Master_IsFree, &i2c_master)) {
-    return false;
-  }
-  return true;
-}
-
-bool I2C_JustWrite(uint8_t addr, uint8_t *ary, uint16_t n)
-{
-  I2C_Master_JustWrite(&i2c_master, addr, ary, n);
-  if(timeout(21 + n, WAIT_&I2C_Master_IsFree, &i2c_master)) {
-    return false;
-  }
-  return true;
-}
-
-bool I2C_Read(uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
-{
-  I2C_Master_Read(&i2c_master, addr, reg, ary, n);
-  if(timeout(23 + n, WAIT_&I2C_Master_IsFree, &i2c_master)) {
-    return false;
-  }
-  return true;
-}
-
-bool I2C_Write(uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
-{
-  I2C_Master_Write(&i2c_master, addr, reg, ary, n);
-  if(timeout(22 + n, WAIT_&I2C_Master_IsFree, &i2c_master)) {
-    return false;
-  }
-  return true;
-}
-
 GPIO_t onewire_power_gpio = { .port = GPIOA, .pin = 9, .mode = GPIO_Mode_Output, .set = true };
 GPIO_t onewire_data_gpio = { .port = GPIOA, .pin = 10 };
-ONEWIRE_t onewire = { .gpio = &onewire_power_gpio };
+WIRE_t onewire = { .gpio = &onewire_power_gpio };
+TIM_t sleep_us_tim = { .reg = TIM7 };
 
 bool ONE_WIRE_Init(void)
 {
+  sleep_us_init(&sleep_us_tim);
   I2C_Master_Disable(&i2c_master);
   GPIO_Init(&onewire_data_gpio);
   return WIRE_Init(&onewire);
 }
 
-bool ONE_WIRE_Reset(void) { return WIRE_Reset(&onewire); }
+bool ONE_1WIRE_Reset(void) { return WIRE_Reset(&onewire); }
 void ONE_WIRE_Write(uint8_t value) { WIRE_Write(&onewire, value); }
 void ONE_WIRE_WriteParasitePower(uint8_t value) { WIRE_WriteParasitePower(&onewire, value); }
 uint8_t ONE_WIRE_Read(void) { return WIRE_Read(&onewire); }
@@ -245,14 +211,6 @@ DIN_t BTN = { .gpif = { .gpio = { .port = GPIOC, .pin = 12 } } };
 
 //------------------------------------------------------------------------------------------------- DBG+Bash
 
-uint8_t dbg_buff_buffer[2048];
-BUFF_t dbg_buff = {
-  .mem = dbg_buff_buffer,
-  .size = sizeof(dbg_buff_buffer),
-  .console_mode = true,
-  .Echo = DBG_Char,
-  .Enter = DBG_Enter,
-};
 #ifdef STM32G081xx
   TIM_t dbg_tim = { .reg = TIM6 };
 #endif
@@ -260,15 +218,13 @@ UART_t dbg_uart = {
   .reg = USART3,
   .tx_pin = UART3_TX_PB8,
   .rx_pin = UART3_RX_PB9,
-  .dma_channel = 4,
+  .dma_channel = DMA_Channel_4,
+  .int_prioryty = INT_Prioryty_Low,
   .UART_115200,
-  .buff = &dbg_buff,
   #ifdef STM32G081xx
     .tim = &dbg_tim
   #endif
 };
-uint8_t dbg_file_buffer[2048];
-FILE_t dbg_file = { .name = "debug", .buffer = dbg_file_buffer, .limit = sizeof(dbg_file_buffer) };
 #ifdef STM32G081xx
   EEPROM_t cache_eeprom = { .page_a = 62, .page_b = 63 };
 #endif
@@ -286,18 +242,17 @@ void PLC_Init(void)
     // SCB->VTOR = FLASH_BASE | 0x00000000U;
   #endif
   // Konfiguracja systemowa
-  SYS_Clock_Init();
+  system_clock_init();
+  systick_init(PLC_BASETIME);
   RTC_Init();
   EEPROM_Cache(&cache_eeprom);
-  SYSTICK_Init(PLC_BASETIME);
   RGB_Init(&RGB);
   DIN_Init(&BTN);
-  DBG_Init(&dbg_uart, &dbg_file);
+  DBG_Init(&dbg_uart);
   BASH_AddFile(&cache_file);
-  BASH_AddFile(&dbg_file);
-  BASH_AddCallback(&LED_Bash);
+  BASH_AddCallback(&LED_Bash, "led");
   // Magistrala I2C
-  I2C_Master_Init(&i2c_master);
+  TWI_Init(&i2c_master);
   // Wyjścia cyfrowe przekaźnikowe (RO)
   DOUT_Init(&RO1);
   DOUT_Init(&RO2);
@@ -350,7 +305,7 @@ void PLC_Init(void)
   // Interfejsy RS485
   UART_Init(&RS1);
   UART_Init(&RS2);
-  LOG_Init("Uno");
+  LOG_Init(OPENCPLC_VERSION, "Uno");
 }
 
 void PLC_Loop(void)
@@ -410,7 +365,7 @@ SPI_Master_t rtd_spi = {
   .spi_typedef = SPI2,
   .tx_dma_channel = DMA_Channel_2,
   .rx_dma_channel = DMA_Channel_3,
-  .interrupt_level = INT_Level_Medium,
+  .int_prioryty = INT_Prioryty_Medium,
   .miso_pin = SPI2_MISO_PB14,
   .mosi_pin = SPI2_MOSI_PB15,
   .sck_pin = SPI2_SCK_PB13,

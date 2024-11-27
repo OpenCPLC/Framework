@@ -45,7 +45,7 @@ typedef struct {
   char *name;            // Nazwa wyświetlana podczas zapytań `bash`
   GPIO_t gpio;           // Wskaźnik na wyjście GPIO_t. Należy skonfigurować pola `port` i `pin`.
   PWM_t *pwm;            // Wskaźnik na kontroler PWM_t.
-  TIM_Channel_e channel; // Kanał kontrolera PWM_t sterujący 
+  TIM_Channel_t channel; // Kanał kontrolera PWM_t sterujący 
   EEPROM_t *eeprom;      // Wskaźnik na pamięć EEPROM_t do przechowywania wartości nieulotnych.
   uint32_t save;         // Określa, czy zachować stan wyjścia po resecie.
   uint32_t value;        // Wypełnienie [%] sygnału na wyjściu. Zaleca się ustawić funkcją `DOUT_Set`.

@@ -1,7 +1,7 @@
 #ifndef SYS_H_
 #define SYS_H_
 
-#include "dbg.h"
+#include "log.h"
 #include "pwr.h"
 #include "main.h"
 
@@ -9,7 +9,9 @@
   #define SYS_CLOCK_FREQ 16000000
 #endif
 
-void SYS_Clock_Init(void);
+void system_clock_init(void);
 void panic(const char *message);
+void sleep_us_init(TIM_t *tim);
+void sleep_us(uint32_t us);
 
 #endif

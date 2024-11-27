@@ -1,6 +1,6 @@
 #include "sys.h"
 
-void SYS_Clock_Init(void)
+void system_clock_init(void)
 {
   #if(SYS_CLOCK_FREQ == 16000000)
     RCC_16MHz();
@@ -13,13 +13,26 @@ void SYS_Clock_Init(void)
   #elif(SYS_CLOCK_FREQ == 59904000)
     RCC_PLL(18432000, 2, 13, 2);
   #else
-    #error "System clock frequency SYS_CLOCK_FREQ isn't supported"
+    #error "System clock frequency SYS_CLOCK_FREQ isn't supported!"
   #endif
 }
 
 void panic(const char *message)
 {
   LOG_Panic(message);
-  DBG_BeforeReset();
+  DBG_Wait4Uart();
   PWR_Reset();
+}
+
+static TIM_t *SystemSleepTimer;
+
+void sleep_us_init(TIM_t *tim)
+{
+  SystemSleepTimer = tim;
+  DELAY_Init(tim, TIM_BaseTime_1us);
+}
+
+void sleep_us(uint32_t us)
+{
+  DELAY_Wait(SystemSleepTimer, us);
 }

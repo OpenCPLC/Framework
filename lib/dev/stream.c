@@ -4,6 +4,8 @@
 
 uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
 {
+  if(stream->file) DBG_SetFile(stream->file);
+  else DBG_DefaultFile();
   uint16_t length = stream->Size();
   if(length) {
     char *buffer = stream->Read();
@@ -17,36 +19,18 @@ uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
       if(CRC_Error(stream->crc, buffer, length)) return 0;
       length -= stream_crc->width / 8;
     #endif
-    #if(STREAM_DBG)
-      DBG_String("STREAM "); DBG_String(stream->name);
-    #endif
-    if(stream->mode == STREAM_Mode_String) {
+    if(!stream->data_mode) {
       buffer = trim(buffer);
       int argc = explode(argv, buffer, ' ');
-      #if(STREAM_DBG)
-        DBG_String(" mode:string");
-      #endif
       if(stream->modify == STREAM_Modify_Lowercase || stream->modify == STREAM_Modify_Uppercase) {
         for(int i = 0; i < argc; i++) {
-          if(stream->modify == STREAM_Modify_Lowercase) strtolower_this((*argv)[i]);
-          else if(stream->modify == STREAM_Modify_Uppercase) strtoupper_this((*argv)[i]);
-          #if(STREAM_DBG)
-            DBG_String(" arg[");
-            DBG_Dec(i);
-            DBG_String("]:");
-            DBG_String((*argv)[i]);
-          #endif
+          if(stream->modify == STREAM_Modify_Lowercase) str2lower_this((*argv)[i]);
+          else if(stream->modify == STREAM_Modify_Uppercase) str2upper_this((*argv)[i]);
         }
       }
-      #if(STREAM_DBG)
-        DBG_Enter();
-      #endif
       return (uint8_t)argc;
     }
     else {
-      #if(STREAM_DBG)
-        DBG_String(" mode:file\r\n");
-      #endif
       char **file;
       char *loc;
       file = new(sizeof(char*) + (length * sizeof(char)));
@@ -58,6 +42,18 @@ uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
     }
   }
   return 0;
+}
+
+void STREAM_DataMode(STREAM_t *stream)
+{
+  stream->data_mode = true;
+  if(stream->SwitchMode) stream->SwitchMode(stream->data_mode);
+}
+
+void STREAM_ArgsMode(STREAM_t *stream)
+{
+  stream->data_mode = false;
+  if(stream->SwitchMode) stream->SwitchMode(stream->data_mode);
 }
 
 //-------------------------------------------------------------------------------------------------

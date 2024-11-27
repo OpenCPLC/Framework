@@ -5,23 +5,30 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "stm32g0xx.h"
+#include "int.h"
 #include "main.h"
 
 //-------------------------------------------------------------------------------------------------
 
-#define RTC_INTERRUPT_LEVEL 3
-#define RTC_SECONDS_IN_WEEK 604800
-#define RTC_SECONDS_IN_DAY 86400
-#define RTC_SECONDS_IN_HOUR 3600
-#define RTC_SECONDS_IN_MINUTE 60
+#ifndef RTC_INT_PRIORYTY
+  #define RTC_INT_PRIORYTY INT_Prioryty_Low
+#endif
 
-#define RTC_MONDAY 1
-#define RTC_TUESDAY 2
-#define RTC_WEDNESDAY 3
-#define RTC_THURSDAY 4
-#define RTC_FRIDAY 5
-#define RTC_SATURDAY 6
-#define RTC_SUNDAY 7
+typedef enum {
+  RTC_Weekday_Error = -1,
+  RTC_Weekday_Everyday = 0,
+  RTC_Weekday_Monday = 1,
+  RTC_Weekday_Tuesday = 2,
+  RTC_Weekday_Wednesday = 3,
+  RTC_Weekday_Thursday = 4,
+  RTC_Weekday_Friday = 5,
+  RTC_Weekday_Saturday = 6,
+  RTC_Weekday_Sunday = 7
+} RTC_Weekday_e;
+
+#ifndef RTC_WEEKDAYS_LONG
+  #define RTC_WEEKDAYS_LONG 1
+#endif
 
 //-------------------------------------------------R------------------------------------------------
 
@@ -57,8 +64,7 @@ typedef struct {
 
 void RTC_Init(void);
 
-RTC_Datetime_t RTC_UnixToDatetime(uint32_t timestamp);
-RTC_Datetime_t RTC_TimestampToDatetime(uint64_t timestamp);
+RTC_Datetime_t RTC_UnixToDatetime(uint64_t timestamp);
 char *RTC_WeekDayString(void);
 uint32_t RTC_DatetimeToUnix(RTC_Datetime_t *date);
 
@@ -69,7 +75,7 @@ uint32_t RTC_AlarmToWeekstamp(RTC_Alarm_t *alarm);
 
 bool RTC_DatetimeSyncIsCorrect(RTC_Datetime_t *date, int8_t time_zone);
 void RTC_SetDatetime(RTC_Datetime_t *datetime);
-void RTC_SetTimestamp(uint32_t timestamp);
+void RTC_SetTimestamp(uint64_t timestamp);
 void RTC_Reset(void);
 
 RTC_Datetime_t RTC_Datetime(void);
@@ -84,6 +90,7 @@ uint32_t RTC_Daystamp_A(void);
 RTC_Alarm_t RTC_Alarm_B(void);
 uint32_t RTC_Daystamp_B(void);
 
+bool RTC_Alarm_IsEnabled(RTC_ALARM_e alarm);
 void RTC_Alarm_Enable(RTC_ALARM_e alarm, RTC_Alarm_t *set);
 void RTC_Alarm_A_Enable(RTC_Alarm_t *set);
 void RTC_Daystamp_A_Enable(uint32_t stamp);
@@ -94,8 +101,8 @@ void RTC_Daystamp_B_Enable(uint32_t stamp);
 void RTC_Weekstamp_B_Enable(uint32_t stamp);
 void RTC_Interval_B_Enable(uint32_t interval);
 
-void RTC_AlarmA_Disable(void);
-void RTC_AlarmB_Disable(void);
+void RTC_Alarm_A_Disable(void);
+void RTC_Alarm_B_Disable(void);
 void RTC_WakeupTimer_Enable(uint32_t sec);
 void RTC_WakeupTimer_Disable(void);
 
@@ -117,6 +124,7 @@ void RTC_Force_WakeupTimer(void);
 extern const char *rtc_weakdays[];
 extern const RTC_Datetime_t rtc_datetime_empty;
 extern bool rtc_ready;
+extern bool rtc_init;
 
 //-------------------------------------------------------------------------------------------------
 #endif

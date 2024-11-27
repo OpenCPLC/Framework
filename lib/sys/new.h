@@ -51,7 +51,7 @@ typedef struct {
   uint16_t size; // Total memory allocated by this stack
 } NEW_t;
 
-NEW_t *NEW_Init(uint16_t limit); // Initialize memory with a limit on variable count
+NEW_t *new_init(uint16_t limit); // Initialize memory with a limit on variable count
 void *new_static(size_t size); // Allocate static memory block
 void *new(size_t size); // Allocate dynamic memory for current thread
 void clear(); // Clear all allocated memory for current thread

@@ -58,16 +58,19 @@ typedef enum {
 } PWR_WakeupDir_e;
 
 typedef enum {
-  PWR_Mode_Stop0 = 0,
-  PWR_Mode_Stop1 = 1,
-  PWR_Mode_StandbySram = 2,
-  PWR_Mode_Standby = 3,
-  PWR_Mode_Shutdown = 4
+  PWR_SleepMode_Error = -1,
+  PWR_SleepMode_Stop0 = 0,
+  PWR_SleepMode_Stop1 = 1,
+  PWR_SleepMode_StandbySRAM = 2,
+  PWR_SleepMode_Standby = 3,
+  PWR_SleepMode_Shutdown = 4
 } PWR_SleepMode_e;
 
 void PWR_Reset(void);
 void PWR_Sleep(PWR_SleepMode_e mode);
 void PWR_Wakeup(PWR_WakeupPin_e wakeup_pin, PWR_WakeupDir_e dir);
+
+//------------------------------------------------------------------------------------------------- BKPR
 
 typedef enum {
   BKPR_0 = 0,

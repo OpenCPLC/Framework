@@ -1,7 +1,7 @@
 #ifndef OPENCPLC_H_
 #define OPENCPLC_H_
 
-#define OPENCPLC_VERSION "1.0.0-rc.1"
+#define OPENCPLC_VERSION "0.0.0"
 
 #if defined(OPENCPLC_UNO)
   #include "opencplc-uno.h"

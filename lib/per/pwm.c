@@ -2,8 +2,9 @@
 
 void PWM_SetPrescaler(PWM_t *pwm, uint32_t prescaler)
 {
-  pwm->prescaler = prescaler;
-  pwm->reg->PSC = pwm->prescaler;
+  if(!prescaler) prescaler = 1;
+  pwm->prescaler = prescaler;  
+  pwm->reg->PSC = pwm->prescaler - 1;
 }
 
 void PWM_SetAutoreload(PWM_t *pwm, uint32_t auto_reload)
@@ -13,7 +14,7 @@ void PWM_SetAutoreload(PWM_t *pwm, uint32_t auto_reload)
   pwm->reg->ARR = pwm->auto_reload;
 }
 
-void PWM_SetValue(PWM_t *pwm, TIM_Channel_e channel, uint32_t value)
+void PWM_SetValue(PWM_t *pwm, TIM_Channel_t channel, uint32_t value)
 {
   switch(channel) {
     case TIM_CH1: case TIM_CH1N: pwm->value[TIM_CH1] = value; pwm->reg->CCR1 = value; break;
@@ -49,7 +50,7 @@ void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime)
   pwm->reg->BDTR = (pwm->reg->BDTR & ~TIM_BDTR_DTG_Msk) | dtg;
 }
 
-static void PWM_ChannelInit(PWM_t *pwm, TIM_Channel_e channel)
+static void PWM_ChannelInit(PWM_t *pwm, TIM_Channel_t channel)
 {
   bool invert_pos = pwm->invert[channel];
   bool invert_neg = pwm->invert[channel + 4];
@@ -75,11 +76,11 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->CCMR2 = 0;
   for(uint8_t i = 0; i < 4; i++) {
     init = false;
-    if(pwm->channel[i]) { GPIO_AlternateInit(&tim_channel_map[pwm->channel[i]], false); init = true; }
-    if(pwm->channel[i + 4]) { GPIO_AlternateInit(&tim_channel_map[pwm->channel[i + 4]], false); init = true; }
+    if(pwm->channel[i]) { GPIO_AlternateInit(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
+    if(pwm->channel[i + 4]) { GPIO_AlternateInit(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
     if(init) PWM_ChannelInit(pwm, i);
   }
-  pwm->reg->PSC = pwm->prescaler;
+  PWM_SetPrescaler(pwm, pwm->prescaler);
   pwm->reg->ARR = pwm->auto_reload;
   pwm->reg->CR1 = TIM_CR1_ARPE | (pwm->center_aligned << 6) | (pwm->center_aligned << 5);
   PWM_SetDeadtime(pwm, pwm->deadtime);

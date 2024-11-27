@@ -15,19 +15,19 @@ static void RGB_RstBlue(RGB_t *rgb) { if(rgb->blue) GPIO_Rst(rgb->blue); }
 
 void RGB_Init(RGB_t *rgb)
 {
-  if(rgb->red) {
-    rgb->red->mode = GPIO_Mode_Output;
-    GPIO_Init(rgb->red);
-  }
-  if(rgb->green) {
-    rgb->green->mode = GPIO_Mode_Output;
-    GPIO_Init(rgb->green);
-  }
-  if(rgb->blue) {
-    rgb->blue->mode = GPIO_Mode_Output;
-    GPIO_Init(rgb->blue);
-  }
-  RGB_Set(rgb, rgb->state);
+  // if(rgb->red) {
+  //   rgb->red->mode = GPIO_Mode_Output;
+  //   GPIO_Init(rgb->red);
+  // }
+  // if(rgb->green) {
+  //   rgb->green->mode = GPIO_Mode_Output;
+  //   GPIO_Init(rgb->green);
+  // }
+  // if(rgb->blue) {
+  //   rgb->blue->mode = GPIO_Mode_Output;
+  //   GPIO_Init(rgb->blue);
+  // }
+  // RGB_Set(rgb, rgb->state);
   rgb_focus = rgb;
 }
 
@@ -47,8 +47,8 @@ static void RGB_Preset(RGB_t *rgb, RGB_e color)
 
 void RGB_Set(RGB_t *rgb, RGB_e color)
 {
-  RGB_Preset(rgb, color);
-  rgb->state = color;
+  // RGB_Preset(rgb, color);
+  // rgb->state = color;
 }
 
 void RGB_Rst(RGB_t *rgb)
@@ -121,20 +121,20 @@ void LED_OneShoot(RGB_e color, uint16_t ms)
   rgb_focus->one_shot = true;
 }
 
-bool LED_Bash(char **argv, uint16_t argc)
+//TODO
+void LED_Bash(char **argv, uint16_t argc)
 {
   RGB_Hash_e sw = hash(argv[0]);
-  if(sw != RGB_Hash_Rgb && sw != RGB_Hash_Led) return false;
-  if(!rgb_focus) return true;
+  if(sw != RGB_Hash_Rgb && sw != RGB_Hash_Led) return;
+  if(!rgb_focus) return;
   if(argc > 1) {
     switch(hash(argv[1])) {
       case RGB_Hash_Blink:
-        if(argc < 3) return true;
+        if(argc < 3) return;
         sw = hash(argv[2]);
         if(sw == RGB_Hash_On && argc == 4) {
           char *str = argv[3];
-          bool ok = str2nbr_valid(str);
-          if(!ok) return true;
+          if(str2uint16_fault(str)) return;
           uint16_t blink_ms = str2nbr(str);
           LED_Blink_ON(blink_ms);
         }
@@ -143,12 +143,11 @@ bool LED_Bash(char **argv, uint16_t argc)
         }
         break;
       case RGB_Hash_Shot:
-        if(argc < 3) return true;
+        if(argc < 3) return;
         uint16_t shot_ms;
         if(argc >= 4) {
           char *str = argv[3];
-          bool ok = str2nbr_valid(str);
-          if(!ok) return true;
+          if(str2uint16_fault(str)) return;
           shot_ms = str2nbr(str);
         }
         else shot_ms = 200;
@@ -161,7 +160,7 @@ bool LED_Bash(char **argv, uint16_t argc)
           case RGB_Hash_Cyan: color = RGB_Cyan; break;
           case RGB_Hash_Magenta: color = RGB_Magenta; break;
           case RGB_Hash_White: color = RGB_White; break;
-          default: return true;
+          default: return;
         }
         LED_OneShoot(color, shot_ms);
         break;
@@ -182,7 +181,6 @@ bool LED_Bash(char **argv, uint16_t argc)
     DBG_uDec(rgb_focus->blink_ms); DBG_String("ms"); 
   }
   DBG_Enter();
-  return true;
 }
 
 //-------------------------------------------------------------------------------------------------

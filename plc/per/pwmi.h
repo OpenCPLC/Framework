@@ -22,8 +22,8 @@ typedef struct {
   uint32_t timeout_ms;
   PWMI_Prescaler_e input_prescaler;
   uint8_t interrupt_level;
-  TIM_Filter_e filter;
-  TIM_CHx_e channel[4];
+  TIM_Filter_t filter;
+  TIM_CHx_t channel[4];
   uint32_t reload[4];
   uint32_t value[4];
   float frequency[4];

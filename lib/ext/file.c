@@ -104,7 +104,7 @@ int32_t FILE_Bool(FILE_t *file, bool value)
 
 //------------------------------------------------------------------------------------------------- Numbers
 
-static char file_cache[48];
+static char file_cache[33];
 
 int32_t FILE_Int(FILE_t *file, int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
 {
@@ -232,7 +232,9 @@ int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm)
 {
   if(file->mutex) return 0;
   int32_t length;
-  length = alarm->day_mask ? FILE_String(file, "Everyday") : FILE_String(file, (char *)rtc_weakdays[alarm->day]);
+  length = alarm->day_mask ?
+    FILE_String(file, (char *)rtc_weakdays[0]) :
+    FILE_String(file, (char *)rtc_weakdays[alarm->day]);
   if(!length) return 0;
   if(file->size + 9 >= file->limit) {
     file->size -= length;
@@ -243,125 +245,6 @@ int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm)
   FILE_AlarmTime(file, alarm);
   return length;
 }
-
-//------------------------------------------------------------------------------------------------- Print
-
-static uint8_t FILE_GetStringNumber(const char **format)
-{
-  uint8_t nbr = 0;
-  while (**format >= '0' && **format <= '9') {
-    nbr = nbr * 10 + (**format - '0');
-    (*format)++;
-  }
-  return nbr;
-}
-
-void FILE_Print(FILE_t *file, const char *format, va_list args)
-{
-  while(*format) {
-    if(*format == '%') {
-      format++;
-      uint8_t width = FILE_GetStringNumber(&format);
-      if(*format == '-') format++;
-      uint8_t precision = 0;
-      if(*format == '.') {
-        format++;
-        precision = FILE_GetStringNumber(&format);
-      }
-      switch(*format) {
-        case 'i': case 'd': {
-          int32_t nbr = va_arg(args, int32_t);
-          FILE_Int(file, nbr, 10, true, precision, width);
-          break;
-        }
-        case 'u': {
-          uint32_t nbr = va_arg(args, uint32_t);
-          FILE_Int(file, nbr, 10, false, precision, width);
-          break;
-        }
-        case 'f': case 'F': {
-          if(!precision) precision = 3;
-          float nbr = (float)va_arg(args, double);
-          FILE_Float(file, nbr, precision, width);
-          break;
-        }
-        case 'x': case 'X': {
-          uint32_t nbr = va_arg(args, uint32_t);
-          uint8_t fill_zero = precision > width ? precision : width;
-          DBG_Int(nbr, 16, false, fill_zero, fill_zero);
-          break;
-        }
-        case 'c': {
-          char sing = (char)va_arg(args, int);
-          DBG_Char(sing);
-          break;
-        }
-        case 's': {
-          char *str = va_arg(args, char *);
-          DBG_String(str);
-          break;
-        }
-        case 'b': case 'B': {
-          uint8_t bin = (uint8_t)va_arg(args, int);
-          uint8_t fill_zero = precision > width ? precision : width;
-          DBG_Int(bin, 2, false, fill_zero, fill_zero);
-          break;
-        }
-        case 't':  {
-          RTC_Datetime_t *dt = (RTC_Datetime_t *)va_arg(args, void *);
-          uint8_t mode = precision > width ? precision : width;
-          switch(mode) {
-            case 1: FILE_Time(file, dt); break;
-            case 2: FILE_TimeMs(file, dt); break;
-            case 3: FILE_DatetimeMs(file, dt); break;
-            default: FILE_Datetime(file, dt);
-          }
-          break;
-        }
-        case 'T':  {
-          RTC_Datetime_t *dt = (RTC_Datetime_t *)va_arg(args, void *);
-          uint8_t mode = precision > width ? precision : width;
-          switch(mode) {
-            case 1: FILE_Date(file, dt); break;
-            case 3: FILE_DatetimeMs(file, dt); break;
-            default: FILE_Datetime(file, dt);
-          }
-          break;
-        }
-        case 'n':  {
-          RTC_Datetime_t dt = RTC_Datetime();
-          uint8_t mode = precision > width ? precision : width;
-          switch(mode) {
-            case 1: FILE_Time(file, &dt); break;
-            case 2: FILE_TimeMs(file, &dt); break;
-            case 3: FILE_DatetimeMs(file, &dt); break;
-            default: FILE_Datetime(file, &dt);
-          }
-          break;
-        }
-        case 'N':  {
-          RTC_Datetime_t dt = RTC_Datetime();
-          uint8_t mode = precision > width ? precision : width;
-          switch(mode) {
-            case 1: FILE_Date(file, &dt); break;
-            case 3: FILE_DatetimeMs(file, &dt); break;
-            default: FILE_Datetime(file, &dt);
-          }
-          break;
-        }
-        case '%': {
-          DBG_Char('%');
-          break;
-        }
-      }
-    }
-    else {
-      DBG_Char(*format);
-    }
-    format++;
-  }
-}
-
 
 //------------------------------------------------------------------------------------------------- Save/Load/Copy
 
@@ -504,10 +387,10 @@ int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count)
 state_t FILE_Offset_Drop(FILE_t *file)
 {
   if(file->mutex) return ERR;
-  file->buffer -= file->_offset;
-  file->limit += file->_offset;
-  file->size += file->_offset;
-  file->_offset = 0;
+  file->buffer -= file->offset;
+  file->limit += file->offset;
+  file->size += file->offset;
+  file->offset = 0;
   return OK;
 }
 
@@ -518,8 +401,8 @@ state_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
   file->buffer += offset;
   file->limit -= offset;
   if(file->size > offset) file->size -= offset;
-  else file->size = OK;
-  file->_offset = offset;
+  else file->size = 0;
+  file->offset = offset;
   return OK;
 }
 

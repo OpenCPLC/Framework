@@ -15,7 +15,7 @@ static void SPI_Master_InterruptDMA(SPI_Master_t *spi)
 void SPI_Master_Init(SPI_Master_t *spi)
 {
   RCC->AHBENR |= RCC_AHBENR_DMA1EN;
-  GPIO_AlternateInit(&spi_sck_map[spi->sck_pin], false);
+  GPIO_AlternateInit(&SPI_SCK_MAP[spi->sck_pin], false);
   if(spi->miso_pin) {
     spi->_rx_dma = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * (spi->rx_dma_channel - 1)));
     spi->_rx_dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (spi->rx_dma_channel - 1)));
@@ -23,8 +23,8 @@ void SPI_Master_Init(SPI_Master_t *spi)
       case (uint32_t)SPI1: spi->_rx_dmamux->CCR = (spi->_rx_dmamux->CCR & 0xFFFFFFC0) | 16; break;
       case (uint32_t)SPI2: spi->_rx_dmamux->CCR = (spi->_rx_dmamux->CCR & 0xFFFFFFC0) | 18; break;
     }
-    INT_EnableDMA(spi->rx_dma_channel, spi->interrupt_level, (void (*)(void*))&SPI_Master_InterruptDMA, spi);
-    GPIO_AlternateInit(&spi_miso_map[spi->miso_pin], false);
+    INT_EnableDMA(spi->rx_dma_channel, spi->int_prioryty, (void (*)(void*))&SPI_Master_InterruptDMA, spi);
+    GPIO_AlternateInit(&SPI_MISO_MAP[spi->miso_pin], false);
     spi->_rx_dma->CPAR = (uint32_t)&(spi->spi_typedef->DR);
     spi->_rx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE;
   }
@@ -35,7 +35,7 @@ void SPI_Master_Init(SPI_Master_t *spi)
       case (uint32_t)SPI1: spi->_tx_dmamux->CCR = (spi->_tx_dmamux->CCR & 0xFFFFFFC0) | 17; break;
       case (uint32_t)SPI2: spi->_tx_dmamux->CCR = (spi->_tx_dmamux->CCR & 0xFFFFFFC0) | 19; break;
     }
-    GPIO_AlternateInit(&spi_mosi_map[spi->mosi_pin], false);
+    GPIO_AlternateInit(&SPI_MOSI_MAP[spi->mosi_pin], false);
     spi->_tx_dma->CPAR = (uint32_t)&(spi->spi_typedef->DR);
     spi->_tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR;
   }
