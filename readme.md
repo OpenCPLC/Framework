@@ -22,7 +22,7 @@ Sterowniki z linii **OpenCPLC** mogą wyróżniać się na rynku dzięki swojej 
 
 Każdy sterownik po zakupie jest wstępnie zaprogramowany jako moduł rozszerzeń, gotowy do współpracy z zewnętrznym sterownikiem lub komputerem. Oczywiście, każdą płytkę można przeprogramować tak, aby działała jako samodzielny sterownik **PLC**.
 
-To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [artykół](res/ext-article.md) 📜
+To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [artykuł](res/ext-article.md) 📜
 
 ## 🥇 Uno
 
