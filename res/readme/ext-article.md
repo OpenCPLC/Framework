@@ -22,7 +22,7 @@ Te właściwości pomagają w zarządzaniu, testowaniu i rozwoju bardziej złoż
 
 Wspomniane warstwy mogą być zorganizowane w sposób liniowy, gdzie każda pełni swoją określoną funkcję, a komunikacja między nimi przebiega w układzie hierarchicznym, jak w modelach **TCP/IP**, **MVC** i oprogramowaniu **KiCad**, które jest zestawem aplikacji. Może się zdarzyć, że wyższa warstwa otacza niższą, zachowując separację, jak w frameworkach **Next.js** i **FastAPI**, a także w **systemach wbudowanych**, o czym może świadczyć sama budowa mikrokontrolera.
 
-![article-tcpip-uc](images/article-tcpip-uc.png)
+![article-tcpip-uc](http://sqrt.pl/img/opencplc/article-tcpip-uc.png)
 
 Relacje między warstwami mogą być bardziej złożone, jak w przypadku systemów operacyjnych. Kluczowe jest jednak oddzielenie części funkcjonalnych oraz zapewnienie dostępu do poszczególnych modułów.
 
@@ -54,7 +54,7 @@ Zatem opracowanie sterownika opartego na RPI wymaga utworzenia warstwy fizycznej
 
 Warto także zapewnić pakiet narzędzi i sterowników umożliwiających sterowanie peryferiami automatyki oraz ułatwiających tworzenie aplikacji. Całość należy zawrzeć w automatycznym instalatorze, obrazie systemu lub obrazie Docker, co pozwoli na stworzenie kompletnego środowiska pracy z PLC.
 
-![article-rpi](images/article-rpi.png)
+![article-rpi](http://sqrt.pl/img/opencplc/article-rpi.png)
 
 Na rynku jest miejsce dla sterowników PLC zarówno opartych na mikrokomputerach [^6], które oferują większą moc obliczeniową, zaawansowaną obsługę interfejsów, takich jak USB, Ethernet czy Wi-Fi, oraz szeroką gamę oprogramowania, w tym języki interpretowane, bazy danych, systemd i cron, jak i tych opartych na mikrokontrolerach [^7], które wyróżniają się wyższą niezawodnością, krótszym czasem uruchamiania, niższym zużyciem energii i kosztami.
 
