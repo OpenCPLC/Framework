@@ -38,7 +38,7 @@ float AIN_Raw(AIN_t *ain)
 {
   if(tick_over(&ain->tick)) return ain->value;
   uint16_t size = ain->count / 3;
-  sort_inc_uint16(ain->data, ain->count);
+  sort_asc_uint16(ain->data, ain->count);
   ain->value = average_uint16(&(ain->data[size]), size);
   ain->tick = tick_keep(AIN_AVERAGE_TIME_MS / 2);
   LOG_Debug("Analog input %s raw-value: %F", ain->name, ain->value);

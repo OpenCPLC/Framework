@@ -12,7 +12,8 @@ static int32_t DBG_ConsolePrintSkip(void) {
   #endif
 }
 
-static int32_t DBG_ConsolePrintExecute(void) {
+static int32_t DBG_ConsolePrintExecute(void)
+{
   #if(LOG_COLORS)
     return DBG_String("\e[32m^E\e[0m ");
   #else
@@ -63,11 +64,11 @@ void DBG_SwitchMode(bool data_mode)
 {
   if(data_mode) {
     DbgUart->buff->console = NULL;
-    UART_SetTimeout(DbgUart, 0);
+    UART_SetTimeout(DbgUart, DBG_DATAMODE_TIMEOUT);
   }
   else {
     DbgUart->buff->console = &dbg_cosole;
-    UART_SetTimeout(DbgUart, DBG_DATAMODE_TIMEOUT);
+    UART_SetTimeout(DbgUart, 0);
   }
 }
 
@@ -153,7 +154,7 @@ int32_t DBG_Char(uint8_t data) { return FILE_Char(DbgFile, data); }
 int32_t DBG_Char16(uint16_t data) { return FILE_Char16(DbgFile, data); }
 int32_t DBG_Char32(uint32_t data) { return FILE_Char32(DbgFile, data); }
 int32_t DBG_Char64(uint64_t data) { return FILE_Char64(DbgFile, data); }
-int32_t DBG_Array(uint8_t *array, uint16_t length) { return FILE_Array(DbgFile, array, length); }
+int32_t DBG_Data(uint8_t *array, uint16_t length) { return FILE_Data(DbgFile, array, length); }
 int32_t DBG_String(char *string) { return FILE_String(DbgFile, string); }
 int32_t DBG_Enter(void) { return FILE_Enter(DbgFile); }
 int32_t DBG_ClearLastLine(void) { return FILE_ClearLastLine(DbgFile); }
@@ -188,66 +189,18 @@ int32_t DBG_Alarm(RTC_Alarm_t *alarm) { return FILE_Alarm(DbgFile, alarm); }
 
 int32_t DBG_File(FILE_t *file)
 {
-  DBG_String((char *)file->name); DBG_Char(' ');
-  DBG_uDec(file->size); DBG_Char('/'); DBG_uDec(file->limit);
-  if(file->mutex) DBG_String(" mutex");
-  if(file->flash_page) { DBG_String(" flash:"); DBG_uDec(file->flash_page); }
-  DBG_Enter();
-  return 10; // TODO -- dokładna ilość
-}
-
-//------------------------------------------------------------------------------------------------- Array
-
-// TODO: remove (legacy)
-static inline uint16_t DBG_ArrayPrintHeader(char *name, uint16_t count, uint16_t *limit, uint16_t *offset)
-{
-  if(!offset) {
-    uint16_t offset_void = 0;
-    offset = &offset_void;
+  int32_t size = 0;
+  size += DBG_String((char *)file->name);
+  size += DBG_Char(' ');
+  size += DBG_uDec(file->size);
+  size += DBG_Char('/');
+  size += DBG_uDec(file->limit);
+  if(file->mutex) size += DBG_String(" mutex");
+  if(file->flash_page) {
+    size += DBG_String(" flash:");
+    size += DBG_uDec(file->flash_page);
   }
-  if(!limit) limit = &count;
-  if(!count) { *limit = 0; return 0; }
-  if(!*limit) *limit = count;
-  if(*limit > count) *limit = count;
-  if(*offset >= count) *offset = 0;
-  uint16_t end = *offset + *limit;
-  if(end > count) end -= count;
-  else end--;
-  DBG_String((char *)name); DBG_Char(' ');
-  DBG_uDec(count); DBG_Char(' ');
-  DBG_uDec(*offset); DBG_String("..");
-  DBG_uDec(end); DBG_Enter();
-  return end;
+  return size;
 }
 
-// TODO: remove (legacy)
-void DBG_ArrayPrint(FILE_t *file, uint16_t limit, uint16_t offset, void (*Print)(void *))
-{
-  uint16_t count = FILE_Struct_GetCount(file);
-  uint8_t *p = file->buffer + (file->struct_size * offset);
-  char *name = str2upper((char *)file->name);
-  DBG_ArrayPrintHeader(name, count, &limit, &offset);
-  while(limit) {
-    DBG_String("  ");
-    Print(p);
-    DBG_Enter();
-    p += file->struct_size;
-    offset++;
-    limit--;
-    if(offset >= count) {
-      p = file->buffer;
-      offset = 0;
-    }
-  }
-}
-
-// TODO: remove (legacy)
-void DBG_ArrayPrintBash(FILE_t *file, char **argv, uint16_t argc, uint16_t limit_index, uint16_t offset_index, void (*Print)(void *))
-{
-  uint16_t limit = 0, offset = 0;
-  if(argc > limit_index) limit = (uint16_t)atoi(argv[limit_index]);
-  if(argc > offset_index) offset = (uint16_t)atoi(argv[offset_index]);
-  DBG_ArrayPrint(file, limit, offset, Print);
-}
-
-//------------------------------------------------------------------------------------------------- File
+//-------------------------------------------------------------------------------------------------

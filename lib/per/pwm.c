@@ -89,3 +89,14 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->EGR |= TIM_EGR_UG;
   pwm->reg->CR1 |= TIM_CR1_CEN;
 }
+
+void PWM_Off(PWM_t *pwm)
+{
+  pwm->reg->CR1 &= ~TIM_CR1_CEN;
+  pwm->reg->CNT = 0;
+}
+
+void PWM_On(PWM_t *pwm)
+{
+  pwm->reg->CR1 |= TIM_CR1_CEN;
+}

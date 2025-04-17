@@ -125,21 +125,23 @@ typedef struct {
   GPIO_Pull_e pull;
   bool rise;
   bool fall;
-  uint8_t interrupt_level;
+  INT_Prioryty_t int_prioryty;
   bool one_shot;
   bool enable;
   void (*rise_function)(void*);
   void *rise_struct;
-  uint16_t _rise_inc;
+  uint16_t rise_cnt;
   void (*fall_function)(void*);
   void *fall_struct;
-  uint16_t _fall_inc;
+  uint16_t fall_cnt;
 } EXTI_t;
 
 void EXTI_Init(EXTI_t *exti);
 void EXTI_On(EXTI_t *exti);
 void EXTI_Off(EXTI_t *exti);
 uint16_t EXTI_In(EXTI_t *exti);
+uint16_t EXTI_Rise(EXTI_t *exti);
+uint16_t EXTI_Fall(EXTI_t *exti);
 
 //-------------------------------------------------------------------------------------------------
 #endif

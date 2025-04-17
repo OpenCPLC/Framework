@@ -4,6 +4,7 @@
 
 #include "gpio.h"
 #include "vrts.h"
+#include "exdef.h"
 #include "main.h"
 
 #ifndef ADC_RECORD

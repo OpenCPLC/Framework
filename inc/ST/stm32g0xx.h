@@ -1,13 +1,11 @@
 #ifndef STM32G0xx_H
 #define STM32G0xx_H
 
-#ifdef __cplusplus
- extern "C" {
-#endif
-
 #if !defined (STM32G0)
 #define STM32G0
 #endif
+
+//-------------------------------------------------------------------------------------------------
 
 #if !defined (STM32G071xx) && !defined (STM32G081xx) && !defined (STM32G070xx) \
  && !defined (STM32G030xx) && !defined (STM32G031xx) && !defined (STM32G041xx) \
@@ -66,37 +64,6 @@
   #error "Select define for STM32G0xx (STM32G0C1xx or STM32G081xx)"
 #endif
 
-typedef enum {
-  OK = 0,
-  FREE = 0,
-  IDLE = 0,
-  BUSY = 1,
-  ERR = -1,
-} state_t;
-
-typedef enum {
-  DMA_Channel_1 = 1,
-  DMA_Channel_2 = 2,
-  DMA_Channel_3 = 3,
-  DMA_Channel_4 = 4,
-  DMA_Channel_5 = 5,
-  DMA_Channel_6 = 6,
-  DMA_Channel_7 = 7
-} DMA_Channel_t;
-
-typedef enum {
-  HASH_Number_0 = 177621,
-  HASH_Number_1 = 177622,
-  HASH_Number_2 = 177623,
-  HASH_Number_3 = 177624,
-  HASH_Number_4 = 177625,
-  HASH_Number_5 = 177626,
-  HASH_Number_6 = 177627,
-  HASH_Number_7 = 177628,
-  HASH_Number_8 = 177629,
-  HASH_Number_9 = 177630
-} HASH_Number_t;
-
 // Exported macros
 #define SET_BIT(REG, BIT)   ((REG) |= (BIT))
 #define CLEAR_BIT(REG, BIT) ((REG) &= ~(BIT))
@@ -107,64 +74,43 @@ typedef enum {
 #define MODIFY_REG(REG, CLEARMASK, SETMASK) \
   WRITE_REG((REG), (((READ_REG(REG)) & (~(CLEARMASK))) | (SETMASK)))
 
-/* Use of interrupt control for register exclusive access */
-/* Atomic 32-bit register access macro to set one or several bits */
-#define ATOMIC_SET_BIT(REG, BIT)                             \
-  do {                                                       \
-    uint32_t primask;                                        \
-    primask = __get_PRIMASK();                               \
-    __set_PRIMASK(1);                                        \
-    SET_BIT((REG), (BIT));                                   \
-    __set_PRIMASK(primask);                                  \
+// Use of interrupt control for register exclusive access
+// Atomic 32-bit register access macro to set one or several bits
+#define ATOMIC_SET_BIT(REG, BIT)  \
+  do {                            \
+    uint32_t primask;             \
+    primask = __get_PRIMASK();    \
+    __set_PRIMASK(1);             \
+    SET_BIT((REG), (BIT));        \
+    __set_PRIMASK(primask);       \
   } while(0)
 
-/* Atomic 32-bit register access macro to clear one or several bits */
-#define ATOMIC_CLEAR_BIT(REG, BIT)                           \
-  do {                                                       \
-    uint32_t primask;                                        \
-    primask = __get_PRIMASK();                               \
-    __set_PRIMASK(1);                                        \
-    CLEAR_BIT((REG), (BIT));                                 \
-    __set_PRIMASK(primask);                                  \
+// Atomic 32-bit register access macro to clear one or several bits
+#define ATOMIC_CLEAR_BIT(REG, BIT)  \
+  do {                              \
+    uint32_t primask;               \
+    primask = __get_PRIMASK();      \
+    __set_PRIMASK(1);               \
+    CLEAR_BIT((REG), (BIT));        \
+    __set_PRIMASK(primask);         \
   } while(0)
 
-/* Atomic 32-bit register access macro to clear and set one or several bits */
-#define ATOMIC_MODIFY_REG(REG, CLEARMSK, SETMASK)            \
-  do {                                                       \
-    uint32_t primask;                                        \
-    primask = __get_PRIMASK();                               \
-    __set_PRIMASK(1);                                        \
-    MODIFY_REG((REG), (CLEARMSK), (SETMASK));                \
-    __set_PRIMASK(primask);                                  \
+// Atomic 32-bit register access macro to clear and set one or several bits
+#define ATOMIC_MODIFY_REG(REG, CLEARMSK, SETMASK)  \
+  do {                                             \
+    uint32_t primask;                              \
+    primask = __get_PRIMASK();                     \
+    __set_PRIMASK(1);                              \
+    MODIFY_REG((REG), (CLEARMSK), (SETMASK));      \
+    __set_PRIMASK(primask);                        \
   } while(0)
 
-/* Atomic 16-bit register access macro to set one or several bits */
-#define ATOMIC_SETH_BIT(REG, BIT) ATOMIC_SET_BIT(REG, BIT)                                   \
+// Atomic 16-bit register access macro to set one or several bits
+#define ATOMIC_SETH_BIT(REG, BIT) ATOMIC_SET_BIT(REG, BIT)
+// Atomic 16-bit register access macro to clear one or several bits
+#define ATOMIC_CLEARH_BIT(REG, BIT) ATOMIC_CLEAR_BIT(REG, BIT)
+// Atomic 16-bit register access macro to clear and set one or several bits
+#define ATOMIC_MODIFYH_REG(REG, CLEARMSK, SETMASK) ATOMIC_MODIFY_REG(REG, CLEARMSK, SETMASK)
 
-/* Atomic 16-bit register access macro to clear one or several bits */
-#define ATOMIC_CLEARH_BIT(REG, BIT) ATOMIC_CLEAR_BIT(REG, BIT)                               \
-
-/* Atomic 16-bit register access macro to clear and set one or several bits */
-#define ATOMIC_MODIFYH_REG(REG, CLEARMSK, SETMASK) ATOMIC_MODIFY_REG(REG, CLEARMSK, SETMASK) \
-
-/*#define POSITION_VAL(VAL)     (__CLZ(__RBIT(VAL)))*/
-/**
-  * @}
-  */
-
-#if defined (USE_HAL_DRIVER)
- #include "stm32g0xx_hal.h"
-#endif /* USE_HAL_DRIVER */
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-
-#endif /* STM32G0xx_H */
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
+//-------------------------------------------------------------------------------------------------
+#endif

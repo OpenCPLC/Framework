@@ -41,7 +41,7 @@ int32_t DBG_Char(uint8_t data);
 int32_t DBG_Char16(uint16_t data);
 int32_t DBG_Char32(uint32_t data);
 int32_t DBG_Char64(uint64_t data);
-int32_t DBG_Array(uint8_t *array, uint16_t length);
+int32_t DBG_Data(uint8_t *array, uint16_t length);
 int32_t DBG_String(char *string);
 int32_t DBG_Enter(void);
 int32_t DBG_ClearLastLine(void);
@@ -65,9 +65,6 @@ int32_t DBG_DatetimeMs(RTC_Datetime_t *datetime);
 int32_t DBG_AlarmTime(RTC_Alarm_t *alarm);
 int32_t DBG_Alarm(RTC_Alarm_t *alarm);
 int32_t DBG_File(FILE_t *file);
-
-void DBG_ArrayPrint(FILE_t *file, uint16_t limit, uint16_t offset, void (*Print)(void *));
-void DBG_ArrayPrintBash(FILE_t *file, char **argv, uint16_t argc, uint16_t limit_index, uint16_t offset_index, void (*Print)(void *));
 
 //-------------------------------------------------------------------------------------------------
 #endif

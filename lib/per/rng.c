@@ -4,7 +4,7 @@
 
 uint32_t RNG_Run(void)
 {
-  while(!(RNG->SR & RNG_SR_DRDY)) __DSB();
+  while(!(RNG->SR & RNG_SR_DRDY)) __NOP();
   return RNG->DR;
 }
 

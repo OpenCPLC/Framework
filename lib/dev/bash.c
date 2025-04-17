@@ -93,12 +93,12 @@ void BASH_WrongArgv(char *command, char nbr)
 static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
 {
   stream->packages--;
-  LOG_Debug("File %s transfer, packages left: %d ", (char *)bash.file_active->name);
+  if(stream->packages) LOG_Bash("File %s transfer, packages left: %d ", (char *)bash.file_active->name, stream->packages);
+  else LOG_Bash("File %s transfer end", (char *)bash.file_active->name);
   bash.file_active->mutex = false;
   FILE_Append(bash.file_active, data, size);
   if(!stream->packages) {
     STREAM_ArgsMode(stream);
-    DBG_Enter();
     if(bash.flash_autosave) FILE_Flash_Save(bash.file_active);
   }
   else {
@@ -143,7 +143,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       for(uint16_t i = 0; i < bash.files_count; i++) {
         file_names[i] = bash.files[i]->name;
       }
-      LOG_Bash("Files: %a%s", bash.files_count, file_names);
+      LOG_Bash("Files: %a, %s", bash.files_count, file_names);
       break;
     }
     case BASH_Hash_Active:
@@ -173,9 +173,13 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       if(argc > 3) { BASH_WrongArgc(argv[0]); return; }
       if(FILE_Clear(bash.file_active)) BASH_AccessDenied(bash.file_active);
       else {
+        uint16_t packages = 1;
+        if(argc == 3) {
+          if(str2uint16_fault(argv[2])) { BASH_WrongArgv(argv[0], 2); return; }
+          packages = str2nbr(argv[2]);
+        }
         STREAM_DataMode(stream);
-        if(str2uint16_fault(argv[2])) { BASH_WrongArgv(argv[0], 2); return; }
-        stream->packages = argc == 3 ? str2nbr(argv[2]) : 1;
+        stream->packages = packages;
         bash.file_active->mutex = true;
         LOG_Bash("File %s save, packages: %d", bash.file_active->name, stream->packages);
       }
@@ -208,21 +212,20 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       }
       if(offset >= bash.file_active->size) offset = 0;
       if(limit + offset > bash.file_active->size) limit = bash.file_active->size - offset;
-      bash.file_active->mutex = true;
-      DBG_Send(&bash.file_active->buffer[offset], limit);
-      bash.file_active->mutex = false;
+      DBG_Data(&bash.file_active->buffer[offset], limit);
+      DBG_Enter();
       break;
     }
     case BASH_Hash_Flash: { // FILE flash {save|load}
       if(argc != 3) { BASH_WrongArgc(argv[0]); return; }
       switch(hash(argv[2])) {
         case BASH_Hash_Save:
-          if(FILE_Flash_Save(bash.file_active)) LOG_Error("File %s flash save fault");
-          else LOG_Bash("File %s flash save success");
+          if(FILE_Flash_Save(bash.file_active)) LOG_Error("File %s flash save fault", bash.file_active->name);
+          else LOG_Bash("File %s flash save success", bash.file_active->name);
           break;
         case BASH_Hash_Load: case BASH_Hash_Reset: 
-          if(FILE_Flash_Load(bash.file_active)) LOG_Error("File %s flash load fault");
-          else LOG_Bash("File %s flash load success");
+          if(FILE_Flash_Load(bash.file_active)) LOG_Error("File %s flash load fault", bash.file_active->name);
+          else LOG_Bash("File %s flash load success", bash.file_active->name);
           break;
         default: BASH_WrongArgv("file flash", 2);
       }
@@ -243,11 +246,11 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       switch(hash(argv[2])) {
         case BASH_Hash_To:
           if(FILE_Copy(file, bash.file_active)) LOG_Error("File copy fault");
-          else LOG_Bash("File copy %s → %s success", bash.file_active, file);
+          else LOG_Bash("File copy %s → %s success", bash.file_active->name, file->name);
           break;
         case BASH_Hash_From:
           if(FILE_Copy(bash.file_active, file)) LOG_Error("File copy fault");
-          else LOG_Bash("File copy %s → %s success", file, bash.file_active);
+          else LOG_Bash("File copy %s → %s success", file->name, bash.file_active->name);
           break;
         default: BASH_WrongArgv("file copy", 2);
       }

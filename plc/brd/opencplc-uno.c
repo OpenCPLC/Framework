@@ -350,7 +350,7 @@ GPIO_t rtd_gpio_drdy = { .port = GPIOB, .pin = 11, .reverse = true };
 GPIO_t rtd_gpio_cs = { .port = GPIOB, .pin = 12, .reverse = true };
 
 SPI_Master_t rtd_spi = {
-  .spi_typedef = SPI2,
+  .reg = SPI2,
   .tx_dma_channel = DMA_Channel_2,
   .rx_dma_channel = DMA_Channel_3,
   .int_prioryty = INT_Prioryty_Medium,
@@ -358,7 +358,7 @@ SPI_Master_t rtd_spi = {
   .mosi_pin = SPI2_MOSI_PB15,
   .sck_pin = SPI2_SCK_PB13,
   .cs_gpio = &rtd_gpio_cs,
-  .cs_delay_ms = 10,
+  .cs_delay = 10,
   .prescaler = SPI_Prescaler_32,
   .cpol = true,
   .cpha = true

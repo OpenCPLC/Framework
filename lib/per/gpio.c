@@ -202,20 +202,23 @@ static void EXTI_Interrupt(EXTI_t *exti)
 {
   if(EXTI->FPR1 & (1 << exti->pin)) {
     EXTI->FPR1 |= (1 << exti->pin);
-    exti->_fall_inc++;
+    exti->fall_cnt++;
     if(exti->fall_function) exti->fall_function(exti->fall_struct);
     if(exti->one_shot) EXTI_Off(exti);
   }
   if(EXTI->RPR1 & (1 << exti->pin)) {
     EXTI->RPR1 |= (1 << exti->pin);
-    exti->_rise_inc++;
+    exti->rise_cnt++;
     if(exti->rise_function) exti->rise_function(exti->rise_struct);
+    if(exti->one_shot) EXTI_Off(exti);
   }
 }
 
 inline void EXTI_On(EXTI_t *exti)
 {
   exti->enable = true;
+  exti->fall_cnt = 0;
+  exti->rise_cnt = 0;
   EXTI->IMR1 |= (1 << exti->pin);
 }
 
@@ -246,15 +249,15 @@ void EXTI_Init(EXTI_t *exti)
   if(exti->rise) EXTI->RTSR1 |= (1 << exti->pin);
   if(exti->enable) EXTI_On(exti);
   else EXTI_Off(exti);
-  INT_EnableEXTI(exti->pin, exti->interrupt_level, (void (*)(void *))&EXTI_Interrupt, exti);
+  INT_EnableEXTI(exti->pin, exti->int_prioryty, (void (*)(void *))&EXTI_Interrupt, exti);
 }
 
 uint16_t EXTI_In(EXTI_t *exti)
 {
-  if(exti->_rise_inc || exti->_fall_inc) {
-    uint16_t response = exti->_rise_inc + exti->_fall_inc;
-    exti->_rise_inc = 0;
-    exti->_fall_inc = 0;
+  if(exti->rise_cnt || exti->fall_cnt) {
+    uint16_t response = exti->rise_cnt + exti->fall_cnt;
+    exti->rise_cnt = 0;
+    exti->fall_cnt = 0;
     return response;
   }
   return 0;
@@ -262,9 +265,9 @@ uint16_t EXTI_In(EXTI_t *exti)
 
 uint16_t EXTI_Rise(EXTI_t *exti)
 {
-  if(exti->_rise_inc) {
-    uint16_t response = exti->_rise_inc;
-    exti->_rise_inc = 0;
+  if(exti->rise_cnt) {
+    uint16_t response = exti->rise_cnt;
+    exti->rise_cnt = 0;
     return response;
   }
   return 0;
@@ -272,9 +275,9 @@ uint16_t EXTI_Rise(EXTI_t *exti)
 
 uint16_t EXTI_Fall(EXTI_t *exti)
 {
-  if(exti->_fall_inc) {
-    uint16_t response = exti->_fall_inc;
-    exti->_fall_inc = 0;
+  if(exti->fall_cnt) {
+    uint16_t response = exti->fall_cnt;
+    exti->fall_cnt = 0;
     return response;
   }
   return 0;

@@ -2,7 +2,7 @@
 
 //-------------------------------------------------------------------------------------------------
 
-/** 
+/**
  * @brief Inicjalizuje bufor kołowy.
  * @param buff Wskaźnik do struktury bufora.
  */
@@ -15,7 +15,7 @@ inline void BUFF_Init(BUFF_t *buff)
   buff->msg_tail = 0;
 }
 
-/** 
+/**
  * @brief Oznacza koniec bieżącej wiadomości, jeśli ustawiona jest przerwa.
  * @param buff Wskaźnik do struktury bufora.
  */
@@ -30,7 +30,7 @@ inline void BUFF_Break(BUFF_t *buff)
   buff->break_allow = false;
 }
 
-/** 
+/**
  * @brief Zwraca rozmiar bieżącej wiadomości w buforze.
  * @param buff Wskaźnik do struktury bufora.
  * @return Rozmiar bieżącej wiadomości.
@@ -41,7 +41,7 @@ uint16_t BUFF_Size(BUFF_t *buff)
   return 0;
 }
 
-/** 
+/**
  * @brief Pomija bieżącą wiadomość w buforze.
  * @param buff Wskaźnik do struktury bufora.
  * @return Zwraca 'true', jeżeli wiadomość zostałą pominięta/
@@ -103,7 +103,7 @@ static bool BUFF_ConsoleMode(BUFF_t *buff, uint8_t value)
   return false;
 }
 
-/** 
+/**
  * @brief Dodaje bajt 'value' do bufora kołowego.
  * @param buff Wskaźnik do struktury bufora.
  * @param value Wartość do dodania.
@@ -119,7 +119,7 @@ inline void BUFF_Push(BUFF_t *buff, uint8_t value)
   buff->break_allow = true;
 }
 
-/** 
+/**
  * @brief Kopiuje zawartość bieżącej wiadomości do zewnętrznej tablicy.
  * @param buff Wskaźnik do struktury bufora.
  * @param array Wskaźnik do tablicy docelowej.
@@ -142,7 +142,7 @@ uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array)
   return size;
 }
 
-/** 
+/**
  * @brief Tworzy dynamiczny ciąg znaków z zawartością bieżącej wiadomości w buforze.
  * @param buff Wskaźnik do struktury bufora.
  * @return Wskaźnik do dynamicznie alokowanego ciągu znaków.
@@ -159,7 +159,7 @@ char *BUFF_String(BUFF_t *buff)
   return string;
 }
 
-/** 
+/**
  * @brief Czyści cały bufor przez pomijanie wiadomości, dopóki nie ma więcej wiadomości.
  * @param buff Wskaźnik do struktury bufora.
  */

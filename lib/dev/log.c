@@ -14,8 +14,8 @@ static uint8_t print_args_getstrnbr(const char **format)
 
 void print_args(const char *format, va_list args)
 {
-  uint8_t ary_type;
-  uint8_t ary_count = 0;
+  uint8_t ary_type, ary_sep_len, ary_count = 0;
+  char ary_sep[LOG_ARYSEP_MAX + 1];
   while(*format) {
     if(*format == '%') {
       format++;
@@ -31,6 +31,8 @@ void print_args(const char *format, va_list args)
           ary_count = va_arg(args, uint32_t);
           ary_type = precision > width ? precision : width;
           if(!ary_type) ary_type = 1;
+          memset(ary_sep, 0, LOG_ARYSEP_MAX + 1);
+          ary_sep_len = 0;
           break;
         }
         case 'i': case 'd': {
@@ -43,6 +45,7 @@ void print_args(const char *format, va_list args)
                 default: DBG_Int(*(int8_t *)ary, 10, true, precision, width); ary++; break;
               }
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
             }
           }
           else {
@@ -61,6 +64,7 @@ void print_args(const char *format, va_list args)
                 default: DBG_Int(*(uint8_t *)ary, 10, false, precision, width); ary++; break;
               }
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
             }
           }
           else {
@@ -78,6 +82,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_FloatSpace(*ary, precision, width);
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
               ary++;
             }
           }
@@ -98,6 +103,7 @@ void print_args(const char *format, va_list args)
                 default: DBG_Int(*(uint8_t *)ary, 16, false, fill_zero, fill_zero); ary++; break;
               }
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
             }
           }
           else {
@@ -112,6 +118,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_Char(*ary);
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
               ary++;
             }
           }
@@ -121,12 +128,13 @@ void print_args(const char *format, va_list args)
           }
           break;
         }
-        case 's': case 'S': {
+        case 's': {
           if(ary_count) {
             char **str = va_arg(args, char **);
             while(ary_count) {
               DBG_String(*str);
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
               str++;
             }
           }
@@ -136,14 +144,38 @@ void print_args(const char *format, va_list args)
           }
           break;
         }
+        case 'S': {
+          if(ary_count) {
+            uint8_t *ary = va_arg(args, uint8_t *);
+            char **str = va_arg(args, char **);
+            while(ary_count) {
+              DBG_String(str[*ary]);
+              switch(ary_type) {
+                case 4: ary += 4; break;
+                case 2: ary += 2; break;
+                default: ary++; break;
+              }
+              ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+            }
+          }
+          else {
+            uint32_t n = va_arg(args, uint32_t);
+            char **str = va_arg(args, char **);
+            DBG_String(str[n]);
+          }
+          break;
+        }
         case 'o': case 'O': {
           if(ary_count) {
             void *obj = va_arg(args, void *);
             int32_t (*Print)(void *) = va_arg(args, int32_t (*)(void *));
+            uint32_t size = va_arg(args, uint32_t);
             while(ary_count) {
               Print(obj);
               ary_count--;
-              obj = (void *)((uint8_t *)obj + ary_type);
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              obj = (void *)((uint8_t *)obj + size);
             }
           }
           else {
@@ -159,6 +191,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_Bool(*ary);
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
               ary++;
             }
           }
@@ -175,6 +208,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_Int(*ary, 2, false, fill_zero, fill_zero);
               ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
               ary++;
             }
           }
@@ -187,13 +221,13 @@ void print_args(const char *format, va_list args)
         case '%': {
           DBG_Char('%');
         }
-        default: {
-          ary_count = 0;
-        }
       }
     }
     else {
-      DBG_Char(*format);
+      if(ary_count) {
+        if(ary_sep_len < LOG_ARYSEP_MAX) ary_sep[ary_sep_len++] = *format;
+      }
+      else DBG_Char(*format);
     }
     format++;
   }

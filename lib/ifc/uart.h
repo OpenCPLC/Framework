@@ -2,6 +2,7 @@
 #define UART_H_
 
 #include "int.h"
+#include "exdef.h"
 #include "tim.h"
 #include "buff.h"
 #include "main.h"
@@ -59,8 +60,7 @@ typedef struct {
   GPIO_t *gpio_direction;
   TIM_t *tim;
   BUFF_t *buff;
-  DMA_Channel_TypeDef *_tx_dma;
-  DMAMUX_Channel_TypeDef *_tx_dmamux;
+  DMA_Channel_TypeDef *tx_dma;
   uint8_t prefix;
   bool _busy_tx;
   bool _busy_tc;
