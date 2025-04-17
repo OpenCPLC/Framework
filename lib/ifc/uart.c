@@ -84,22 +84,22 @@ void UART_Init(UART_t *uart)
     GPIO_Init(uart->gpio_direction);
   }
   BUFF_Init(uart->buff);
-  uart->_tx_dma = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * (uart->dma_channel - 1)));
-  uart->_tx_dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (uart->dma_channel - 1)));
+  uart->tx_dma = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * (uart->dma_channel - 1)));
+  DMAMUX_Channel_TypeDef *dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (uart->dma_channel - 1)));
   RCC->AHBENR |= RCC_AHBENR_DMA1EN;
   RCC_EnableUART(uart->reg);
-  uart->_tx_dmamux->CCR &= 0xFFFFFFC0;
+  dmamux->CCR &= 0xFFFFFFC0;
   switch((uint32_t)uart->reg) {
-    case (uint32_t)USART1: uart->_tx_dmamux->CCR |= 51; break;
-    case (uint32_t)USART2: uart->_tx_dmamux->CCR |= 53; break;
-    case (uint32_t)USART3: uart->_tx_dmamux->CCR |= 55; break;
-    case (uint32_t)USART4: uart->_tx_dmamux->CCR |= 57; break;
-    case (uint32_t)LPUART1: uart->_tx_dmamux->CCR |= 15; break;
+    case (uint32_t)USART1: dmamux->CCR |= 51; break;
+    case (uint32_t)USART2: dmamux->CCR |= 53; break;
+    case (uint32_t)USART3: dmamux->CCR |= 55; break;
+    case (uint32_t)USART4: dmamux->CCR |= 57; break;
+    case (uint32_t)LPUART1: dmamux->CCR |= 15; break;
   }
   GPIO_AlternateInit(&UART_TX_MAP[uart->tx_pin], false);
   GPIO_AlternateInit(&UART_RX_MAP[uart->rx_pin], false);
-  uart->_tx_dma->CPAR = (uint32_t)&(uart->reg->TDR);
-  uart->_tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
+  uart->tx_dma->CPAR = (uint32_t)&(uart->reg->TDR);
+  uart->tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
   if((uint32_t)uart->reg == (uint32_t)LPUART1) {
     uart->reg->BRR = (uint64_t)256 * SystemCoreClock / uart->baud;
   }
@@ -203,11 +203,11 @@ state_t UART_Send(UART_t *uart, uint8_t *data, uint16_t length)
 {
   if(!uart->_busy_tx) {
     if(uart->gpio_direction) GPIO_Set(uart->gpio_direction);
-    uart->_tx_dma->CCR &= ~DMA_CCR_EN;
-    uart->_tx_dma->CMAR = (uint32_t)data;
-    uart->_tx_dma->CNDTR = length;
+    uart->tx_dma->CCR &= ~DMA_CCR_EN;
+    uart->tx_dma->CMAR = (uint32_t)data;
+    uart->tx_dma->CNDTR = length;
     if(uart->prefix) uart->reg->TDR = uart->prefix; // send address for stream
-    uart->_tx_dma->CCR |= DMA_CCR_EN;
+    uart->tx_dma->CCR |= DMA_CCR_EN;
     uart->_busy_tx = true;
     uart->_busy_tc = true;
     return FREE;

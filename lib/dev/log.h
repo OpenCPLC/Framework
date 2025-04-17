@@ -6,6 +6,10 @@
 
 //-------------------------------------------------------------------------------------------------
 
+#ifndef LOG_ARYSEP_MAX
+  #define LOG_ARYSEP_MAX 8
+#endif
+
 #ifndef LOG_MILLISECONDS
   #define LOG_MILLISECONDS 0
 #endif

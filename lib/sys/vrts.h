@@ -17,18 +17,19 @@
 #include "stm32g0xx.h"
 #include "main.h"
 
+#define VRTS_CORE_M4 0 // Cores without a floating-point unit
+
 // Max number of threads if not defined
 #ifndef VRTS_THREAD_LIMIT
   #define VRTS_THREAD_LIMIT 12
 #endif
 
-// Enable thread switching by default
+// Default switching threads is enable
 #ifndef VRTS_SWITCHING
   #define VRTS_SWITCHING 1 
 #endif
 
 #define WAIT_ (bool (*)(void *)) // Type cast for timeout function
-
 #define seconds(ms)  (1000 * ms) // Convert seconds to milliseconds
 #define minutes(min) (60 * 1000 * min) // Convert minutes to milliseconds
 

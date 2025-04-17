@@ -1,6 +1,4 @@
-# 📜 Co
-
-## 🪜 Code [➥](#-content)
+## 🪜 Code [➥](/readme.md)
 
 Porównajmy implementacje systemu **start-stop** w języku **ST**, **LAD _(ladder logic)_** oraz **ANSI C** z wykorzystaniem bibliotek OpenCPLC, biorąc pod uwagę zastosowanie dwóch różnych stylów mapowania zmiennych. Jeśli kod w języku C wydaje Ci się najbardziej przystępny i zrozumiały to prawdopodobnie ta droga jest dla Ciebie 😃
 
@@ -34,7 +32,7 @@ END_PROGRAM
 
 | LAD Classic                          | LAD Set/Reset                            |
 | ------------------------------------ | ---------------------------------------- |
-| ![LAD-Classic](res/images/lader.png) | ![LAD-SetReset](res/images/lader-sr.png) |
+| ![LAD-Classic](http://sqrt.pl/img/opencplc/lader.png) | ![LAD-SetReset](http://sqrt.pl/img/opencplc/lader-sr.png) |
 
 #### System start-stop ANSI C
 
@@ -83,16 +81,6 @@ int main(void)
   }
 }
 ```
-
-
-
-
-
-
-
-
-
-
 
 
 [^1]: _Sterowniki programowalne_, M. Pawlak, Politechnika Wrocławska, 2010

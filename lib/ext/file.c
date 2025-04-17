@@ -39,7 +39,7 @@ int32_t FILE_Char64(FILE_t *file, uint64_t data)
   return 8;
 }
 
-int32_t FILE_Array(FILE_t *file, uint8_t *array, uint16_t length)
+int32_t FILE_Data(FILE_t *file, uint8_t *array, uint16_t length)
 {
   if(file->mutex) return 0;
   if((file->size + length) >= file->limit) return 0;
@@ -51,6 +51,7 @@ int32_t FILE_Array(FILE_t *file, uint8_t *array, uint16_t length)
 int32_t FILE_String(FILE_t *file, char *string)
 {
   if(file->mutex) return 0;
+  if(!string) return 0;
   uint16_t length = 0;
   while(*string) {
     if(file->size >= file->limit) {
@@ -134,7 +135,7 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
   }
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
   if(!fill_space) fill_space = 1;
-  int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, accuracy + 1, fill_space - 1);
+  int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, nbr < 0 ? accuracy + 2 : accuracy + 1, fill_space - 1);
   if(accuracy) {
     if(((file->size)+ length + 1) >= file->limit) return 0;
   }
@@ -256,14 +257,13 @@ int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm)
   return length;
 }
 
-//------------------------------------------------------------------------------------------------- Save/Load/Copy
+//------------------------------------------------------------------------------------------------- General
 
-int32_t FILE_Clear(FILE_t *file)
+state_t FILE_Clear(FILE_t *file)
 {
-  if(file->mutex) return 0;
-  int32_t size = file->size;
+  if(file->mutex) return ERR;
   file->size = 0;
-  return size;
+  return OK;
 }
 
 state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
@@ -418,14 +418,14 @@ state_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
 
 //------------------------------------------------------------------------------------------------- Crc
 
-int32_t FILE_Crc_Append(FILE_t *file, const CRC_t *crc)
+int32_t FILE_CrcAppend(FILE_t *file, const CRC_t *crc)
 {
   if(file->limit - file->size < crc->width / 8) return 0;
   file->size = CRC_Append(crc, file->buffer, file->size);
   return crc->width / 8;
 }
 
-bool FILE_Crc_IsError(FILE_t *file, const CRC_t *crc)
+bool FILE_CrcError(FILE_t *file, const CRC_t *crc)
 {
   if(file->size < crc->width / 8) return true;
   if(CRC_Error(crc, file->buffer, file->size)) return true;

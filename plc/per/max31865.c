@@ -72,7 +72,7 @@ state_t MAX31865_Loop(MAX31865_t *rtd)
   if(MAX31865_SetConfig(rtd, MAX31865_CFG_FSCLR | cfg)) return ERR;
   LOG_Debug("MAX31865 %s raw value: %.2f", rtd->name, rtd->raw_float);
   rtd->expiry_tick = tick_keep(rtd->expiry_ms);
-  rtd->interval_tick = gettick(rtd->interval_ms);
+  rtd->interval_tick = tick_keep(rtd->interval_ms);
   return OK;
 }
 

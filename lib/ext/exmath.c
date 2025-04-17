@@ -4,39 +4,19 @@
 
 uint32_t ieee754_pack(float nbr)
 {
- uint32_t *p_value;
- p_value = (uint32_t *)&nbr;
- return (*p_value);
+  uint32_t *p_value;
+  p_value = (uint32_t *)&nbr;
+  return (*p_value);
 }
 
 float ieee754_unpack(uint32_t value)
 {
- float *p_nbr;
- p_nbr = (float *)&(value);
- return (*p_nbr);
+  float *p_nbr;
+  p_nbr = (float *)&(value);
+  return (*p_nbr);
 }
 
 //-------------------------------------------------------------------------------------------------
-
-double power(double a, double b)
-{
-  int e = (int)b;
-  union {
-    double d;
-    int x[2];
-  } u = { a };
-  u.x[1] = (int)((b - e) * (u.x[1] - 1072632447) + 1072632447);
-  u.x[0] = 0;
-  double r = 1.0;
-  while(e) {
-    if(e & 1) {
-      r *= a;
-    }
-    a *= a;
-    e >>= 1;
-  }
-  return r * u.d;
-}
 
 float std_deviation(uint16_t *data, uint16_t count)
 {
@@ -56,7 +36,7 @@ float std_deviation(uint16_t *data, uint16_t count)
 
 //-------------------------------------------------------------------------------------------------
 
-void sort_inc_uint16(uint16_t *array, uint16_t length)
+void sort_asc_uint16(uint16_t *array, uint16_t length)
 {
   for(uint16_t i = 1; i < length; i++) {
     uint16_t key = array[i];
@@ -69,7 +49,7 @@ void sort_inc_uint16(uint16_t *array, uint16_t length)
   }
 }
 
-void sort_dec_uint16(uint16_t *array, uint16_t length)
+void sort_desc_uint16(uint16_t *array, uint16_t length)
 {
   for(uint16_t i = 1; i < length; i++) {
     uint16_t key = array[i];
@@ -90,6 +70,105 @@ float average_uint16(uint16_t *array, uint16_t length)
     sum += array[i];
   }
   return sum / length;
+}
+
+void sort_asc_uint32(uint32_t *array, uint16_t length)
+{
+  for(uint16_t i = 1; i < length; i++) {
+    uint32_t key = array[i];
+    int j = i - 1;
+    while(j >= 0 && array[j] > key) {
+      array[j + 1] = array[j];
+      j--;
+    }
+    array[j + 1] = key;
+  }
+}
+
+void sort_desc_uint32(uint32_t *array, uint16_t length)
+{
+  for(uint16_t i = 1; i < length; i++) {
+    uint32_t key = array[i];
+    int j = i - 1;
+    while(j >= 0 && array[j] < key) {
+      array[j + 1] = array[j];
+      j--;
+    }
+    array[j + 1] = key;
+  }
+}
+
+float average_uint32(uint32_t *array, uint16_t length) 
+{
+  if(length == 0) return 0;
+  float sum = 0;
+  for(uint16_t i = 0; i < length; i++) {
+    sum += array[i];
+  }
+  return sum / length;
+}
+
+/**
+ * @brief Checks if a value exists in array `uint32_t` or `int32_t` by pointer casting.
+ * @param array Pointer to the array.
+ * @param len Number of elements.
+ * @param value Value to search for.
+ * @return `true` if found, otherwise `false`.
+ */
+bool contains_uint32(const uint32_t *array, uint16_t len, uint32_t value)
+{
+  while (len--) {
+    if (*array++ == value) return true;
+  }
+  return false;
+}
+
+float distance(float ax, float ay, float bx, float by)
+{
+  return sqrtf((ax - bx) * (ax - bx) + (ay - by) * (ay - by));
+}
+
+/**
+ * @brief Generates a log-lin scale between `start` and `end`
+ *   (if start > end, the scale is generated in reverse order)
+ * @param start Start value `> 0`
+ * @param end End value `> 0`
+ * @param n Number of points `≥ 2`
+ * @param transition Blend factor between log and linear scale:
+ *   if 'transition == 0' then: Full logarithmic scale
+ *   if 'transition == 1' then: Full linear scale
+ * @param scale_array Pointer to output array.
+ * @return `true` if scale was generated, `false` on invalid input.
+ */
+bool scale_fill(float start, float end, int n, float transition, float *scale_array)
+{
+  if(start <= 0 || end <= 0 || n < 2 || transition < 0 || transition > 1 || !scale_array) {
+    return false;
+  }
+  float tmp;
+  bool reverse = false;
+  if(start > end) {
+    tmp = start;
+    start = end;
+    end = tmp;
+    reverse = true;
+  }
+  float log_start = log10(start);
+  float log_end = log10(end);
+  for(int i = 0; i < n; i++) {
+    float t = (float)i / (n - 1);
+    float log_value = pow(10, log_start + t * (log_end - log_start));
+    float lin_value = start + t * (end - start);
+    scale_array[i] = (1 - transition) * log_value + transition * lin_value;
+  }
+  if(reverse) {
+    for(int i = 0; i < n / 2; i++) {
+      tmp = scale_array[i];
+      scale_array[i] = scale_array[n - 1 - i];
+      scale_array[n - 1 - i] = tmp;
+    }
+  }
+  return true;
 }
 
 //-------------------------------------------------------------------------------------------------

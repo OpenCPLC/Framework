@@ -30,7 +30,7 @@ static void VRTS_TaskFinished(void)
  * @brief Adds a new thread to the VRTS system
  * @param handler Function pointer to the thread's main function
  * @param stack Pointer to the memory allocated for the thread's stack
- * @param size Size of the stack in 32-bit words (minimum: 80)
+ * @param size Size of the stack in 32-bit words (minimum: 80[M0+]/128[M4])
  * @return True if the thread was successfully added, false if the thread limit is reached
  */
 bool vrts_thread(void (*handler)(void), uint32_t *stack, uint16_t size)
@@ -38,11 +38,20 @@ bool vrts_thread(void (*handler)(void), uint32_t *stack, uint16_t size)
   if(vrts.count >= VRTS_THREAD_LIMIT - 1) return false;
   VRTS_Task_t *thread = &vrts.threads[vrts.count];
   thread->handler = handler;
-  thread->stack = (uint32_t)(stack + size - 16);
-  stack[size - 1] = 0x01000000; // XPSR: Default value
-  stack[size - 2] = (uint32_t)handler; // PC: Point to the handler function
-  // LR: Point to a function to be called when the handler returns
-  stack[size - 3] = (uint32_t)&VRTS_TaskFinished;
+  #if(VRTS_CORE_M4)
+    thread->stack = (uint32_t)(stack + size - 17);
+    stack[size - 1] = (1 << 24); // XPSR: Default value
+    stack[size - 2] = (uint32_t)handler; // PC: Point to the handler function
+    // LR: Point to a function to be called when the handler returns
+    stack[size - 3] = (uint32_t)&VRTS_TaskFinished;
+    stack[size - 9] = 0xFFFFFFFD;
+  #else
+    thread->stack = (uint32_t)(stack + size - 16);
+    stack[size - 1] = 0x01000000; // XPSR: Default value
+    stack[size - 2] = (uint32_t)handler; // PC: Point to the handler function
+    // LR: Point to a function to be called when the handler returns
+    stack[size - 3] = (uint32_t)&VRTS_TaskFinished;
+  #endif
   // Next: R12, R3, R2, R1, R0, R7, R6, R5, R4, R11, R10, R9, R8
   vrts.count++;
   return true;
@@ -55,7 +64,11 @@ void vrts_init(void)
 {
   NVIC_SetPriority(PendSV_IRQn, 3);
   vrts_now_thread = &vrts.threads[vrts.i];
-  __set_PSP(vrts_now_thread->stack + 64); // Set PSP to the top of thread's stack
+  #if(VRTS_CORE_M4)
+    __set_PSP(vrts_now_thread->stack + 68); // Set PSP to the top of thread's stack
+  #else
+    __set_PSP(vrts_now_thread->stack + 64); // Set PSP to the top of thread's stack
+  #endif
   __set_CONTROL(0x02); // Switch to PSP, privileged mode
   __ISB(); // Exec. ISB after changing CONTORL (recommended)
   vrts.enabled = true;
@@ -236,7 +249,11 @@ bool systick_init(uint32_t systick_ms)
   tick_ms = systick_ms;
   uint32_t overflow = (uint32_t)((float)tick_ms * SystemCoreClock / 1000);
   if(SysTick_Config(overflow)) return false;
-  NVIC_SetPriority(SysTick_IRQn, 3);
+  #if(VRTS_CORE_M4)
+    NVIC_SetPriority(SysTick_IRQn, 0x0F);
+  #else
+    NVIC_SetPriority(SysTick_IRQn, 3);
+  #endif
   return true;
 }
 

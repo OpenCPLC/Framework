@@ -54,6 +54,16 @@ typedef enum {
   INT_Prioryty_Low = 3
 } INT_Prioryty_t;
 
+typedef enum {
+  DMA_Channel_1 = 1,
+  DMA_Channel_2 = 2,
+  DMA_Channel_3 = 3,
+  DMA_Channel_4 = 4,
+  DMA_Channel_5 = 5,
+  DMA_Channel_6 = 6,
+  DMA_Channel_7 = 7
+} DMA_Channel_t;
+
 //-------------------------------------------------------------------------------------------------
 
 void INT_EnableTIM(TIM_TypeDef *tim_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);

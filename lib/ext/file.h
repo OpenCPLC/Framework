@@ -8,6 +8,7 @@
 #include "crc.h"
 #include "exstring.h"
 #include "exmath.h"
+#include "exdef.h"
 #include "main.h"
 
 #ifndef FILE_ENTER_RETURN
@@ -34,7 +35,7 @@ int32_t FILE_Char(FILE_t *file, uint8_t data);
 int32_t FILE_Char16(FILE_t *file, uint16_t data);
 int32_t FILE_Char32(FILE_t *file, uint32_t data);
 int32_t FILE_Char64(FILE_t *file, uint64_t data);
-int32_t FILE_Array(FILE_t *file, uint8_t *array, uint16_t length);
+int32_t FILE_Data(FILE_t *file, uint8_t *array, uint16_t length);
 int32_t FILE_String(FILE_t *file, char *string);
 int32_t FILE_Enter(FILE_t *file);
 int32_t FILE_ClearLastLine(FILE_t *file);
@@ -57,7 +58,7 @@ int32_t FILE_DatetimeMs(FILE_t *file, RTC_Datetime_t *datetime);
 int32_t FILE_AlarmTime(FILE_t *file, RTC_Alarm_t *alarm);
 int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm);
 
-int32_t FILE_Clear(FILE_t *file);
+state_t FILE_Clear(FILE_t *file);
 state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from);
 state_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size);
 state_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size);
@@ -75,8 +76,8 @@ int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count);
 state_t FILE_Offset_Drop(FILE_t *file);
 state_t FILE_Offset_Set(FILE_t *file, uint16_t offset);
 
-int32_t FILE_Crc_Append(FILE_t *file, const CRC_t *crc);
-bool FILE_Crc_IsError(FILE_t *file, const CRC_t *crc);
+int32_t FILE_CrcAppend(FILE_t *file, const CRC_t *crc);
+bool FILE_CrcError(FILE_t *file, const CRC_t *crc);
 
 //-------------------------------------------------------------------------------------------------
 #endif

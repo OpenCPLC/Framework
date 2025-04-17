@@ -121,7 +121,7 @@ char *itoa_hex32(uint32_t nbr)
 bool str2uint16_fault(const char *str) 
 {
   if(!str || *str == '\0') return true;
-  if(str[0] == '0' && str[1] == 'b' && str[2] == '\0') {
+  if(str[0] == '0' && str[1] == 'b' && str[2] != '\0') {
     str += 2;
     if(*str == '\0') return true;
     size_t bin_digits = 0;
@@ -132,7 +132,7 @@ bool str2uint16_fault(const char *str)
     }
     if(bin_digits > 16) return true;
   }
-  else if(str[0] == '0' && str[1] == 'x' && str[2] == '\0') {
+  else if(str[0] == '0' && str[1] == 'x' && str[2] != '\0') {
     str += 2;
     size_t hex_digits = 0;
     while(*str) {
@@ -198,7 +198,7 @@ bool str2int16_fault(const char *str)
 bool str2uint32_fault(const char *str) 
 {
   if(!str || *str == '\0') return true;
-  if(str[0] == '0' && str[1] == 'b' && str[2] == '\0') {
+  if(str[0] == '0' && str[1] == 'b' && str[2] != '\0') {
     str += 2;
     if(*str == '\0') return true;
     size_t bin_digits = 0;
@@ -209,7 +209,7 @@ bool str2uint32_fault(const char *str)
     }
     if(bin_digits > 32) return true;
   }
-  else if(str[0] == '0' && str[1] == 'x' && str[2] == '\0') {
+  else if(str[0] == '0' && str[1] == 'x' && str[2] != '\0') {
     str += 2;
     size_t hex_digits = 0;
     while(*str) {
@@ -307,7 +307,7 @@ uint32_t str2nbr(const char *str)
 bool str2uint64_fault(const char *str) 
 {
   if(!str || *str == '\0') return true;
-  if(str[0] == '0' && str[1] == 'b' && str[2] == '\0') {
+  if(str[0] == '0' && str[1] == 'b' && str[2] != '\0') {
     str += 2;
     if(*str == '\0') return true;
     size_t bin_digits = 0;
@@ -318,7 +318,7 @@ bool str2uint64_fault(const char *str)
     }
     if(bin_digits > 64) return true;
   }
-  else if(str[0] == '0' && str[1] == 'x' && str[2] == '\0') {
+  else if(str[0] == '0' && str[1] == 'x' && str[2] != '\0') {
     str += 2;
     size_t hex_digits = 0;
     while(*str) {

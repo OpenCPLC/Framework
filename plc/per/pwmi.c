@@ -26,7 +26,7 @@ static void PWMI_Begin(PWMI_t *pwmi)
     pwmi->trig3->pin = TIM_CHx_MAP[pwmi->channel[TIM_CH3]].pin;
     pwmi->trig3->rise = true;
     pwmi->trig3->fall = false;
-    pwmi->trig3->interrupt_level = pwmi->interrupt_level;
+    pwmi->trig3->int_prioryty = pwmi->int_prioryty;
     pwmi->trig3->rise_function = (void (*)(void *))&PWMI_Run;
     pwmi->trig3->rise_struct = pwmi;
     EXTI_Init(pwmi->trig3);
@@ -36,14 +36,14 @@ static void PWMI_Begin(PWMI_t *pwmi)
     pwmi->trig4->pin = TIM_CHx_MAP[pwmi->channel[TIM_CH4]].pin;
     pwmi->trig4->rise = true;
     pwmi->trig4->fall = false;
-    pwmi->trig4->interrupt_level = pwmi->interrupt_level;
+    pwmi->trig4->int_prioryty = pwmi->int_prioryty;
     pwmi->trig3->rise_function = (void (*)(void *))&PWMI_Run;
     pwmi->trig3->rise_struct = pwmi;
     EXTI_Init(pwmi->trig4);
   }
   for(uint8_t i = TIM_CH1; i < 4; i++)
     if(pwmi->channel[i]) GPIO_AlternateInit(&TIM_CHx_MAP[pwmi->channel[i]], true);
-  INT_EnableTIM(pwmi->reg, pwmi->interrupt_level, (void (*)(void *))&PWMI_Interrupt, pwmi);
+  INT_EnableTIM(pwmi->reg, pwmi->int_prioryty, (void (*)(void *))&PWMI_Interrupt, pwmi);
   if(!pwmi->oversampling) pwmi->oversampling = 1;
   if(!pwmi->timeout_ms) pwmi->timeout_ms = PWMI_GetTimeoutMaxMs(pwmi);
 }

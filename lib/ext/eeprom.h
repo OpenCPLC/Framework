@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include "flash.h"
+#include "exdef.h"
 #include "main.h"
 
 //-------------------------------------------------------------------------------------------------
