@@ -22,7 +22,7 @@ void MAX31865_Init(MAX31865_t *rtd)
 static state_t MAX31865_GetData(MAX31865_t *rtd)
 {
   if(timeout(100, WAIT_&GPIO_In, rtd->ready)) return ERR;
-  SPI_Master_Read(rtd->spi, MAX31865_Reg_Read_RTD_MSBs, rtd->buff, 3);
+  SPI_Master_Read(rtd->spi, MAX31865_Reg_Read_RTD_MSB, rtd->buff, 3);
   if(timeout(50, WAIT_&SPI_Master_IsFree, rtd->spi)) return ERR;
   rtd->raw = ((uint16_t)rtd->buff[1] << 7) | (rtd->buff[2] >> 1);
   return OK;

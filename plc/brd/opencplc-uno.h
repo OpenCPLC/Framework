@@ -1,3 +1,4 @@
+#ifdef OPENCPLC_UNO
 #ifndef OPENCPLC_UNO_H_
 #define OPENCPLC_UNO_H_
 
@@ -83,4 +84,5 @@ extern MAX31865_t RTD;
 void RTD_Thread(void);
 
 //-------------------------------------------------------------------------------------------------
+#endif
 #endif

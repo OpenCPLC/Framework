@@ -1,5 +1,6 @@
-#ifndef OPENCPLC_MIN_H_
-#define OPENCPLC_MIN_H_
+#ifdef OPENCPLC_ECO
+#ifndef OPENCPLC_ECO_H_
+#define OPENCPLC_ECO_H_
 
 #include "dout.h"
 #include "din.h"
@@ -74,4 +75,5 @@ void PLC_Loop(void);
 void PLC_Thread(void);
 
 //-------------------------------------------------------------------------------------------------
+#endif
 #endif

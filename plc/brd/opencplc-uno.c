@@ -1,4 +1,5 @@
-#include "opencplc.h"
+#ifdef OPENCPLC_UNO
+#include "opencplc-uno.h"
 
 //------------------------------------------------------------------------------------------------- EEPROM
 
@@ -295,7 +296,7 @@ void PLC_Init(void)
   // Interfejsy RS485
   UART_Init(&RS1);
   UART_Init(&RS2);
-  LOG_Init(OPENCPLC_VERSION, "Uno");
+  LOG_Init(PRO_VERSION, "Uno");
 }
 
 void PLC_Loop(void)
@@ -384,3 +385,4 @@ void RTD_Thread(void)
 }
 
 //-------------------------------------------------------------------------------------------------
+#endif
