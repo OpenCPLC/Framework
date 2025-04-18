@@ -1,5 +1,4 @@
-// Import podstawowych funkcji sterownika.
-#include "opencplc.h"
+#include "opencplc.h" // Import funkcji sterownika
 
 void loop(void)
 {
@@ -13,14 +12,10 @@ void loop(void)
   }
 }
 
-// Stos pamięci dla wątku PLC
-stack(stack_plc, 256);
-// Stos pamięci dla wątku Debugera (bash + dbg + log)
-stack(stack_dbg, 256);
-// Stos pamięci dla funkcji loop
-stack(stack_rtd, 256);
-// Stos pamięci dla funkcji loop
-stack(stack_loop, 1024);
+stack(stack_plc, 256); // Stos pamięci dla wątku PLC
+stack(stack_dbg, 256); // Stos pamięci dla wątku debug'era (logs + bash)
+stack(stack_rtd, 256); // Stos pamięci dla funkcji rtd
+stack(stack_loop, 1024); // Stos pamięci dla funkcji loop
 
 int main(void)
 {
@@ -33,16 +28,9 @@ int main(void)
   RTD1.oversampling = 7; // Wykonaj 7 pomiarów i uśrednij ich wartość
   RTD1.interval_ms = 1000; // Okres wykonywania pomiarów (zbyt częste pomiary mogą powodować samonagrzewanie)
   RTD1.expiry_ms = 2000; // TODO...
-  // Dodanie wątku sterownika
-  thread(PLC_Thread, stack_plc);
-  // Dodanie wątku debuger'a (bash + dbg + log)
-  thread(DBG_Loop, stack_dbg);
-  // Dodanie wątku czujnika RTD (PT100 / PT1000)
-  thread(RTD_Thread, stack_rtd);
-  // Dodanie funkcji loop jako wątek
-  thread(loop, stack_loop);
-  // Włączenie systemy przełączania wątków VRTS
-  vrts_init();
-  // W to miejsce program nigdy nie powinien dojść
-  while(1);
+  thread(PLC_Thread, stack_plc); // Dodanie wątku sterownika
+  thread(DBG_Loop, stack_dbg); // Dodanie wątku debug'era (logs + bash)
+  thread(loop, stack_loop); // Dodanie funkcji loop jako wątek
+  vrts_init(); // Włączenie systemy przełączania wątków VRTS
+  while(1); // W to miejsce program nigdy nie powinien dojść
 }

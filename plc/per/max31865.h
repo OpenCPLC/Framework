@@ -14,8 +14,8 @@
 
 typedef enum {
   MAX31865_Reg_Read_Configuration = 0x00,
-  MAX31865_Reg_Read_RTD_MSBs = 0x01,
-  MAX31865_Reg_Read_RTD_LSBs = 0x02,
+  MAX31865_Reg_Read_RTD_MSB = 0x01,
+  MAX31865_Reg_Read_RTD_LSB = 0x02,
   MAX31865_Reg_Read_HighFaultThreshold_MSB = 0x03,
   MAX31865_Reg_Read_HighFaultThreshold_LSB = 0x04,
   MAX31865_Reg_Read_LowFaultThreshold_MSB = 0x05,
