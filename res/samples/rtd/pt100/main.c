@@ -2,7 +2,7 @@
 
 void loop(void)
 {
-  while(1) {    
+  while(1) {
     // Pobieranie wartości temperatury
     float temp = RTD_Temperature_C(&RTD1);
     // Wyświetlanie wartości temperatury
@@ -29,7 +29,12 @@ int main(void)
   RTD1.interval_ms = 1000; // Okres wykonywania pomiarów (zbyt częste pomiary mogą powodować samonagrzewanie)
   RTD1.expiry_ms = 2000; // TODO...
   thread(PLC_Thread, stack_plc); // Dodanie wątku sterownika
+  
+
   thread(DBG_Loop, stack_dbg); // Dodanie wątku debug'era (logs + bash)
+  thread(RTD_Thread, stack_rtd);
+
+  
   thread(loop, stack_loop); // Dodanie funkcji loop jako wątek
   vrts_init(); // Włączenie systemy przełączania wątków VRTS
   while(1); // W to miejsce program nigdy nie powinien dojść

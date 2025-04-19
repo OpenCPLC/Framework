@@ -1,4 +1,5 @@
 #ifdef OPENCPLC_DIO
+
 #ifndef OPENCPLC_DIO_H_
 #define OPENCPLC_DIO_H_
 
