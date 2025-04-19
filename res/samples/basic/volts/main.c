@@ -1,21 +1,22 @@
 #include "opencplc.h" // Import funkcji sterownika
 
-// Wątek aplikacji
+/**
+ * @name  Projekt: basic/volts
+ * @brief Odczytywane są wartości potencjometru oraz napięcie zasilania
+ */
+
+// Pobieranie nastaw z potencjometrów POT oraz pamiar napięcia zasilania
 void loop(void)
 {
   while(1) {
-    // Ustawienie diody informacyjnej, aby świeciła na czerwoną
-    LED_Set(RGB_Red);
-    delay(1000); // Odczekaj 1s
-    // Ustawienie diody informacyjnej, aby świeciła na zieloną
-    LED_Set(RGB_Green);
-    delay(1000); // Odczekaj 1s
-    // Ustawienie diody informacyjnej, aby świeciła na niebieską
-    LED_Set(RGB_Blue);
-    delay(1000); // Odczekaj 1s
-    // Wyłączenie diody informacyjnej
-    LED_Rst();
-    delay(1000); // Odczekaj 1s
+    // Odczyt wartości potencjometru
+    float value = POT_Percent(&POT1);
+    LOG_Info("Potentiometer value: %f%%", value);
+    // Odczyt napięcia zasilania
+    float supply = VCC_Voltage_V();
+    LOG_Info("Power supply: %fV", supply);
+    // Odczekaj 1s
+    delay(1000);
   }
 }
 

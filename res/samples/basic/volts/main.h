@@ -1,10 +1,10 @@
 /**
- * @name  Projekt: modbus
+ * @name  Projekt: basic/volts
  * @brief Podstawowe informacje projektowe '#define PRO_x'.
  *        Informacje te są wykorzystywane przez program wizard podczas ładowania projektu.
  *        Nie należy ich usuwać, jednak można je edytować.
  *        Zmiana tych parametrów wymaga ponownego wywołania programu Wizard.
- * @date  2025-04-18
+ * @date  2025-04-19
  */
 
 #ifndef PRO_x
@@ -28,5 +28,5 @@
  *        i dołączając plik main.h w celu nadpisania domyślnych definicji.​
  */
 
-#define LOG_LEVEL       LOG_LEVEL_INFO
+#define LOG_LEVEL       LOG_LEVEL_INF
 #define SYS_CLOCK_FREQ  59904000

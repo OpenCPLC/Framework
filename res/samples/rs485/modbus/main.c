@@ -29,7 +29,7 @@ static uint16_t slave_memory[MODBUS_REG_COUNT];
 static bool slave_write[MODBUS_REG_COUNT];
 static bool slave_update[MODBUS_REG_COUNT];
 
-void slave_init(void)
+void SlaveInit(void)
 {
   // Ustawienie wartości początkowej rejestru 'DigitalInputs'
   slave_memory[MODBUS_Reg_DigitalInputs] = 0b1100101011110000;
@@ -53,9 +53,9 @@ MODBUS_Slave_t ModbusSlave = {
   .update_flag = slave_update
 };
 
-void slave_loop(void)
+void SlaveLoop(void)
 {
-  slave_init(); // Inicjacja mapy pamięci
+  SlaveInit(); // Inicjacja mapy pamięci
   while(1) {
     // Engine Modbus Slave zwracający status komunikacji
     MODBUS_Status_e status = MODBUS_Loop(&ModbusSlave);
@@ -100,7 +100,7 @@ static uint16_t master_memory[MODBUS_REG_COUNT];
 // Mapowanie interfejsu 'RS1' na protokół ModbusMaster
 UART_t *ModbusMaster = &RS1;
 
-void master_loop(void)
+void MasterLoop(void)
 {
   while(1) {
     // Jeżeli zostanie naciśnięty przycisk, wykonaj operację wpisywania
@@ -155,8 +155,8 @@ int main(void)
 {
   thread(PLC_Thread, stack_plc); // Dodanie wątku sterownika
   thread(DBG_Loop, stack_dbg); // Dodanie wątku debug'era (logs + bash)
-  thread(slave_loop, stack_slave); // Dodanie funkcji loop dla Modbus RTU Slave
-  thread(master_loop, stack_master); // Dodanie funkcji loop dla Modbus RTU Master
+  thread(SlaveLoop, stack_slave); // Dodanie funkcji loop dla Modbus RTU Slave
+  thread(MasterLoop, stack_master); // Dodanie funkcji loop dla Modbus RTU Master
   vrts_init(); // Włączenie systemy przełączania wątków VRTS
   while(1); // W to miejsce program nigdy nie powinien dojść
 }
