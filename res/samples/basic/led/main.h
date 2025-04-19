@@ -28,5 +28,5 @@
  *        i dołączając plik main.h w celu nadpisania domyślnych definicji.​
  */
 
-#define LOG_LEVEL       LOG_LEVEL_INFO
+#define LOG_LEVEL       LOG_LEVEL_INF
 #define SYS_CLOCK_FREQ  59904000

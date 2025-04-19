@@ -15,7 +15,7 @@ static uint8_t print_args_getstrnbr(const char **format)
 void print_args(const char *format, va_list args)
 {
   uint8_t ary_type, ary_sep_len, ary_count = 0;
-  char ary_sep[LOG_ARYSEP_MAX + 1];
+  char ary_sep[LOG_ARYSEP_MAXLEN + 1];
   while(*format) {
     if(*format == '%') {
       format++;
@@ -31,7 +31,7 @@ void print_args(const char *format, va_list args)
           ary_count = va_arg(args, uint32_t);
           ary_type = precision > width ? precision : width;
           if(!ary_type) ary_type = 1;
-          memset(ary_sep, 0, LOG_ARYSEP_MAX + 1);
+          memset(ary_sep, 0, LOG_ARYSEP_MAXLEN + 1);
           ary_sep_len = 0;
           break;
         }
@@ -186,22 +186,6 @@ void print_args(const char *format, va_list args)
           break;
         }
         case 'b': {
-          if(ary_count) {
-            bool *ary = va_arg(args, bool *);
-            while(ary_count) {
-              DBG_Bool(*ary);
-              ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
-              ary++;
-            }
-          }
-          else {
-            bool true_false = (bool)va_arg(args, int);
-            DBG_Bool(true_false);
-          }
-          break;
-        }
-        case 'B': {
           uint8_t fill_zero = precision > width ? precision : width;
           if(ary_count) {
             uint8_t *ary = va_arg(args, uint8_t *);
@@ -218,6 +202,22 @@ void print_args(const char *format, va_list args)
           }
           break;
         }
+        case 'B': {
+          if(ary_count) {
+            bool *ary = va_arg(args, bool *);
+            while(ary_count) {
+              DBG_Bool(*ary);
+              ary_count--;
+              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              ary++;
+            }
+          }
+          else {
+            bool true_false = (bool)va_arg(args, int);
+            DBG_Bool(true_false);
+          }
+          break;
+        }
         case '%': {
           DBG_Char('%');
         }
@@ -225,7 +225,7 @@ void print_args(const char *format, va_list args)
     }
     else {
       if(ary_count) {
-        if(ary_sep_len < LOG_ARYSEP_MAX) ary_sep[ary_sep_len++] = *format;
+        if(ary_sep_len < LOG_ARYSEP_MAXLEN) ary_sep[ary_sep_len++] = *format;
       }
       else DBG_Char(*format);
     }
@@ -247,7 +247,7 @@ inline static void LOG_Datetime(void)
 {
   if(!rtc_init) return;
   RTC_Datetime_t dt = RTC_Datetime();
-  #if(LOG_MILLISECONDS)
+  #if(LOG_INCLUDE_MS)
     #if(LOG_TIME_ONLY)
       DBG_TimeMs(&dt);
     #else
@@ -263,36 +263,39 @@ inline static void LOG_Datetime(void)
   DBG_Char(' ');
 }
 
-void LOG_Init(const char *version, const char *board)
+void LOG_Init(const char *greeting, const char *version)
 {
+  DBG_Enter();
   #if(LOG_COLORS)
-    DBG_String("\e[0m");
+    DBG_String(ANSI_END);
   #endif
-  #if(LOG_INIT)
-    LOG_Datetime();
-    #if(LOG_COLORS)
-      DBG_String("\e[36mINIT:\e[0m ");
-      DBG_String("OpenCPLC \e[90mversion:\e[0m");
+  LOG_Datetime();
+  #if(LOG_COLORS)
+    DBG_String(ANSI_CYAN "INI " ANSI_END);
+    DBG_String((char *)greeting);
+    if(version) {
+      DBG_String(" " ANSI_CYAN);
       DBG_String((char *)version);
-      DBG_String(" \e[90mboard:\e[0m");
-    #else
-      DBG_String("INIT: ");
-      DBG_String("OpenCPLC version:");
+      DBG_String(ANSI_END);
+    }
+  #else
+    DBG_String("INI: ");
+    DBG_String(greeting);
+    if(version) {
+      DBG_Char(' ');
       DBG_String((char *)version);
-      DBG_String(" board:");
-    #endif
-    DBG_String((char *)board);
-    DBG_Enter();
+    }
   #endif
+  DBG_Enter();
 }
 
 static void LOG_BashArgs(const char *message, va_list args)
 {
   LOG_Datetime();
   #if(LOG_COLORS)
-    DBG_String("\e[32mBASH:\e[0m ");
+    DBG_String(ANSI_GREEN "INF " ANSI_END);
   #else
-    DBG_String("BASH: ");
+    DBG_String("INF: ");
   #endif
   print_args(message, args);
   DBG_Enter();
@@ -308,13 +311,13 @@ void LOG_Bash(const char *message, ...)
 
 static void LOG_DebugArgs(const char *message, va_list args)
 {
-  #if(LOG_LEVEL <= LOG_LEVEL_DBUG)
+  #if(LOG_LEVEL <= LOG_LEVEL_DBG)
     if(!LogPrintFlag) return;
     LOG_Datetime();
     #if(LOG_COLORS)
-      DBG_String("\e[92mDBUG:\e[0m ");
+      DBG_String(ANSI_GREEN "DBG " ANSI_END);
     #else
-      DBG_String("DBUG: ");
+      DBG_String("DBG: ");
     #endif
     print_args(message, args);
     DBG_Enter();
@@ -331,13 +334,13 @@ void LOG_Debug(const char *message, ...)
 
 static void LOG_InfoArgs(const char *message, va_list args)
 {
-  #if(LOG_LEVEL <= LOG_LEVEL_INFO)
+  #if(LOG_LEVEL <= LOG_LEVEL_INF)
     if(!LogPrintFlag) return;
     LOG_Datetime();
     #if(LOG_COLORS)
-      DBG_String("\e[94mINFO:\e[0m ");
+      DBG_String(ANSI_BLUE "INF " ANSI_END);
     #else
-      DBG_String("INFO: ");
+      DBG_String("INF: ");
     #endif
     print_args(message, args);
     DBG_Enter();
@@ -354,13 +357,13 @@ void LOG_Info(const char *message, ...)
 
 static void LOG_WarningArgs(const char *message, va_list args)
 {
-  #if(LOG_LEVEL <= LOG_LEVEL_WARN)
+  #if(LOG_LEVEL <= LOG_LEVEL_WRN)
     if(!LogPrintFlag) return;
     LOG_Datetime();
     #if(LOG_COLORS)
-      DBG_String("\e[93mWARN:\e[0m ");
+      DBG_String(ANSI_YELLOW "WRN " ANSI_END);
     #else
-      DBG_String("WARN: ");
+      DBG_String("WRN: ");
     #endif
     print_args(message, args);
     DBG_Enter();
@@ -377,13 +380,13 @@ void LOG_Warning(const char *message, ...)
 
 static void LOG_ErrorArgs(const char *message, va_list args)
 {
-  #if(LOG_LEVEL <= LOG_LEVEL_ERRO)
+  #if(LOG_LEVEL <= LOG_LEVEL_ERR)
     if(!LogPrintFlag) return;
     LOG_Datetime();
     #if(LOG_COLORS)
-      DBG_String("\e[91mERRO:\e[0m ");
+      DBG_String(ANSI_RED "ERR " ANSI_END);
     #else
-      DBG_String("ERRO: ");`
+      DBG_String("ERR: ");`
     #endif
     print_args(message, args);
     DBG_Enter();
@@ -400,12 +403,12 @@ void LOG_Error(const char *message, ...)
 
 static void LOG_CriticalArgs(const char *message, va_list args)
 {
-  #if(LOG_LEVEL <= LOG_LEVEL_CRIT)
+  #if(LOG_LEVEL <= LOG_LEVEL_CRT)
     LOG_Datetime();
     #if(LOG_COLORS)
-      DBG_String("\e[95mCRIT:\e[0m ");
+      DBG_String(ANSI_MAGENTA "CRT " ANSI_END);
     #else
-      DBG_String("CRIT: ");
+      DBG_String("CRT: ");
     #endif
     print_args(message, args);
     DBG_Enter();
@@ -427,12 +430,12 @@ void LOG_Critical(const char *message, ...)
 
 void LOG_Panic(const char *message)
 {
-  #if(LOG_LEVEL <= LOG_LEVEL_PANC)
+  #if(LOG_LEVEL <= LOG_LEVEL_PAC)
     LOG_Datetime();
     #if(LOG_COLORS)
-      DBG_String("\e[31mPANC:\e[0m ");
+      DBG_String(ANSI_MAGENTA "PNC " ANSI_END);
     #else
-      DBG_String("PANC: ");
+      DBG_String("PNC: ");
     #endif
     DBG_String((char *)message);
     DBG_Enter();
@@ -454,7 +457,7 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...)
     case LOG_Level_Error: LOG_ErrorArgs(message, args); break;
     case LOG_Level_Critical: LOG_CriticalArgs(message, args); break;
     case LOG_Level_Panic: LOG_Panic(message); break;
-    case LOG_Level_Void: break;
+    case LOG_Level_None: break;
   }
   va_end(args);
 }

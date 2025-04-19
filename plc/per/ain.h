@@ -16,7 +16,7 @@
 
 // Poziom logowania dla błędów (over-value/under-value)
 #ifndef AIN_LOG_LEVEL
-  #define AIN_LOG_LEVEL LOG_LEVEL_ERRO
+  #define AIN_LOG_LEVEL LOG_LEVEL_ERR
 #endif
 
 // Sprawdza, czy wystąpił błąd (wartość ujemna wskazuje na błąd)

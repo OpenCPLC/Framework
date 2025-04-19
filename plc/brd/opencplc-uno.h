@@ -1,4 +1,5 @@
 #ifdef OPENCPLC_UNO
+
 #ifndef OPENCPLC_UNO_H_
 #define OPENCPLC_UNO_H_
 
@@ -19,9 +20,14 @@
 #define PLC_I2C
 #define PLC_ONE_WIRE
 
+#ifndef PLC_GREETING
+  #define PLC_GREETING "OpenCPLC Uno"
+#endif
+
 #ifndef PLC_BOOTLOADER
   #define PLC_BOOTLOADER 0
 #endif
+
 #ifndef PLC_BASETIME
   #define PLC_BASETIME 1
 #endif

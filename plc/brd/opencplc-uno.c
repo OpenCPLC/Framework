@@ -296,7 +296,7 @@ void PLC_Init(void)
   // Interfejsy RS485
   UART_Init(&RS1);
   UART_Init(&RS2);
-  LOG_Init(PRO_VERSION, "Uno");
+  LOG_Init(PLC_GREETING, PRO_VERSION);
 }
 
 void PLC_Loop(void)
