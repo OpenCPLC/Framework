@@ -5,9 +5,9 @@
 /**
  * @name  Projekt: rs485/modbus
  * @brief Komunikacja Modbus RTU Master/Slave na jednym urządzeniu.
- *        Interfejs RS1 pracuje jako master, RS2 jako slave.
- *        Master odczytuje trzy (wszystkie) rejestry ze slave’a, chyba że użytkownik wciśnie przycisk.
- *        Wówczas master nadpisuje jeden z rejestrów, na co slave reaguje.
+ *        Interfejs RS1 pracuje jako Master, RS2 jako Slave.
+ *        Master odczytuje trzy (wszystkie) rejestry ze Slave'a, chyba że użytkownik wciśnie przycisk.
+ *        Wówczas Master nadpisuje jeden z rejestrów, na co Slave reaguje.
  */
 
 #define MODBUS_ADDR 0x07 // Adres urządzenia Modbus Slave
