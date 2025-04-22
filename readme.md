@@ -1,22 +1,16 @@
 # 💡 OpenCPLC
 
-Projekt zapewnia warstwę pośrednią pomiędzy Twoją aplikacją, a peryferiami mikrokontrolera. Trochę podobnie jak w **Arduino**, jednak bardziej w kierunku automatyki. Bez własnego IDE oraz angażowania C++.
+Projekt zapewnia warstwę pośrednią pomiędzy Twoją aplikacją, a peryferiami mikrokontrolera. Trochę podobnie jak w **Arduino**, jednak bardziej w kierunku automatyki. Bez własnego IDE oraz angażowania C++. Wielowątkowość z wykorzystaniem [🔀VRTS](https://github.com/Xaeian/VRTS), bez problemów z synchronizacją pamięci jak w klasycznych RTOS-ach. Podstawowa komunikacji i zarządzanie systemem zapewnia wbudowana konsolę systemową CMD, podobnie jak w systemach **Linux**. Aplikacja [🔮Wizard](https://github.com/OpenCPLC/Wizard) ma sprawić, że programowanie mikrokontrolerów zbliży się prostotą do wykorzystania interpreterów takich jak Node.js czy Python
 
-## 📢 General
+## 📢 Intro
 
 W świecie technologii, programowanie staje się coraz bardziej złożone _(często na życzenie samych programistów)_. Niekiedy poziom skomplikowania aplikacji jest nieproporcjonalny do problemu, który rozwiązuje lub wartości, jaką dostarcza. Chcemy, aby nasze biblioteki były możliwie proste, interfejs intuicyjny, a nakład technologiczny minimalny. Wykorzystujemy dobrze znane narzędzia, takie jak [**Visual Studio Code**](https://code.visualstudio.com/), system kontroli wersji [**Git**](https://git-scm.com/) oraz język [**C**](https://www.learn-c.org/pl/), który pomimo swojego wieku nadal jest numerem jeden wśród programistów Embedded. Nic nie stoi więc na przeszkodzie, aby pojawiło się go trochę więcej w automatyce, co pozwoli iść branży z duchem IT!
 
-Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszłości, kiedy programistów było niewiele, a za automatykę brali się elektrycy, zaprojektowanie języka, jakim jest ladder logic **LAD** było strzałem w dziesiątkę, bo wykorzystywało logikę znaną z elektryki. Obecnie sytuacja jest odwrotna, a kod w języku **C** często jest bardziej czytelny dla absolwentów kierunków technicznych niż drzewo logiczne złożone ze styków i cewek.
+Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszłości, kiedy programistów było niewielu, a za automatykę brali się głównie elektrycy, zaprojektowanie języka drabinkowego ladder logic **LAD** było strzałem w dziesiątkę! Opierał się bowiem na logice znanej z układów elektrycznych. Dziś sytuacja się odwróciła: kod w języku **C** jest często bardziej czytelny dla absolwentów kierunków technicznych niż drzewo logiczne ze styków i cewek. Nie zapominajmy, że język [**C**](<https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)>) powstał jako język ogólnego przeznaczenia, dlatego charakteryzuje się dużą uniwersalnością, szczególnie w porównaniu do sandboxów dostarczanych przez producentów sterowników PLC. Praktyczne porównanie języków LAD, ST i ANSI C można zobaczyć na przykładzie systemu [**🟢start🔴stop**](res/manuals/ext-code.md).
 
-Nie zapominajmy, że język [**C**](<https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)>) powstał jako język ogólnego przeznaczenia, zatem charakteryzuje się dużą uniwersalnością, szczególnie względem sandbox'ów dostarczanych przez producentów sterowników PLC.
+Sterowniki z linii **OpenCPLC** mogą wyróżniać się na rynku dzięki swojej kompatybilności z systemami **24V** i **12V**. Mogą być zasilane tymi napięciami, płynnie sterować nimi na wyjściach oraz odczytywać jako logiczną 1️⃣ na wejściach. Dzięki temu można je stosować zarówno w automatyce, gdzie standardem jest **24VDC**, jak i w maszynach przemysłowych używających **12VDC**. Co więcej, wejścia cyfrowe radzą sobie nawet z napięciami do **400VAC**, co daje sporą elastyczność w projektowaniu systemów. Każdy sterownik po zakupie jest wstępnie zaprogramowany jako moduł rozszerzeń, gotowy do współpracy z zewnętrznym sterownikiem lub komputerem. Oczywiście, każdą płytkę można przeprogramować tak, aby działała jako samodzielny sterownik **PLC**.
 
-Porównanie języków LAD, ST, Ansi C na przykładzie systemu [start-stop](res/readme/ext-code.md) ⚔️
-
-Sterowniki z linii **OpenCPLC** mogą wyróżniać się na rynku dzięki swojej kompatybilności z systemami **24V** i **12V**. Mogą być zasilane tymi napięciami, płynnie sterować nimi na wyjściach oraz odczytywać jako logiczną 1️⃣ na wejściach. Dzięki temu można je stosować zarówno w automatyce, gdzie standardem jest **24VDC**, jak i w maszynach przemysłowych używających **12VDC**. Co więcej, wejścia cyfrowe radzą sobie nawet z napięciami do **400VAC**, co daje sporą elastyczność w projektowaniu systemów.
-
-Każdy sterownik po zakupie jest wstępnie zaprogramowany jako moduł rozszerzeń, gotowy do współpracy z zewnętrznym sterownikiem lub komputerem. Oczywiście, każdą płytkę można przeprogramować tak, aby działała jako samodzielny sterownik **PLC**.
-
-To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [artykuł](res/ext-article.md) 📜
+To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [📜artykuł](res/manuals/ext-article.md) 
 
 ## 🥇 Uno
 

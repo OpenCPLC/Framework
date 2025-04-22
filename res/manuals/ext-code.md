@@ -1,8 +1,8 @@
 ## 🪜 Code [➥](/readme.md)
 
-Porównajmy implementacje systemu **start-stop** w języku **ST**, **LAD _(ladder logic)_** oraz **ANSI C** z wykorzystaniem bibliotek OpenCPLC, biorąc pod uwagę zastosowanie dwóch różnych stylów mapowania zmiennych. Jeśli kod w języku C wydaje Ci się najbardziej przystępny i zrozumiały to prawdopodobnie ta droga jest dla Ciebie 😃
+Porównajmy implementacje systemu **start-stop** w języku **ST**, **LAD _(ladder logic)_** oraz **ANSI C** z wykorzystaniem bibliotek OpenCPLC, biorąc pod uwagę zastosowanie dwóch różnych stylów mapowania _(mapowanie na zmienne i wskaźniki)_. Jeśli kod w języku C wydaje Ci się najbardziej przystępny i zrozumiały to prawdopodobnie ta droga jest dla Ciebie 😃
 
-#### System start-stop ST
+### System start-stop ST
 
 ```st
 PROGRAM main
@@ -28,22 +28,22 @@ Q0.1 := motor_running
 END_PROGRAM
 ```
 
-#### System start-stop LAD
+### System start-stop LAD
 
 | LAD Classic                          | LAD Set/Reset                            |
 | ------------------------------------ | ---------------------------------------- |
 | ![LAD-Classic](http://sqrt.pl/img/opencplc/lader.png) | ![LAD-SetReset](http://sqrt.pl/img/opencplc/lader-sr.png) |
 
-#### System start-stop ANSI C
+### System start-stop ANSI C
 
-**_(mapowanie z użyciem zmiennych)_**
+#### Mapowanie na zmienne
 
 ```c
 bool start_button = false;
 bool stop_button = false;
 bool motor_running = false;
 
-int main(void)
+void loop(void)
 {
   while(1) {
     start_button = DIN_State(&DI1);
@@ -55,21 +55,20 @@ int main(void)
       motor_running = true;
     }
     RELAY_Preset(&RO1, motor_running);
-    PLC_Loop();
+    let();
   }
 }
 ```
 
-**_(mapowanie z użyciem wskaźników)_**
+### Mapowanie na wskaźniki
 
 ```c
 DIN_t *start_button = &DI1;
 DIN_t *stop_button = &DI2;
 DOUT_t *motor_running = &RO1;
 
-int main(void)
+void loop(void)
 {
-  PLC_Init();
   while(1) {
     if(DIN_Rise(stop_button)) {
       DOUT_Rst(motor_running);
@@ -77,12 +76,7 @@ int main(void)
     else if(DIN_Rise(start_button)) {
       DOUT_Set(motor_running);
     }
-    PLC_Loop();
+    let();
   }
 }
 ```
-
-
-[^1]: _Sterowniki programowalne_, M. Pawlak, Politechnika Wrocławska, 2010
-
-[^2]:	_Systematically reviewing the layered architectural pattern principles and their use to reconstruct software architectures_, Alvine B. Belle, Ghizlane El Boussaidi, Timothy C. Lethbridge, Segla Kpodjedo, Hafedh Mili, Andres Paz, arXiv preprint, `DOI: 10.48550/arXiv.2112.01644`
