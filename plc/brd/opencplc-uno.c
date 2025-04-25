@@ -209,7 +209,7 @@ UART_t dbg_uart = {
   .reg = USART3,
   .tx_pin = UART3_TX_PB8,
   .rx_pin = UART3_RX_PB9,
-  .dma_channel = DMA_Channel_4,
+  .dma_channel = DMA_Nbr_4,
   .int_prioryty = INT_Prioryty_Low,
   .UART_115200,
   #ifdef STM32G081xx
@@ -352,8 +352,8 @@ GPIO_t rtd_gpio_cs = { .port = GPIOB, .pin = 12, .reverse = true };
 
 SPI_Master_t rtd_spi = {
   .reg = SPI2,
-  .tx_dma_channel = DMA_Channel_2,
-  .rx_dma_channel = DMA_Channel_3,
+  .tx_dma_channel = DMA_Nbr_2,
+  .rx_dma_channel = DMA_Nbr_3,
   .int_prioryty = INT_Prioryty_Medium,
   .miso_pin = SPI2_MISO_PB14,
   .mosi_pin = SPI2_MOSI_PB15,
