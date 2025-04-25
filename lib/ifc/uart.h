@@ -51,7 +51,7 @@ typedef struct {
   USART_TypeDef *reg;
   UART_TX_t tx_pin;
   UART_RX_t rx_pin;
-  DMA_Channel_t dma_channel;
+  DMA_Nbr_t dma_channel;
   INT_Prioryty_t int_prioryty;
   uint32_t baud;
   UART_Parity_t parity;

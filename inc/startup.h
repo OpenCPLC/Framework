@@ -27,6 +27,13 @@ extern void (*DMA4_IRQFnc)(void *); extern void *DMA4_IRQSrc;
 extern void (*DMA5_IRQFnc)(void *); extern void *DMA5_IRQSrc;
 extern void (*DMA6_IRQFnc)(void *); extern void *DMA6_IRQSrc;
 extern void (*DMA7_IRQFnc)(void *); extern void *DMA7_IRQSrc;
+#ifdef STM32G0C1xx
+  extern void (*DMA8_IRQFnc)(void *); extern void *DMA8_IRQSrc;
+  extern void (*DMA9_IRQFnc)(void *); extern void *DMA9_IRQSrc;
+  extern void (*DMA10_IRQFnc)(void *); extern void *DMA10_IRQSrc;
+  extern void (*DMA11_IRQFnc)(void *); extern void *DMA11_IRQSrc;
+  extern void (*DMA12_IRQFnc)(void *); extern void *DMA12_IRQSrc;
+#endif
 extern void (*TIM1_IRQFnc)(void *); extern void *TIM1_IRQSrc;
 extern void (*TIM2_IRQFnc)(void *); extern void *TIM2_IRQSrc;
 extern void (*TIM3_IRQFnc)(void *); extern void *TIM3_IRQSrc;

@@ -131,51 +131,83 @@ void INT_EnableADC(INT_Prioryty_t priority, void (*handler)(void *), void *objec
 
 //-------------------------------------------------------------------------------------------------
 
-void INT_EnableDMA(uint8_t dma_nbr, INT_Prioryty_t priority, void (*handler)(void *), void *object)
+void INT_EnableDMA(DMA_Nbr_t dma_nbr, INT_Prioryty_t priority, void (*handler)(void *), void *object)
 {
   switch(dma_nbr) {
-    case 1:
+    case DMA_Nbr_1:
       DMA1_IRQFnc = handler;
       DMA1_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH1, priority);
       NVIC_EnableIRQ(INT_DMA1_CH1);
       break;
-    case 2:
+    case DMA_Nbr_2:
       DMA2_IRQFnc = handler;
       DMA2_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH23, priority);
       NVIC_EnableIRQ(INT_DMA1_CH23);
       break;
-    case 3:
+    case DMA_Nbr_3:
       DMA3_IRQFnc = handler;
       DMA3_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH23, priority);
       NVIC_EnableIRQ(INT_DMA1_CH23);
       break;
-    case 4:
+    case DMA_Nbr_4:
       DMA4_IRQFnc = handler;
       DMA4_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
       NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
       break;
-    case 5:
+    case DMA_Nbr_5:
       DMA5_IRQFnc = handler;
       DMA5_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
       NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
       break;
-    case 6:
+    case DMA_Nbr_6:
       DMA6_IRQFnc = handler;
       DMA6_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
       NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
       break;
-    case 7:
+    case DMA_Nbr_7:
       DMA7_IRQFnc = handler;
       DMA7_IRQSrc = object;
       NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
       NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
       break;
+    #ifdef STM32G0C1xx
+      case DMA_Nbr_8:
+        DMA8_IRQFnc = handler;
+        DMA8_IRQSrc = object;
+        NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
+        NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
+        break;
+      case DMA_Nbr_9:
+        DMA9_IRQFnc = handler;
+        DMA9_IRQSrc = object;
+        NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
+        NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
+        break;
+      case DMA_Nbr_10:
+        DMA10_IRQFnc = handler;
+        DMA10_IRQSrc = object;
+        NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
+        NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
+        break;
+      case DMA_Nbr_11:
+        DMA11_IRQFnc = handler;
+        DMA11_IRQSrc = object;
+        NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
+        NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
+        break;
+      case DMA_Nbr_12:
+        DMA12_IRQFnc = handler;
+        DMA12_IRQSrc = object;
+        NVIC_SetPriority(INT_DMA1_CH47_DMA2, priority);
+        NVIC_EnableIRQ(INT_DMA1_CH47_DMA2);
+        break;
+    #endif
   }
 }
 
@@ -282,6 +314,29 @@ void INT_EnableEXTI(uint8_t exti_nbr, INT_Prioryty_t priority, void (*handler)(v
       NVIC_EnableIRQ(INT_EXTI4F);
       break;
   }
+}
+
+//-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Initializes DMA register pointers based on channel number.
+ *   Sets: `DMA1` or `DMA2`, DMA_Channel `CHA`, DMAMUX_Channel `MUX` and index `pos`
+ * @param[in]  dma_nbr: DMA channel number (1-based)
+ * @param[out] dma: Pointer to DMA_t structure to initialize
+ */
+void DMA_SetRegisters(DMA_Nbr_t dma_nbr, DMA_t *dma)
+{
+  if(dma_nbr <= DMA_Nbr_7) {
+    dma->REG = DMA1;
+    dma->pos = dma_nbr - 1;
+    dma->CHA = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * dma->pos));
+  }
+  else {
+    dma->REG = DMA2;
+    dma->pos = dma_nbr - 1 - DMA_Nbr_7;
+    dma->CHA = (DMA_Channel_TypeDef *)(DMA2_BASE + 8 + (20 * dma->pos));
+  }
+  dma->MUX = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (dma_nbr - 1)));
 }
 
 //-------------------------------------------------------------------------------------------------

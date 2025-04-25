@@ -13,17 +13,17 @@ typedef enum {
   BUSY = 2,
 } state_t;
 
-#define ANSI_RED     "\x1B[31m"
-#define ANSI_GREEN   "\x1B[32m"
-#define ANSI_BLUE    "\x1B[94m"
-#define ANSI_YELLOW  "\x1B[33m"
-#define ANSI_MAGENTA "\x1B[35m"
-#define ANSI_CYAN    "\x1B[36m"
-#define ANSI_GREY    "\033[90m"
-#define ANSI_CREAM   "\x1B[38;5;216m"
-#define ANSI_TEAL    "\x1B[38;2;32;178;170m"
-#define ANSI_END     "\x1B[0m"
-#define ANSI_OK      ANSI_GREEN"OK"ANSI_END
+#define ANSI_RED      "\x1B[31m"
+#define ANSI_GREEN    "\x1B[32m"
+#define ANSI_BLUE     "\x1B[94m"
+#define ANSI_YELLOW   "\x1B[33m"
+#define ANSI_MAGENTA  "\x1B[35m"
+#define ANSI_CYAN     "\x1B[36m"
+#define ANSI_GREY     "\033[90m"
+#define ANSI_ORANGE   "\x1B[38;5;216m"
+#define ANSI_TEAL     "\x1B[38;2;32;178;170m"
+#define ANSI_END      "\x1B[0m"
+#define ANSI_OK       ANSI_GREEN "OK" ANSI_END
 
 typedef enum {
   HASH_Number_0 = 177621,

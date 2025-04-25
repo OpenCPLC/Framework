@@ -68,7 +68,7 @@ void BASH_FlashAutosave(bool autosave)
 void BASH_WrongArgc(char *command)
 {
   #if(LOG_COLORS)
-    LOG_Warning("Command \e[33m%s\e[0m called with incorrect arguments count", command);
+    LOG_Warning("Command " ANSI_YELLOW "%s" ANSI_END " called with incorrect arguments count", command);
   #else
     LOG_Warning("Command %s called with incorrect arguments count", command);
   #endif
@@ -82,7 +82,7 @@ void BASH_WrongArgc(char *command)
 void BASH_WrongArgv(char *command, char nbr)
 {
   #if(LOG_COLORS)
-    LOG_Warning("Command '\e[33m%s\e[0m' received invalid argument \e[33m%u\e[0m", command, nbr);
+    LOG_Warning("Command " ANSI_YELLOW "%s" ANSI_END " received invalid argument " ANSI_BLUE "%u" ANSI_END, command, nbr);
   #else
     LOG_Warning("Command '%s' received invalid argument %u", command, nbr);
   #endif
@@ -117,7 +117,7 @@ static FILE_t *BASH_FindFile(char *file_name)
     }
   }
   #if(LOG_COLORS)
-    LOG_Warning("File \e[33m%s\e[0m not exist", (char *)file_name);
+    LOG_Warning("File " ANSI_YELLOW "%s" ANSI_END " not exist", (char *)file_name);
   #else
     LOG_Warning("File %s not exist", (char *)file_name);
   #endif
@@ -536,7 +536,7 @@ bool BASH_Loop(STREAM_t *stream)
             }
           }
           #if(LOG_COLORS)
-            LOG_Warning("Command \e[33m%s\e[0m not found", argv[0]);
+            LOG_Warning("Command " ANSI_YELLOW "%s" ANSI_END " not found", argv[0]);
           #else
             LOG_Warning("Command %s not found", argv[0]);
           #endif
