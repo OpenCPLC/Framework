@@ -10,15 +10,15 @@ Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszło�
 
 Sterowniki z linii **OpenCPLC** mogą wyróżniać się na rynku dzięki swojej kompatybilności z systemami **24V** i **12V**. Mogą być zasilane tymi napięciami, płynnie sterować nimi na wyjściach oraz odczytywać jako logiczną 1️⃣ na wejściach. Dzięki temu można je stosować zarówno w automatyce, gdzie standardem jest **24VDC**, jak i w maszynach przemysłowych używających **12VDC**. Co więcej, wejścia cyfrowe radzą sobie nawet z napięciami do **400VAC**, co daje sporą elastyczność w projektowaniu systemów. Każdy sterownik po zakupie jest wstępnie zaprogramowany jako moduł rozszerzeń, gotowy do współpracy z zewnętrznym sterownikiem lub komputerem. Oczywiście, każdą płytkę można przeprogramować tak, aby działała jako samodzielny sterownik **PLC**.
 
-To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [📜artykuł](res/manuals/ext-article.md) 
+<!-- To tyle z ogólnych informacji, ale jeśli wolisz czytać zamiast programować, przygotowaliśmy [📜artykuł](res/manuals/ext-article.md)  -->
 
 ## 🥇 Uno
 
-Pierwszy sterownik z linii **OpenCPLC** jakim jest **Uno** ma cechować się wszechstronnością ze względu na różnorodność peryferii. Sterownik najlepiej sprawdzi się w małych i średnich projektach z zakresu automatyki, takich jak:
+Pierwszy sterownik z linii **OpenCPLC** jakim jest **Uno** ma cechować się wszechstronnością ze względu na różnorodność peryferii. Choć pełni funkcję konstrukcji demonstracyjnej, z powodzeniem sprawdzi się również w małych i średnich projektach.
 
-| Face                                              | View                                              |
-| ------------------------------------------------- | ------------------------------------------------- |
-| ![Face](http://sqrt.pl/img/opencplc/uno-face.png) | ![View](http://sqrt.pl/img/opencplc/uno-view.png) |
+![Vect](http://sqrt.pl/img/opencplc/uno-vect.png)
+
+Przykładowe projekty:
 
 - System nawadniania/naświetlania roślin
 - Regulator temperatury/natlenienia w akwarium
@@ -53,7 +53,9 @@ Pierwszy sterownik z linii **OpenCPLC** jakim jest **Uno** ma cechować się wsz
 - Listwy z różną liczbą wyprowadzeń. _(utrudniając błędne połączenie)_
 - Orientacja urządzenia od frontu, zapewniająca jak najlepszy dostęp do wyprowadzeń z rozdzielnicy
 
-![Vect](http://sqrt.pl/img/opencplc/uno-vect.png)
+| Face                                              | View                                              |
+| ------------------------------------------------- | ------------------------------------------------- |
+| ![Face](http://sqrt.pl/img/opencplc/uno-face.png) | ![View](http://sqrt.pl/img/opencplc/uno-view.png) |
 
 ## ⚙️ Essential-tools [➥](#-content)
 
