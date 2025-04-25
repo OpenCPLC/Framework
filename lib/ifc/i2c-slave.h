@@ -6,7 +6,6 @@
 #include "i2c.h"
 #include "main.h"
 
-
 typedef struct {
   I2C_TypeDef *reg;
   I2C_SCL_e scl_pin;

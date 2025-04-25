@@ -194,25 +194,14 @@ DIN_t SW2 = { .gpif = { .gpio = { .port = GPIOC, .pin = 13 } } };
 
 //------------------------------------------------------------------------------------------------- DBG+Bash
 
-uint8_t dbg_buff_buffer[2048];
-BUFF_t dbg_buff = {
-  .mem = dbg_buff_buffer,
-  .size = sizeof(dbg_buff_buffer),
-  .console_mode = true,
-  .Echo = DBG_Char,
-  .Enter = DBG_Enter,
-};
 UART_t dbg_uart = {
   .reg = USART1,
   .tx_pin = UART1_TX_PA9,
   .rx_pin = UART1_RX_PA10,
   .dma_channel = DMA_Channel_4,
   .int_prioryty = INT_Prioryty_Low,
-  .UART_115200,
-  .buff = &dbg_buff
+  .UART_115200
 };
-uint8_t dbg_file_buffer[2048];
-FILE_t dbg_file = { .name = "debug", .buffer = dbg_file_buffer, .limit = sizeof(dbg_file_buffer) };
 #ifdef STM32G081xx
   EEPROM_t cache_eeprom = { .page_a = 62, .page_b = 63 };
 #endif
@@ -230,10 +219,10 @@ void PLC_Init(void)
     // SCB->VTOR = FLASH_BASE | 0x00000000U;
   #endif
   // Konfiguracja systemowa
-  SYS_Clock_Init();
+  system_clock_init();
+  systick_init(PLC_BASETIME);
   EEPROM_Cache(&cache_eeprom);
-  SYSTICK_Init(PLC_BASETIME);
-  DBG_Init(&dbg_uart, &dbg_file);
+  DBG_Init(&dbg_uart);
   RGB_Init(&RGB);
   DIN_Init(&BTN1);
   DIN_Init(&BTN2);
@@ -241,8 +230,7 @@ void PLC_Init(void)
   DIN_Init(&SW1);
   DIN_Init(&SW2);
   BASH_AddFile(&cache_file);
-  BASH_AddFile(&dbg_file);
-  BASH_AddCallback(&LED_Bash);
+  BASH_AddCallback(&LED_Bash, "led");
   // Wyjścia cyfrowe przekaźnikowe (RO)
   DOUT_Init(&RO1);
   DOUT_Init(&RO2);
@@ -286,6 +274,7 @@ void PLC_Init(void)
   ADC_Wait(&ain_adc);
   // Interfejsy RS485
   UART_Init(&RS);
+  LOG_Init(PLC_GREETING, PRO_VERSION);
 }
 
 void PLC_Loop(void)
@@ -323,9 +312,7 @@ void PLC_Loop(void)
     ADC_Record(&ain_adc);
   }
   if(ain_adc.overrun) {
-    // DBG_String("ADC overrun:");
-    // DBG_uDec(ain_adc.overrun);
-    // DBG_Enter();
+    LOG_Warning("ADC over-run %d", ain_adc.overrun);
     ain_adc.overrun = 0;
   }
 }

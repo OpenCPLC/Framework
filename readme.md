@@ -1,6 +1,6 @@
 # 💡 OpenCPLC
 
-Projekt zapewnia warstwę pośrednią pomiędzy Twoją aplikacją, a peryferiami mikrokontrolera. Trochę podobnie jak w **Arduino**, jednak bardziej w kierunku automatyki. Bez własnego IDE oraz angażowania C++. Wielowątkowość z wykorzystaniem [🔀VRTS](https://github.com/Xaeian/VRTS), bez problemów z synchronizacją pamięci jak w klasycznych RTOS-ach. Podstawowa komunikacji i zarządzanie systemem zapewnia wbudowana konsolę systemową CMD, podobnie jak w systemach **Linux**. Aplikacja [🔮Wizard](https://github.com/OpenCPLC/Wizard) ma sprawić, że programowanie mikrokontrolerów zbliży się prostotą do wykorzystania interpreterów takich jak Node.js czy Python
+Projekt zapewnia warstwę pośrednią pomiędzy Twoją aplikacją, a peryferiami mikrokontrolera. Trochę podobnie jak w **Arduino**, jednak bardziej w kierunku automatyki. Bez własnego IDE oraz angażowania C++. Wielowątkowość z wykorzystaniem [🔀**VRTS**](https://github.com/Xaeian/VRTS), bez problemów z synchronizacją pamięci jak w klasycznych **RTOS**-ach. Podstawowa komunikacji i zarządzanie systemem zapewnia wbudowana konsolę systemową **CMD**, podobnie jak w systemach **Linux**. Aplikacja [🔮**Wizard**](https://github.com/OpenCPLC/Wizard) ma sprawić, że programowanie mikrokontrolerów zbliży się prostotą do wykorzystania interpreterów takich jak **Node.js** czy **Python**.
 
 ## 📢 Intro
 

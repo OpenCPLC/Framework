@@ -61,6 +61,13 @@ void (*DMA4_IRQFnc)(void *) = Void_Handler; void *DMA4_IRQSrc;
 void (*DMA5_IRQFnc)(void *) = Void_Handler; void *DMA5_IRQSrc;
 void (*DMA6_IRQFnc)(void *) = Void_Handler; void *DMA6_IRQSrc;
 void (*DMA7_IRQFnc)(void *) = Void_Handler; void *DMA7_IRQSrc;
+#ifdef STM32G0C1xx
+  void (*DMA8_IRQFnc)(void *) = Void_Handler; void *DMA8_IRQSrc;
+  void (*DMA9_IRQFnc)(void *) = Void_Handler; void *DMA9_IRQSrc;
+  void (*DMA10_IRQFnc)(void *) = Void_Handler; void *DMA10_IRQSrc;
+  void (*DMA11_IRQFnc)(void *) = Void_Handler; void *DMA11_IRQSrc;
+  void (*DMA12_IRQFnc)(void *) = Void_Handler; void *DMA12_IRQSrc;
+#endif
 void (*TIM1_IRQFnc)(void *) = Void_Handler; void *TIM1_IRQSrc;
 void (*TIM2_IRQFnc)(void *) = Void_Handler; void *TIM2_IRQSrc;
 void (*TIM3_IRQFnc)(void *) = Void_Handler; void *TIM3_IRQSrc;
@@ -96,10 +103,23 @@ __weak void CEC_IRQHandler(void) { Default_Handler(); }
 __weak void ADC_COMP_IRQHandler(void) { ADC_IRQFnc(ADC_IRQSrc); }
 __weak void	EXTI0_1_IRQHandler(void) { EXTI0_IRQFnc(EXTI0_IRQSrc); EXTI1_IRQFnc(EXTI1_IRQSrc); }
 __weak void	EXTI2_3_IRQHandler(void) { EXTI2_IRQFnc(EXTI2_IRQSrc); EXTI3_IRQFnc(EXTI3_IRQSrc); }
-__weak void	EXTI4_15_IRQHandler(void) { EXTI4_IRQFnc(EXTI4_IRQSrc); EXTI5_IRQFnc(EXTI5_IRQSrc); EXTI6_IRQFnc(EXTI6_IRQSrc); EXTI7_IRQFnc(EXTI7_IRQSrc); EXTI8_IRQFnc(EXTI8_IRQSrc); EXTI9_IRQFnc(EXTI9_IRQSrc); EXTI10_IRQFnc(EXTI10_IRQSrc); EXTI11_IRQFnc(EXTI11_IRQSrc); EXTI12_IRQFnc(EXTI12_IRQSrc); EXTI13_IRQFnc(EXTI13_IRQSrc); EXTI14_IRQFnc(EXTI14_IRQSrc); EXTI15_IRQFnc(EXTI15_IRQSrc); }
+__weak void	EXTI4_15_IRQHandler(void) {
+  EXTI4_IRQFnc(EXTI4_IRQSrc); EXTI5_IRQFnc(EXTI5_IRQSrc);
+  EXTI6_IRQFnc(EXTI6_IRQSrc); EXTI7_IRQFnc(EXTI7_IRQSrc); EXTI8_IRQFnc(EXTI8_IRQSrc);
+  EXTI9_IRQFnc(EXTI9_IRQSrc); EXTI10_IRQFnc(EXTI10_IRQSrc); EXTI11_IRQFnc(EXTI11_IRQSrc);
+  EXTI12_IRQFnc(EXTI12_IRQSrc); EXTI13_IRQFnc(EXTI13_IRQSrc); EXTI14_IRQFnc(EXTI14_IRQSrc);
+  EXTI15_IRQFnc(EXTI15_IRQSrc);
+}
 __weak void	DMA_Channel1_IRQHandler(void) { DMA1_IRQFnc(DMA1_IRQSrc); }
 __weak void	DMA_Channel2_3_IRQHandler(void) { DMA2_IRQFnc(DMA2_IRQSrc); DMA3_IRQFnc(DMA3_IRQSrc); }
-__weak void	DMA_Channel4_5_6_7_IRQHandler(void) { DMA4_IRQFnc(DMA4_IRQSrc); DMA5_IRQFnc(DMA5_IRQSrc); DMA6_IRQFnc(DMA6_IRQSrc); DMA7_IRQFnc(DMA7_IRQSrc); }
+__weak void	DMA_Channel4_5_6_7_IRQHandler(void) {
+  DMA4_IRQFnc(DMA4_IRQSrc); DMA5_IRQFnc(DMA5_IRQSrc);
+  DMA6_IRQFnc(DMA6_IRQSrc); DMA7_IRQFnc(DMA7_IRQSrc);
+  #ifdef STM32G0C1xx
+    DMA8_IRQFnc(DMA8_IRQSrc); DMA9_IRQFnc(DMA9_IRQSrc); DMA10_IRQFnc(DMA10_IRQSrc);
+    DMA11_IRQFnc(DMA11_IRQSrc); DMA12_IRQFnc(DMA12_IRQSrc);
+  #endif
+}
 __weak void	TIM1_BRK_UP_TRG_COMP_IRQHandler(void) { TIM1_IRQFnc(TIM1_IRQSrc); }
 __weak void	TIM1_CC_IRQHandler(void) { Default_Handler(); }
 __weak void	TIM2_IRQHandler(void) { TIM2_IRQFnc(TIM2_IRQSrc); }

@@ -17,8 +17,8 @@
 
 typedef struct {
   SPI_TypeDef *reg;
-  DMA_Channel_t tx_dma_channel;
-  DMA_Channel_t rx_dma_channel;
+  DMA_Nbr_t tx_dma_channel;
+  DMA_Nbr_t rx_dma_channel;
   INT_Prioryty_t int_prioryty;
   SPI_SCK_t sck_pin;
   SPI_MISO_t miso_pin;

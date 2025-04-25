@@ -15,9 +15,14 @@
 
 #define PLC_RS485
 
+#ifndef PLC_GREETING
+  #define PLC_GREETING "OpenCPLC Eco"
+#endif
+
 #ifndef PLC_BOOTLOADER
   #define PLC_BOOTLOADER 0
 #endif
+
 #ifndef PLC_BASETIME
   #define PLC_BASETIME 10
 #endif
