@@ -105,15 +105,21 @@ void DBG_Loop(void)
   }
 }
 
-void DBG_Wait4Uart(void)
+void DBG_WaitForFree(void)
 {
   while(UART_IsBusy(DbgUart)) let();
 }
 
+void DBG_WaitForFreeBlock(void)
+{
+  while(UART_IsBusy(DbgUart)) __NOP();
+}
+
 void DBG_Send(uint8_t *array, uint16_t length)
 {
-  DBG_Wait4Uart();
+  DBG_WaitForFree();
   UART_Send(DbgUart, array, length);
+  DBG_WaitForFree();
 }
 
 void DBG_SendFile(FILE_t *file)
@@ -159,19 +165,15 @@ int32_t DBG_String(char *string) { return FILE_String(DbgFile, string); }
 int32_t DBG_Enter(void) { return FILE_Enter(DbgFile); }
 int32_t DBG_ClearLastLine(void) { return FILE_ClearLastLine(DbgFile); }
 int32_t DBG_Bool(bool value) { return FILE_Bool(DbgFile, value); }
-
 int32_t DBG_Int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space) {
   return FILE_Int(DbgFile, nbr, base, sign, fill_zero, fill_space);
 }
-
 int32_t DBG_Float(float nbr, uint8_t accuracy) {
   return FILE_Float(DbgFile, nbr, accuracy, 1);
 }
-
 int32_t DBG_FloatSpace(float nbr, uint8_t accuracy, uint8_t fill_space) {
   return FILE_Float(DbgFile, nbr, accuracy, fill_space);
 }
-
 int32_t DBG_Dec(int32_t nbr) { return FILE_Dec(DbgFile, nbr); }
 int32_t DBG_uDec(uint32_t nbr) { return FILE_uDec(DbgFile, nbr); }
 int32_t DBG_Hex8(uint32_t nbr) { return FILE_Hex8(DbgFile, nbr); }
@@ -202,5 +204,15 @@ int32_t DBG_File(FILE_t *file)
   }
   return size;
 }
+
+//-------------------------------------------------------------------------------------------------
+
+int32_t DBG_int8_Print(int8_t *nbr) { return DBG_Dec(*nbr); }
+int32_t DBG_uint8_Print(uint8_t *nbr) { return DBG_uDec(*nbr); }
+int32_t DBG_int16_Print(int16_t *nbr) { return DBG_Dec(*nbr); }
+int32_t DBG_uint16_Print(uint16_t *nbr) { return DBG_uDec(*nbr); }
+int32_t DBG_int32_Print(int32_t *nbr) { return DBG_Dec(*nbr); }
+int32_t DBG_uint32_Print(uint32_t *nbr) { return DBG_uDec(*nbr); }
+int32_t DBG_float_Print(float *nbr) { return DBG_Float(*nbr, 6); }
 
 //-------------------------------------------------------------------------------------------------

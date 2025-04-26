@@ -64,8 +64,8 @@ typedef struct {
   BUFF_t *buff;
   uint8_t prefix;
   DMA_t dma;
-  bool busy_tx;
-  bool busy_tc;
+  volatile bool busy_tx;
+  volatile bool busy_tc;
 } UART_t;
 
 //--------------------------------------------------------------------------------------------------------------------------------

@@ -9,7 +9,7 @@
 
 // Maksymalna długość separatora używanego przy wypisywaniu elementów tablicy (iterable)
 #ifndef LOG_ARYSEP_MAXLEN
-  #define LOG_ARYSEP_MAXLEN 8
+  #define LOG_ARYSEP_MAXLEN 16
 #endif
 
 // Czy dodawać milisekundy do znacznika czasu w logach?
@@ -24,6 +24,12 @@
 
 #ifndef LOG_COLORS
   #define LOG_COLORS 1
+#endif
+
+#if(LOG_COLORS)
+  #define LOG_Module(name) ANSI_GREY"<"ANSI_ORANGE name ANSI_GREY">"ANSI_END
+#else
+  #define LOG_Module(name) "<" name ">"
 #endif
 
 #define LOG_LEVEL_DBG 0

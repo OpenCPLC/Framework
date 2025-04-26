@@ -219,7 +219,7 @@ void PLC_Init(void)
     // SCB->VTOR = FLASH_BASE | 0x00000000U;
   #endif
   // Konfiguracja systemowa
-  system_clock_init();
+  sys_clock_init();
   systick_init(PLC_BASETIME);
   EEPROM_Cache(&cache_eeprom);
   DBG_Init(&dbg_uart);

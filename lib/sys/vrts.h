@@ -29,6 +29,16 @@
   #define VRTS_SWITCHING 1 
 #endif
 
+// Maximum time a thread is allowed to hold the CPU core
+#ifndef VRTS_THREAD_TIMEOUT_MS
+  #define VRTS_THREAD_TIMEOUT_MS 2000
+#endif
+
+// #ifndef vrts_panic
+//   
+//   #define vrts_panic panic
+// #endif
+
 #define WAIT_ (bool (*)(void *)) // Type cast for timeout function
 #define seconds(ms)  (1000 * ms) // Convert seconds to milliseconds
 #define minutes(min) (60 * 1000 * min) // Convert minutes to milliseconds

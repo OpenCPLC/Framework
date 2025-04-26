@@ -117,7 +117,7 @@ static FILE_t *BASH_FindFile(char *file_name)
     }
   }
   #if(LOG_COLORS)
-    LOG_Warning("File " ANSI_YELLOW "%s" ANSI_END " not exist", (char *)file_name);
+    LOG_Warning("File " ANSI_ORANGE "%s" ANSI_END " not exist", (char *)file_name);
   #else
     LOG_Warning("File %s not exist", (char *)file_name);
   #endif
@@ -143,7 +143,11 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       for(uint16_t i = 0; i < bash.files_count; i++) {
         file_names[i] = bash.files[i]->name;
       }
-      LOG_Bash("Files: %a, %s", bash.files_count, file_names);
+      #if(LOG_COLORS)
+        LOG_Bash("File list: %a"ANSI_GREY", "ANSI_END"%s", bash.files_count, file_names);
+      #elif
+        LOG_Bash("File list: %a, %s", bash.files_count, file_names);
+      #endif
       break;
     }
     case BASH_Hash_Active:
@@ -197,7 +201,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       }
       break;
     }
-    case BASH_Hash_Load: { // FILE append <limit:uint16>? <offset:uint16>?
+    case BASH_Hash_Load: { // FILE load <limit:uint16>? <offset:uint16>?
       if(argc > 4) { BASH_WrongArgc(argv[0]); return; }
       if(bash.file_active->mutex) BASH_AccessDenied(bash.file_active);
       uint16_t limit = bash.file_active->size;
@@ -256,7 +260,21 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       }
       break;
     }
+    case BASH_Hash_Print: { // FILE print {int8|uint8|int16|uint16|int32|uint32|struce} <limit:uint16>? <offset:uint16>?
+      LOG_Bash("%02a %d", 50, bash.file_active->buffer);
+      break;
+    }
+
+
+    // 
     // TODO: FILE (struct) print <limit:uint16>? <offset:uint16>?
+    default: {
+      #if(LOG_COLORS)
+        LOG_Error("File command doesn't support "ANSI_YELLOW"%s"ANSI_END" option", argv[1]);
+      #else
+        LOG_Error("File command doesn't support %s option", argv[1]);
+      #endif
+    }
   }
 }
 
@@ -463,7 +481,8 @@ static void BASH_Power(char **argv, uint16_t argc)
       break;
     }
     case BASH_Hash_Reboot:
-    case BASH_Hash_Restart: {
+    case BASH_Hash_Restart:
+    case BASH_Hash_Reset: {
       if(argc == 2) {
         if(bash.Reset) bash.Reset();
         else PWR_Reset();

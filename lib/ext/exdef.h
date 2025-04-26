@@ -23,7 +23,7 @@ typedef enum {
 #define ANSI_ORANGE   "\x1B[38;5;216m"
 #define ANSI_TEAL     "\x1B[38;2;32;178;170m"
 #define ANSI_END      "\x1B[0m"
-#define ANSI_OK       ANSI_GREEN "OK" ANSI_END
+#define ANSI_OK       ANSI_GREEN"OK"ANSI_END
 
 typedef enum {
   HASH_Number_0 = 177621,

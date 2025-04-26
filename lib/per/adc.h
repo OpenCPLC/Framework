@@ -128,7 +128,7 @@ typedef struct {
     ADC_Record_t record;
   #endif
   uint16_t overrun;
-  uint8_t busy;
+  volatile uint8_t busy;
 } ADC_t;
 
 //-------------------------------------------------------------------------------------------------

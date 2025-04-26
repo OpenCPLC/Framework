@@ -27,7 +27,8 @@ extern bool DbgSendFlag;
 
 void DBG_Init(UART_t *uart);
 void DBG_Loop(void);
-void DBG_Wait4Uart(void);
+void DBG_WaitForFree(void);
+void DBG_WaitForFreeBlock(void);
 void DBG_Send(uint8_t *array, uint16_t length);
 void DBG_SendFile(FILE_t *file);
 void DBG_DefaultFile(void);
@@ -65,6 +66,22 @@ int32_t DBG_DatetimeMs(RTC_Datetime_t *datetime);
 int32_t DBG_AlarmTime(RTC_Alarm_t *alarm);
 int32_t DBG_Alarm(RTC_Alarm_t *alarm);
 int32_t DBG_File(FILE_t *file);
+
+int32_t DBG_int8_Print(int8_t *nbr);
+int32_t DBG_uint8_Print(uint8_t *nbr);
+int32_t DBG_int16_Print(int16_t *nbr);
+int32_t DBG_uint16_Print(uint16_t *nbr);
+int32_t DBG_int32_Print(int32_t *nbr);
+int32_t DBG_uint32_Print(uint32_t *nbr);
+int32_t DBG_float_Print(float *nbr);
+
+#define FILE_STRUCT_INT8    struct_size = sizeof(int8_t),   .struct_print = (int32_t (*)(void *))&DBG_int8_Print
+#define FILE_STRUCT_UINT8   struct_size = sizeof(uint8_t),  .struct_print = (int32_t (*)(void *))&DBG_uint8_Print
+#define FILE_STRUCT_INT16   struct_size = sizeof(int16_t),  .struct_print = (int32_t (*)(void *))&DBG_int16_Print
+#define FILE_STRUCT_UINT16  struct_size = sizeof(uint16_t), .struct_print = (int32_t (*)(void *))&DBG_uint16_Print
+#define FILE_STRUCT_INT32   struct_size = sizeof(int32_t),  .struct_print = (int32_t (*)(void *))&DBG_int32_Print
+#define FILE_STRUCT_UINT32  struct_size = sizeof(uint32_t), .struct_print = (int32_t (*)(void *))&DBG_uint32_Print
+#define FILE_STRUCT_FLOAT   struct_size = sizeof(float),    .struct_print = (int32_t (*)(void *))&DBG_float_Print
 
 //-------------------------------------------------------------------------------------------------
 #endif

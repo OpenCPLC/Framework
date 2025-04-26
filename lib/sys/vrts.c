@@ -8,6 +8,12 @@ volatile VRTS_Task_t *vrts_next_thread; // Next thread
 
 #if(VRTS_SWITCHING)
 
+#if(VRTS_THREAD_TIMEOUT_MS)
+  #include "sys.h"
+  static uint32_t hold_timeout;
+  static volatile uint32_t hold_ticker;
+#endif
+
 // Structure to manage threads in the VRTS system 
 struct {
   VRTS_Task_t threads[VRTS_THREAD_LIMIT];
@@ -104,6 +110,9 @@ void let(void)
   if(vrts.i >= vrts.count)
     vrts.i = 0;
   vrts_next_thread = &vrts.threads[vrts.i];
+  #if(VRTS_THREAD_TIMEOUT_MS)
+    hold_ticker = hold_timeout;
+  #endif
   SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 }
 
@@ -248,6 +257,10 @@ bool systick_init(uint32_t systick_ms)
 {
   tick_ms = systick_ms;
   uint32_t overflow = (uint32_t)((float)tick_ms * SystemCoreClock / 1000);
+  #if(VRTS_SWITCHING && VRTS_THREAD_TIMEOUT_MS)
+    hold_timeout = VRTS_THREAD_TIMEOUT_MS / systick_ms;
+    hold_ticker = hold_timeout;
+  #endif
   if(SysTick_Config(overflow)) return false;
   #if(VRTS_CORE_M4)
     NVIC_SetPriority(SysTick_IRQn, 0x0F);
@@ -261,4 +274,8 @@ bool systick_init(uint32_t systick_ms)
 void SysTick_Handler(void)
 {
   ticker++;
+  #if(VRTS_SWITCHING && VRTS_THREAD_TIMEOUT_MS)
+    hold_ticker--;
+    if(!hold_ticker) panic("Thread overran core time limit "LOG_Module("VRTS"));
+  #endif
 }

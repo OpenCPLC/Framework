@@ -34,6 +34,7 @@ typedef enum {
   BASH_Hash_Append = 4065151197,
   BASH_Hash_Flash = 259106899,
   BASH_Hash_Mutex = 267752024,
+  BASH_Hash_Print = 271190290,
   BASH_Hash_Set = 193505681,
   BASH_Hash_Rst = 193505054,
   BASH_Hash_Reset = 273105544,
