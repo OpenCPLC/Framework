@@ -31,6 +31,7 @@ void RCC_DisableUART(USART_TypeDef *uart_typedef);
 void RCC_EnableI2C(I2C_TypeDef *i2c_typedef);
 void RCC_DisableI2C(I2C_TypeDef *i2c_typedef);
 void RCC_EnableSPI(SPI_TypeDef *spi_typedef);
+void RCC_EnableDMA(DMA_TypeDef *dam_typedef);
 
 uint32_t RCC_HSE(uint32_t xtal_value);
 uint32_t RCC_PLL(uint32_t hse_xtal_value, uint8_t m, uint8_t n, uint8_t r);

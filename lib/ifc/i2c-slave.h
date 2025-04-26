@@ -22,10 +22,6 @@ typedef struct {
   uint8_t interrupt_level;
   uint32_t timing;
   uint8_t filter; // Digital noise filter (0..15)
-  bool _start;
-  
-
-
   // volatile bool busy;
   // uint8_t *tx_buffer;
   // #if(!I2C_DMA_TX || !I2C_DMA_RX)

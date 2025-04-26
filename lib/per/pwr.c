@@ -82,6 +82,14 @@ void RCC_EnableSPI(SPI_TypeDef *spi_typedef)
   }
 }
 
+void RCC_EnableDMA(DMA_TypeDef *dam_typedef)
+{
+  switch((uint32_t)dam_typedef) {
+    case (uint32_t)DMA1: RCC->AHBENR |= RCC_AHBENR_DMA1EN; break;
+    case (uint32_t)DMA2: RCC->AHBENR |= RCC_AHBENR_DMA2EN; break;
+  }
+}
+
 //------------------------------------------------------------------------------------------------- RCC
 
 static uint32_t RCC_HSI(RCC_HSI_e frequency)

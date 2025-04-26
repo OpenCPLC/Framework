@@ -2,8 +2,8 @@
 #define ADC_H_
 //-------------------------------------------------------------------------------------------------
 
+#include "int.h"
 #include "gpio.h"
-#include "vrts.h"
 #include "exdef.h"
 #include "main.h"
 
@@ -109,27 +109,26 @@ typedef struct {
   uint8_t *channels;
   uint8_t count;
   TIM_t *tim;
-  uint8_t dma_channel;
+  DMA_Nbr_t dma_nbr;
   ADC_SamplingTime_t sampling_time;
   bool oversampling_enable;
   ADC_OversamplingRatio_t oversampling_ratio;
   uint8_t oversampling_shift; // 0-8 [bit]
   uint16_t *buffer;
   uint16_t buffer_length;
-  DMA_Channel_TypeDef* _dma;
-  DMAMUX_Channel_TypeDef* _dmamux;
+  DMA_t *dma;
 } ADC_Record_t;
 #endif
 
 typedef struct {
-  uint8_t interrupt_level;
+  INT_Prioryty_t int_prioryty;
   ADC_Frequency_t frequency;
   ADC_Measurements_t measurements;
   #if(ADC_RECORD)
     ADC_Record_t record;
   #endif
   uint16_t overrun;
-  uint8_t _busy_flag;
+  uint8_t busy;
 } ADC_t;
 
 //-------------------------------------------------------------------------------------------------

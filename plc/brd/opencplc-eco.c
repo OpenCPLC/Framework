@@ -135,7 +135,7 @@ ADC_t ain_adc = {
   .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
-    .dma_channel = 1,
+    .dma_nbr = 1,
     .sampling_time = ADC_SamplingTime_160,
     .oversampling_enable = true,
     .oversampling_ratio = ADC_OversamplingRatio_32,
@@ -173,7 +173,7 @@ UART_t RS = {
   .reg = USART2,
   .tx_pin = UART2_TX_PA2,
   .rx_pin = UART2_RX_PA3,
-  .dma_channel = 5,
+  .dma_nbr = 5,
   .UART_9600,
   .buff = &rs_buff,
   .gpio_direction = &rs_gpio_direction
@@ -198,7 +198,7 @@ UART_t dbg_uart = {
   .reg = USART1,
   .tx_pin = UART1_TX_PA9,
   .rx_pin = UART1_RX_PA10,
-  .dma_channel = DMA_Nbr_4,
+  .dma_nbr = DMA_Nbr_4,
   .int_prioryty = INT_Prioryty_Low,
   .UART_115200
 };

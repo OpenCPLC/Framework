@@ -4,10 +4,10 @@
 
 static void UART_InterruptDMA(UART_t *uart)
 {
-  if(DMA1->ISR & (2 << (4 * (uart->dma_channel - 1)))) {
-    DMA1->IFCR |= (2 << (4 * (uart->dma_channel - 1)));
+  if(uart->dma.reg->ISR & DMA_ISR_TCIF(uart->dma.pos)) {
+    uart->dma.reg->IFCR |= DMA_ISR_TCIF(uart->dma.pos);
     uart->reg->CR1 |= USART_CR1_TCIE;
-    uart->_busy_tx = false;
+    uart->busy_tx = false;
   }
 }
 
@@ -24,7 +24,7 @@ static void UART_InterruptEV(UART_t *uart)
   if((uart->reg->CR1 & USART_CR1_TCIE) && (uart->reg->ISR & USART_ISR_TC)) {
     uart->reg->CR1 &= ~USART_CR1_TCIE;
     uart->reg->ICR |= USART_ICR_TCCF;
-    uart->_busy_tc = false;
+    uart->busy_tc = false;
     if(uart->gpio_direction) GPIO_Rst(uart->gpio_direction);
   }
   if(uart->reg->ISR & USART_ISR_RTOF) {
@@ -84,22 +84,22 @@ void UART_Init(UART_t *uart)
     GPIO_Init(uart->gpio_direction);
   }
   BUFF_Init(uart->buff);
-  uart->tx_dma = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * (uart->dma_channel - 1)));
-  DMAMUX_Channel_TypeDef *dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (uart->dma_channel - 1)));
-  RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+  DMA_SetRegisters(uart->dma_nbr, &uart->dma);
+  RCC_EnableDMA(uart->dma.reg);
   RCC_EnableUART(uart->reg);
-  dmamux->CCR &= 0xFFFFFFC0;
+  uart->dma.mux->CCR &= 0xFFFFFFC0;
   switch((uint32_t)uart->reg) {
-    case (uint32_t)USART1: dmamux->CCR |= 51; break;
-    case (uint32_t)USART2: dmamux->CCR |= 53; break;
-    case (uint32_t)USART3: dmamux->CCR |= 55; break;
-    case (uint32_t)USART4: dmamux->CCR |= 57; break;
-    case (uint32_t)LPUART1: dmamux->CCR |= 15; break;
+    case (uint32_t)USART1: uart->dma.mux->CCR |= DMAMUX_REQ_USART1_TX; break;
+    case (uint32_t)USART2: uart->dma.mux->CCR |= DMAMUX_REQ_USART2_TX; break;
+    case (uint32_t)USART3: uart->dma.mux->CCR |= DMAMUX_REQ_USART3_TX; break;
+    case (uint32_t)USART4: uart->dma.mux->CCR |= DMAMUX_REQ_USART4_TX; break;
+    case (uint32_t)LPUART1: uart->dma.mux->CCR |= DMAMUX_REQ_LPUART1_TX; break;
+    case (uint32_t)LPUART2: uart->dma.mux->CCR |= DMAMUX_REQ_LPUART2_TX; break;
   }
   GPIO_AlternateInit(&UART_TX_MAP[uart->tx_pin], false);
   GPIO_AlternateInit(&UART_RX_MAP[uart->rx_pin], false);
-  uart->tx_dma->CPAR = (uint32_t)&(uart->reg->TDR);
-  uart->tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
+  uart->dma.cha->CPAR = (uint32_t)&(uart->reg->TDR);
+  uart->dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
   if((uint32_t)uart->reg == (uint32_t)LPUART1) {
     uart->reg->BRR = (uint64_t)256 * SystemCoreClock / uart->baud;
   }
@@ -119,7 +119,7 @@ void UART_Init(UART_t *uart)
   uart->reg->CR1 |= USART_CR1_RXNEIE_RXFNEIE | USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
   uart->reg->ICR |= USART_ICR_TCCF;
   uart->reg->RQR |= USART_RQR_RXFRQ;
-  INT_EnableDMA(uart->dma_channel, uart->int_prioryty, (void (*)(void*))&UART_InterruptDMA, uart);
+  INT_EnableDMA(uart->dma_nbr, uart->int_prioryty, (void (*)(void*))&UART_InterruptDMA, uart);
   INT_EnableUART(uart->reg, uart->int_prioryty, (void (*)(void*))&UART_InterruptEV, uart);
   if(uart->tim) {
     uart->tim->prescaler = 100;
@@ -179,37 +179,37 @@ void UART_SetTimeout(UART_t *uart, uint16_t timeout)
 
 bool UART_During(UART_t *uart)
 {
-  return uart->_busy_tc;
+  return uart->busy_tc;
 }
 
 bool UART_Idle(UART_t *uart)
 {
-  return !(uart->_busy_tc);
+  return !(uart->busy_tc);
 }
 
 bool UART_IsBusy(UART_t *uart)
 {
-  return uart->_busy_tx;
+  return uart->busy_tx;
 }
 
 bool UART_IsFree(UART_t *uart)
 {
-  return !(uart->_busy_tx);
+  return !(uart->busy_tx);
 }
 
 //------------------------------------------------------------------------------------------------- Send
 
 state_t UART_Send(UART_t *uart, uint8_t *data, uint16_t length)
 {
-  if(!uart->_busy_tx) {
+  if(!uart->busy_tx) {
     if(uart->gpio_direction) GPIO_Set(uart->gpio_direction);
-    uart->tx_dma->CCR &= ~DMA_CCR_EN;
-    uart->tx_dma->CMAR = (uint32_t)data;
-    uart->tx_dma->CNDTR = length;
+    uart->dma.cha->CCR &= ~DMA_CCR_EN;
+    uart->dma.cha->CMAR = (uint32_t)data;
+    uart->dma.cha->CNDTR = length;
     if(uart->prefix) uart->reg->TDR = uart->prefix; // send address for stream
-    uart->tx_dma->CCR |= DMA_CCR_EN;
-    uart->_busy_tx = true;
-    uart->_busy_tc = true;
+    uart->dma.cha->CCR |= DMA_CCR_EN;
+    uart->busy_tx = true;
+    uart->busy_tc = true;
     return FREE;
   }
   else return BUSY;

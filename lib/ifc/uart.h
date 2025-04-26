@@ -51,7 +51,7 @@ typedef struct {
   USART_TypeDef *reg;
   UART_TX_t tx_pin;
   UART_RX_t rx_pin;
-  DMA_Nbr_t dma_channel;
+  DMA_Nbr_t dma_nbr;
   INT_Prioryty_t int_prioryty;
   uint32_t baud;
   UART_Parity_t parity;
@@ -60,10 +60,10 @@ typedef struct {
   GPIO_t *gpio_direction;
   TIM_t *tim;
   BUFF_t *buff;
-  DMA_Channel_TypeDef *tx_dma;
   uint8_t prefix;
-  bool _busy_tx;
-  bool _busy_tc;
+  DMA_t dma;
+  bool busy_tx;
+  bool busy_tc;
 } UART_t;
 
 //--------------------------------------------------------------------------------------------------------------------------------

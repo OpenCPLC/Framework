@@ -1,6 +1,7 @@
 #ifndef SPI_MASTER_H_
 #define SPI_MASTER_H_
 
+#include "int.h"
 #include "spi.h"
 #include "exdef.h"
 #include "main.h"
@@ -17,8 +18,8 @@
 
 typedef struct {
   SPI_TypeDef *reg;
-  DMA_Nbr_t tx_dma_channel;
-  DMA_Nbr_t rx_dma_channel;
+  DMA_Nbr_t tx_dma_nbr;
+  DMA_Nbr_t rx_dma_nbr;
   INT_Prioryty_t int_prioryty;
   SPI_SCK_t sck_pin;
   SPI_MISO_t miso_pin;
@@ -29,8 +30,8 @@ typedef struct {
   bool lsb;
   bool cpol;
   bool cpha;
-  DMA_Channel_TypeDef *tx_dma;
-  DMA_Channel_TypeDef *rx_dma;
+  DMA_t tx_dma;
+  DMA_t rx_dma;
   uint8_t const_reg;
   bool busy_flag;
 } SPI_Master_t;

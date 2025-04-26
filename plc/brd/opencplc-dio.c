@@ -227,7 +227,7 @@ UART_t RS = {
   .reg = USART1,
   .tx_pin = UART1_TX_PB6,
   .rx_pin = UART1_RX_PB7,
-  .dma_channel = 5,
+  .dma_nbr = 5,
   .UART_9600,
   .buff = &rs_buff,
   .gpio_direction = &rs_gpio_direction
@@ -249,7 +249,7 @@ UART_t dbg_uart = {
   .reg = USART2,
   .tx_pin = UART2_TX_PD5,
   .rx_pin = UART2_RX_PD6,
-  .dma_channel = 4,
+  .dma_nbr = 4,
   .UART_115200,
   .buff = &dbg_buff
 };
