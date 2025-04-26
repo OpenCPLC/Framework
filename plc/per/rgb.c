@@ -121,7 +121,7 @@ void LED_OneShoot(RGB_e color, uint16_t ms)
   rgb_focus->one_shot = true;
 }
 
-//TODO
+// TODO...
 void LED_Bash(char **argv, uint16_t argc)
 {
   RGB_Hash_e sw = hash(argv[0]);

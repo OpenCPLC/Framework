@@ -15,6 +15,7 @@ typedef struct {
   uint32_t value[4];
   bool center_aligned;
   uint16_t deadtime; // 0-1024 [tick]
+  bool dma_coop;
 } PWM_t;
 
 void PWM_SetPrescaler(PWM_t *pwm, uint32_t prescaler);

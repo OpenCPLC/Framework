@@ -274,7 +274,7 @@ void LOG_Init(const char *greeting, const char *version)
     DBG_String(ANSI_CYAN "INI " ANSI_END);
     DBG_String((char *)greeting);
     if(version) {
-      DBG_String(" " ANSI_CYAN);
+      DBG_String(" " ANSI_GREY);
       DBG_String((char *)version);
       DBG_String(ANSI_END);
     }
@@ -460,4 +460,15 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...)
     case LOG_Level_None: break;
   }
   va_end(args);
+}
+
+//-------------------------------------------------------------------------------------------------
+
+void LOG_ErrorParse(const char *function_name, char *value)
+{
+  #if(LOG_COLORS)
+    LOG_Error("Parse "ANSI_YELLOW"%s"ANSI_END"("ANSI_ORANGE"'%s'"ANSI_END"') fault", function_name, value);
+  #else
+    LOG_Error("Parse %s('%s') fault", function_name, value);
+  #endif
 }

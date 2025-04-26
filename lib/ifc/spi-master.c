@@ -4,8 +4,8 @@
 
 static void SPI_Master_InterruptDMA(SPI_Master_t *spi)
 {
-  if(DMA1->ISR & (2 << (4 * (spi->rx_dma_channel - 1)))) {
-    DMA1->IFCR |= (2 << (4 * (spi->rx_dma_channel - 1)));
+  if(spi->rx_dma.reg->ISR & DMA_ISR_TCIF(spi->rx_dma.pos)) {
+    spi->rx_dma.reg->IFCR |= DMA_ISR_TCIF(spi->rx_dma.pos);
     if(spi->cs_gpio) GPIO_Rst(spi->cs_gpio);
     spi->busy_flag = false;
     if(!spi->mosi_pin) spi->reg->CR1 &= ~SPI_CR1_SPE;
@@ -14,31 +14,31 @@ static void SPI_Master_InterruptDMA(SPI_Master_t *spi)
 
 void SPI_Master_Init(SPI_Master_t *spi)
 {
-  RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+  DMA_SetRegisters(spi->rx_dma_nbr, &spi->rx_dma);
+  DMA_SetRegisters(spi->tx_dma_nbr, &spi->tx_dma);
+  RCC_EnableDMA(spi->rx_dma.reg);
+  RCC_EnableDMA(spi->tx_dma.reg);
   GPIO_AlternateInit(&SPI_SCK_MAP[spi->sck_pin], false);
-  DMAMUX_Channel_TypeDef *dmamux;
   if(spi->miso_pin) {
-    spi->rx_dma = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * (spi->rx_dma_channel - 1)));
-    dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (spi->rx_dma_channel - 1)));
+    spi->rx_dma.mux->CCR &= 0xFFFFFFC0;
     switch((uint32_t)spi->reg) {
-      case (uint32_t)SPI1: dmamux->CCR = (dmamux->CCR & 0xFFFFFFC0) | 16; break;
-      case (uint32_t)SPI2: dmamux->CCR = (dmamux->CCR & 0xFFFFFFC0) | 18; break;
+      case (uint32_t)SPI1: spi->rx_dma.mux->CCR |= DMAMUX_REQ_SPI1_RX; break;
+      case (uint32_t)SPI2: spi->rx_dma.mux->CCR |= DMAMUX_REQ_SPI2_RX; break;
     }
-    INT_EnableDMA(spi->rx_dma_channel, spi->int_prioryty, (void (*)(void*))&SPI_Master_InterruptDMA, spi);
+    INT_EnableDMA(spi->rx_dma_nbr, spi->int_prioryty, (void (*)(void*))&SPI_Master_InterruptDMA, spi);
     GPIO_AlternateInit(&SPI_MISO_MAP[spi->miso_pin], false);
-    spi->rx_dma->CPAR = (uint32_t)&(spi->reg->DR);
-    spi->rx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE;
+    spi->rx_dma.cha->CPAR = (uint32_t)&(spi->reg->DR);
+    spi->rx_dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE;
   }
   if(spi->mosi_pin) {
-    spi->tx_dma = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * (spi->tx_dma_channel - 1)));
-    dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (spi->tx_dma_channel - 1)));
+    spi->tx_dma.mux->CCR &= 0xFFFFFFC0;
     switch((uint32_t)spi->reg) {
-      case (uint32_t)SPI1: dmamux->CCR = (dmamux->CCR & 0xFFFFFFC0) | 17; break;
-      case (uint32_t)SPI2: dmamux->CCR = (dmamux->CCR & 0xFFFFFFC0) | 19; break;
+      case (uint32_t)SPI1: spi->tx_dma.mux->CCR |= DMAMUX_REQ_SPI1_TX; break;
+      case (uint32_t)SPI2: spi->tx_dma.mux->CCR |= DMAMUX_REQ_SPI2_TX; break;
     }
     GPIO_AlternateInit(&SPI_MOSI_MAP[spi->mosi_pin], false);
-    spi->tx_dma->CPAR = (uint32_t)&(spi->reg->DR);
-    spi->tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR;
+    spi->tx_dma.cha->CPAR = (uint32_t)&(spi->reg->DR);
+    spi->tx_dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_DIR;
   }
   uint32_t cr2 = SPI_CR2_RXDMAEN | SPI_CR2_FRXTH | SPI_CR2_SSOE | 0x00000700;
   uint32_t cr1 = SPI_CR1_MSTR | (spi->lsb << 7) | (spi->prescaler << 3) | SPI_CR1_SPE | (spi->cpol << 1) | spi->cpha;
@@ -68,20 +68,20 @@ bool SPI_Master_IsFree(SPI_Master_t *spi)
 
 static void SPI_Master_Start(SPI_Master_t *spi)
 {
-  spi->tx_dma->CCR &= ~DMA_CCR_EN;
-  spi->rx_dma->CCR &= ~DMA_CCR_EN;
+  spi->tx_dma.cha->CCR &= ~DMA_CCR_EN;
+  spi->rx_dma.cha->CCR &= ~DMA_CCR_EN;
 }
 
 static void SPI_Master_End(SPI_Master_t *spi, uint16_t n)
 {
-  spi->tx_dma->CNDTR = n;
-  spi->rx_dma->CNDTR = n;
+  spi->tx_dma.cha->CNDTR = n;
+  spi->rx_dma.cha->CNDTR = n;
   if(spi->cs_gpio) {
     GPIO_Set(spi->cs_gpio);
     SPI_Delay(spi->cs_delay);
   }
-  spi->rx_dma->CCR |= DMA_CCR_EN;
-  spi->tx_dma->CCR |= DMA_CCR_EN;
+  spi->rx_dma.cha->CCR |= DMA_CCR_EN;
+  spi->tx_dma.cha->CCR |= DMA_CCR_EN;
   spi->busy_flag = true;
 }
 
@@ -89,20 +89,20 @@ state_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, ui
 {
   if(spi->busy_flag) return BUSY;
   SPI_Master_Start(spi);
-	spi->tx_dma->CCR |= DMA_CCR_MINC;
-	spi->rx_dma->CCR |= DMA_CCR_MINC;
-	spi->tx_dma->CMAR = (uint32_t)tx_buff;
-	spi->rx_dma->CMAR = (uint32_t)rx_buff;
+	spi->tx_dma.cha->CCR |= DMA_CCR_MINC;
+	spi->rx_dma.cha->CCR |= DMA_CCR_MINC;
+	spi->tx_dma.cha->CMAR = (uint32_t)tx_buff;
+	spi->rx_dma.cha->CMAR = (uint32_t)rx_buff;
 	SPI_Master_End(spi, n);
   return FREE;
 }
 
 void SPI_Master_OnlyRead(SPI_Master_t *spi, uint8_t *rx_buff, uint16_t n)
 {
-  spi->rx_dma->CCR &= ~DMA_CCR_EN;
-  spi->rx_dma->CMAR = (uint32_t)rx_buff;
-  spi->rx_dma->CNDTR = n;
-  spi->rx_dma->CCR |= DMA_CCR_EN;
+  spi->rx_dma.cha->CCR &= ~DMA_CCR_EN;
+  spi->rx_dma.cha->CMAR = (uint32_t)rx_buff;
+  spi->rx_dma.cha->CNDTR = n;
+  spi->rx_dma.cha->CCR |= DMA_CCR_EN;
   spi->busy_flag = true;
   spi->reg->CR1 |= SPI_CR1_SPE;
 }
@@ -113,10 +113,10 @@ state_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint1
   spi->const_reg = addr;
   if(!spi->mosi_pin) { SPI_Master_OnlyRead(spi, rx_buff, n); return 0; }
   SPI_Master_Start(spi);
-  spi->tx_dma->CCR &= ~DMA_CCR_MINC;
-  spi->rx_dma->CCR |= DMA_CCR_MINC;
-  spi->tx_dma->CMAR = (uint32_t)&(spi->const_reg);
-  spi->rx_dma->CMAR = (uint32_t)rx_buff;
+  spi->tx_dma.cha->CCR &= ~DMA_CCR_MINC;
+  spi->rx_dma.cha->CCR |= DMA_CCR_MINC;
+  spi->tx_dma.cha->CMAR = (uint32_t)&(spi->const_reg);
+  spi->rx_dma.cha->CMAR = (uint32_t)rx_buff;
   SPI_Master_End(spi, n);
   return FREE;
 }
@@ -125,10 +125,10 @@ state_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_buff, uint16_t n)
 {
   if(spi->busy_flag) return BUSY;
   SPI_Master_Start(spi);
-  spi->tx_dma->CCR |= DMA_CCR_MINC;
-  spi->rx_dma->CCR &= ~DMA_CCR_MINC;
-  spi->tx_dma->CMAR = (uint32_t)tx_buff;
-  spi->rx_dma->CMAR = (uint32_t)&(spi->const_reg);
+  spi->tx_dma.cha->CCR |= DMA_CCR_MINC;
+  spi->rx_dma.cha->CCR &= ~DMA_CCR_MINC;
+  spi->tx_dma.cha->CMAR = (uint32_t)tx_buff;
+  spi->rx_dma.cha->CMAR = (uint32_t)&(spi->const_reg);
   SPI_Master_End(spi, n);
   return FREE;
 }

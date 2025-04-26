@@ -72,9 +72,9 @@ typedef enum {
 } DMA_Nbr_t;
 
 typedef struct {
-  DMA_TypeDef *REG;
-  DMA_Channel_TypeDef *CHA;
-  DMAMUX_Channel_TypeDef *MUX;
+  DMA_TypeDef *reg;
+  DMA_Channel_TypeDef *cha;
+  DMAMUX_Channel_TypeDef *mux;
   uint8_t pos;
 } DMA_t;
 
@@ -92,8 +92,8 @@ typedef enum {
   DMAMUX_REQ_I2C1_TX = 11,
   DMAMUX_REQ_I2C2_RX = 12,
   DMAMUX_REQ_I2C2_TX = 13,
-  DMAMUX_REQ_LPUART_RX = 14,
-  DMAMUX_REQ_LPUART_TX = 15,
+  DMAMUX_REQ_LPUART1_RX = 14,
+  DMAMUX_REQ_LPUART1_TX = 15,
   DMAMUX_REQ_SPI1_RX = 16,
   DMAMUX_REQ_SPI1_TX = 17,
   DMAMUX_REQ_SPI2_RX = 18,
@@ -157,6 +157,11 @@ typedef enum {
   DMAMUX_REQ_USART6_RX = 76,
   DMAMUX_REQ_USART6_TX = 77
 } DMAMUX_REQ_t;
+
+#define DMA_ISR_TEIF(pos)  (8 << (4 * pos))
+#define DMA_ISR_HTIF(pos)  (4 << (4 * pos))
+#define DMA_ISR_TCIF(pos)  (2 << (4 * pos))
+#define DMA_ISR_GIF(pos)   (1 << (4 * pos))
 
 //-------------------------------------------------------------------------------------------------
 

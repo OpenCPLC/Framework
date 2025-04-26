@@ -325,18 +325,19 @@ void INT_EnableEXTI(uint8_t exti_nbr, INT_Prioryty_t priority, void (*handler)(v
  * @param[out] dma: Pointer to DMA_t structure to initialize
  */
 void DMA_SetRegisters(DMA_Nbr_t dma_nbr, DMA_t *dma)
-{
+{ 
+  if(!dma_nbr) return;
   if(dma_nbr <= DMA_Nbr_7) {
-    dma->REG = DMA1;
+    dma->reg = DMA1;
     dma->pos = dma_nbr - 1;
-    dma->CHA = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * dma->pos));
+    dma->cha = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * dma->pos));
   }
   else {
-    dma->REG = DMA2;
+    dma->reg = DMA2;
     dma->pos = dma_nbr - 1 - DMA_Nbr_7;
-    dma->CHA = (DMA_Channel_TypeDef *)(DMA2_BASE + 8 + (20 * dma->pos));
+    dma->cha = (DMA_Channel_TypeDef *)(DMA2_BASE + 8 + (20 * dma->pos));
   }
-  dma->MUX = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (dma_nbr - 1)));
+  dma->mux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (dma_nbr - 1)));
 }
 
 //-------------------------------------------------------------------------------------------------

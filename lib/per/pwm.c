@@ -84,7 +84,7 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->ARR = pwm->auto_reload;
   pwm->reg->CR1 = TIM_CR1_ARPE | (pwm->center_aligned << 6) | (pwm->center_aligned << 5);
   PWM_SetDeadtime(pwm, pwm->deadtime);
-  pwm->reg->DIER &= ~TIM_DIER_UIE;
+  pwm->reg->DIER = (pwm->reg->DIER & ~TIM_DIER_UIE) | (pwm->dma_coop << TIM_DIER_UDE_Pos);
   pwm->reg->BDTR |= TIM_BDTR_MOE;
   pwm->reg->EGR |= TIM_EGR_UG;
   pwm->reg->CR1 |= TIM_CR1_CEN;

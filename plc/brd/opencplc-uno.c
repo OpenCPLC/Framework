@@ -117,7 +117,7 @@ ADC_t ain_adc = {
   .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
-    .dma_channel = 1,
+    .dma_nbr = 1,
     .sampling_time = ADC_SamplingTime_160,
     .oversampling_enable = true,
     .oversampling_ratio = ADC_OversamplingRatio_64,
@@ -148,7 +148,7 @@ UART_t RS1 = {
   .reg = USART2,
   .tx_pin = UART2_TX_PA2,
   .rx_pin = UART2_RX_PA3,
-  .dma_channel = 5,
+  .dma_nbr = 5,
   .UART_9600,
   .buff = &rs1_buff,
   .gpio_direction = &rs1_gpio_direction,
@@ -162,7 +162,7 @@ UART_t RS2 = {
   .reg = USART1,
   .tx_pin = UART1_TX_PC4,
   .rx_pin = UART1_RX_PC5,
-  .dma_channel = 6,
+  .dma_nbr = 6,
   .UART_9600,
   .buff = &rs2_buff,
   .gpio_direction = &rs2_gpio_direction,
@@ -209,7 +209,7 @@ UART_t dbg_uart = {
   .reg = USART3,
   .tx_pin = UART3_TX_PB8,
   .rx_pin = UART3_RX_PB9,
-  .dma_channel = DMA_Nbr_4,
+  .dma_nbr = DMA_Nbr_4,
   .int_prioryty = INT_Prioryty_Low,
   .UART_115200,
   #ifdef STM32G081xx
@@ -352,8 +352,8 @@ GPIO_t rtd_gpio_cs = { .port = GPIOB, .pin = 12, .reverse = true };
 
 SPI_Master_t rtd_spi = {
   .reg = SPI2,
-  .tx_dma_channel = DMA_Nbr_2,
-  .rx_dma_channel = DMA_Nbr_3,
+  .tx_dma_nbr = DMA_Nbr_2,
+  .rx_dma_nbr = DMA_Nbr_3,
   .int_prioryty = INT_Prioryty_Medium,
   .miso_pin = SPI2_MISO_PB14,
   .mosi_pin = SPI2_MOSI_PB15,
