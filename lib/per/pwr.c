@@ -86,7 +86,9 @@ void RCC_EnableDMA(DMA_TypeDef *dam_typedef)
 {
   switch((uint32_t)dam_typedef) {
     case (uint32_t)DMA1: RCC->AHBENR |= RCC_AHBENR_DMA1EN; break;
-    case (uint32_t)DMA2: RCC->AHBENR |= RCC_AHBENR_DMA2EN; break;
+    #ifdef STM32G0C1xx
+      case (uint32_t)DMA2: RCC->AHBENR |= RCC_AHBENR_DMA2EN; break;
+    #endif
   }
 }
 

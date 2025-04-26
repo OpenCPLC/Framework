@@ -113,7 +113,7 @@ uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
   .frequency = ADC_Frequency_16MHz,
-  .interrupt_level = 3,
+  .int_prioryty = 3,
   .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
@@ -176,7 +176,7 @@ I2C_Master_t i2c_master = {
   .scl_pin = I2C1_SCL_PA9,
   .sda_pin = I2C1_SDA_PA10,
   .pull_up = true,
-  .interrupt_level = 1,
+  .int_prioryty = 1,
   .I2C_TIMING_100kHz
 };
 

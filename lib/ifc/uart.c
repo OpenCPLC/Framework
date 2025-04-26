@@ -52,7 +52,12 @@ const GPIO_Map_t UART_TX_MAP[] = {
   [UART4_TX_PC10] = { .port = GPIOC, .pin = 10, .alternate = 1 },
   [LPUART1_TX_PA2] = { .port = GPIOA, .pin = 2, .alternate = 6 },
   [LPUART1_TX_PB11] = { .port = GPIOB, .pin = 11, .alternate = 1 },
-  [LPUART1_TX_PC1] = { .port = GPIOC, .pin = 1, .alternate = 1 }
+  [LPUART1_TX_PC1] = { .port = GPIOC, .pin = 1, .alternate = 1 },
+  #ifdef STM32G0C1xx
+    [LPUART2_TX_PA2] = { .port = GPIOA, .pin = 2, .alternate = 8 },
+    [LPUART2_TX_PC2] = { .port = GPIOC, .pin = 2, .alternate = 8 },
+    [LPUART2_TX_PD5] = { .port = GPIOD, .pin = 5, .alternate = 7 }
+  #endif
 };
 
 const GPIO_Map_t UART_RX_MAP[] = {
@@ -72,7 +77,12 @@ const GPIO_Map_t UART_RX_MAP[] = {
   [UART4_RX_PC11] = { .port = GPIOC, .pin = 11, .alternate = 1 },
   [LPUART1_RX_PA3] = { .port = GPIOA, .pin = 3, .alternate = 6 },
   [LPUART1_RX_PB10] = { .port = GPIOB, .pin = 10, .alternate = 1 },
-  [LPUART1_RX_PC0] = { .port = GPIOC, .pin = 0, .alternate = 1 }
+  [LPUART1_RX_PC0] = { .port = GPIOC, .pin = 0, .alternate = 1 },
+  #ifdef STM32G0C1xx
+    [LPUART2_RX_PA3] = { .port = GPIOA, .pin = 3, .alternate = 8 },
+    [LPUART2_RX_PC3] = { .port = GPIOC, .pin = 3, .alternate = 8 },
+    [LPUART2_RX_PD6] = { .port = GPIOD, .pin = 6, .alternate = 7 }
+  #endif
 };
 
 //------------------------------------------------------------------------------------------------- Init
@@ -94,13 +104,19 @@ void UART_Init(UART_t *uart)
     case (uint32_t)USART3: uart->dma.mux->CCR |= DMAMUX_REQ_USART3_TX; break;
     case (uint32_t)USART4: uart->dma.mux->CCR |= DMAMUX_REQ_USART4_TX; break;
     case (uint32_t)LPUART1: uart->dma.mux->CCR |= DMAMUX_REQ_LPUART1_TX; break;
-    case (uint32_t)LPUART2: uart->dma.mux->CCR |= DMAMUX_REQ_LPUART2_TX; break;
+    #ifdef STM32G0C1xx
+      case (uint32_t)LPUART2: uart->dma.mux->CCR |= DMAMUX_REQ_LPUART2_TX; break;
+    #endif
   }
   GPIO_AlternateInit(&UART_TX_MAP[uart->tx_pin], false);
   GPIO_AlternateInit(&UART_RX_MAP[uart->rx_pin], false);
   uart->dma.cha->CPAR = (uint32_t)&(uart->reg->TDR);
   uart->dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
-  if((uint32_t)uart->reg == (uint32_t)LPUART1) {
+  if((uint32_t)uart->reg == (uint32_t)LPUART1
+  #ifdef STM32G0C1xx
+    || (uint32_t)uart->reg == (uint32_t)LPUART2
+  #endif
+  ) {
     uart->reg->BRR = (uint64_t)256 * SystemCoreClock / uart->baud;
   }
   else uart->reg->BRR = SystemCoreClock / uart->baud;
