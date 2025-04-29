@@ -1,13 +1,13 @@
-/**
- * @file dout.c
- * @brief Obsługa wyjść cyfrowych tranzystorowych i triakowych OpenCPLC
- */
-
 #include "dout.h"
-#include "dbg.h"
+#include "log.h"
 
 //-------------------------------------------------------------------------------------------------
 
+/**
+ * @brief Odczytuje aktualną częstotliwość sygnału PWM.
+ * @param pwm Wskaźnik do struktury reprezentującej sygnał PWM.
+ * @return Aktualna częstotliwość sygnału PWM [Hz].
+ */
 float PWM_GetFrequency(PWM_t *pwm)
 {
   return (float)SystemCoreClock / pwm->prescaler  / pwm->auto_reload / (pwm->center_aligned + 1);
@@ -15,8 +15,7 @@ float PWM_GetFrequency(PWM_t *pwm)
 
 /**
  * @brief Ustawia częstotliwość dla sygnału PWM.
- * Zeruje wartości wypełnienia `duty` dla wszystkich kanałów PWM.
- * Kontroler PWM_t jest powiązany z kilkoma wyjściami cyfrowymi.
+ * Kontroler PWM_t może być powiązany z kilkoma wyjściami cyfrowymi.
  * Zatem częstotliwość zostanie zmieniona na wszystkich powiązanych wyjściach cyfrowych.
  * @param pwm Wskaźnik do struktury reprezentującej sygnał PWM.
  * @param frequency Docelowa częstotliwość sygnału PWM.
@@ -24,13 +23,46 @@ float PWM_GetFrequency(PWM_t *pwm)
  */
 float PWM_Frequency(PWM_t *pwm, float frequency)
 {
-  uint32_t auto_reload = (float)SystemCoreClock / pwm->prescaler / frequency / (pwm->center_aligned + 1);
+  uint32_t auto_reload_prev = pwm->auto_reload;
+  uint32_t prescaler_prev = pwm->prescaler;
+  uint32_t prescaler = 1;
+  uint32_t auto_reload;
+  do {
+    PWM_SetPrescaler(pwm, prescaler++);
+    auto_reload = (float)SystemCoreClock / pwm->prescaler / frequency / (pwm->center_aligned + 1);
+  } while(auto_reload > 0xFFFF);
   PWM_SetAutoreload(pwm, auto_reload);
-  if(pwm->channel[TIM_CH1]) PWM_SetValue(pwm, TIM_CH1, 0);
-  if(pwm->channel[TIM_CH2]) PWM_SetValue(pwm, TIM_CH2, 0);
-  if(pwm->channel[TIM_CH3]) PWM_SetValue(pwm, TIM_CH3, 0);
-  if(pwm->channel[TIM_CH4]) PWM_SetValue(pwm, TIM_CH4, 0);
+  for(TIM_Channel_t CH = TIM_CH1; CH <= TIM_CH4; CH++) {
+    if(pwm->value[CH]) {
+      PWM_SetValue(pwm, CH, (uint32_t)((uint64_t)pwm->value[CH] * pwm->prescaler * pwm->auto_reload / auto_reload_prev / prescaler_prev));
+    }
+  }
   return PWM_GetFrequency(pwm);
+}
+
+/**  
+ * @brief Odczytuje aktualną częstotliwość sygnału PWM powiązanego z wyjściem cyfrowym.
+ * @param dout Wskaźnik do struktury reprezentującej wyjście tranzystorowe (TO) lub triakowe (XO).
+ * @return Aktualna częstotliwość sygnału PWM [Hz]. Wartość 0 dla wyjść bez licznika, np. przekaźnikowych (RO).
+ */
+float DOUT_GetFrequency(DOUT_t *dout)
+{
+  if(!dout->pwm) return 0;
+  return PWM_GetFrequency(dout->pwm);
+}
+
+/**
+ * @brief Ustawia częstotliwość sygnału PWM powiązanego z wyjściem cyfrowym.
+ * Kontroler PWM_t może być powiązany z kilkoma wyjściami cyfrowymi.
+ * Zatem częstotliwość zostanie zmieniona na wszystkich powiązanych wyjściach cyfrowych.
+ * @param dout Wskaźnik do struktury reprezentującej wyjście tranzystorowe (TO) lub triakowe (XO).
+ * @param frequency Docelowa częstotliwość sygnału PWM.
+ * @return Aktualna częstotliwość sygnału PWM [Hz]. Wartość 0 dla wyjść bez licznika, np. przekaźnikowych (RO).
+ */
+float DOUT_Frequency(DOUT_t *dout, float frequency)
+{
+  if(!dout->pwm) return 0;
+  return PWM_Frequency(dout->pwm, frequency);
 }
 
 /**
@@ -42,7 +74,9 @@ float PWM_Frequency(PWM_t *pwm, float frequency)
  */
 float DOUT_Duty(DOUT_t *dout, float duty)
 {
-  if(!dout->pwm) return 0;
+  if(!dout->pwm) {
+    return 0;
+  }
   uint32_t old_value = dout->pwm->value[dout->channel];
   PWM_SetValue(dout->pwm, dout->channel, duty * dout->pwm->auto_reload / 100);
   dout->value = dout->pwm->value[dout->channel];
@@ -56,7 +90,7 @@ float DOUT_Duty(DOUT_t *dout, float duty)
 /**
  * @brief Ustawia stan wysoki na wyjściu cyfrowym.
  * Wyjściu przekaźnikowym (RO): wykonuje zwarcie na styku przekaźnika.
- * Wyjście tranzystorowe (TO): wystawia potencjał 24V.
+ * Wyjście tranzystorowe (TO): wystawia potencjał zasilania lub TCOM.
  * Wyjście triakowe (XO): przenosi napięcie przemienne z XCOM.
  * Jeśli opcja `save` jest włączona, aktualny stan jest zapisywany do EEPROM.
  * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
@@ -260,111 +294,133 @@ void DOUT_Settings(DOUT_t *dout, bool save)
 
 //-------------------------------------------------------------------------------------------------
 
+#include "bash.h"
+
 void DOUT_Print(DOUT_t *dout)
 {
+  #if(LOG_COLORS)
+    DBG_String(ANSI_TEAL);
+  #endif
   DBG_String(dout->name);
+  #if(LOG_COLORS)
+    DBG_String(ANSI_END);
+  #endif
   if(dout->pwm) {
     float duty = DOUT_GetDuty(dout);
-    DBG_String(" duty:"); DBG_Float(duty, 2); DBG_Char('%');
+    #if(LOG_COLORS)
+       DBG_String(ANSI_GREY" duty:"ANSI_END);
+    #else
+       DBG_String(" duty:");
+    #endif
+    DBG_Float(duty, 2);
+    DBG_Char('%');
     float freq = PWM_GetFrequency(dout->pwm);
-    DBG_String(" freq:"); DBG_Float(freq, 0); DBG_String("Hz");
+    #if(LOG_COLORS)
+      DBG_String(ANSI_GREY" freq:"ANSI_END);
+    #else
+      DBG_String(" freq:");
+    #endif
+    DBG_Float(freq, 0);
+    DBG_String("Hz");
   }
   else {
-    if(DOUT_State(dout)) DBG_String(" on");
-    else DBG_String(" off");
+    if(DOUT_State(dout)) DBG_String(" ON ");
+    else DBG_String(" OFF");
     if(DOUT_IsPulse(dout)) DBG_Char('*');
     if(dout->relay) {
-      DBG_String(" cycles:");
+      #if(LOG_COLORS)
+        DBG_String(ANSI_GREY" cycles:"ANSI_END);
+      #else
+        DBG_String(" cycles:");
+      #endif
       DBG_uDec(dout->cycles);
     }
   }
-  DBG_Enter();
 }
 
-DOUT_t **dout_list;
-uint8_t dout_count;
+static struct {
+  DOUT_t *dout[DOUT_BASH_LIMIT];
+  uint16_t count;
+  uint32_t hash[DOUT_BASH_LIMIT];
+} bash;
 
-void DOUT_BashInit(DOUT_t *douts[])
+void DOUT_Add2Bash(DOUT_t *dout)
 {
-  dout_list = douts;
-  while(douts) {    
-    dout_count++;
-    douts++;
+  if(bash.count >= DOUT_BASH_LIMIT) {
+    #if(LOG_COLORS)
+      LOG_Error("Exceeded "ANSI_TURQUS"DOUT_t"ANSI_END" limit (max %u)", DOUT_BASH_LIMIT);
+    #else
+      LOG_Error("Exceeded DOUT_t limit (max %u)", DOUT_BASH_LIMIT);
+    #endif
+    return;
   }
+  if(!dout->name) {
+    #if(LOG_COLORS)
+      LOG_Error("Object "ANSI_TURQUS"DOUT_t"ANSI_END" passed to BASH must be named", DOUT_BASH_LIMIT);
+    #else
+      LOG_Error("Object DOUT_t passed to BASH must be named", DOUT_BASH_LIMIT);
+    #endif
+    return;
+  }
+  char *argv = strcopy(dout->name);
+  bash.dout[bash.count] = dout;
+  bash.hash[bash.count] = hash(str2lower_this(argv));
+  bash.count++;
 }
 
-// bool DOUT_Bash(char **argv, uint16_t argc)
-// {
-//   if(!dout_list) return false;
-//   if(strcmp(argv[0], "dout")) return false;
-//   DOUT_t *dout = NULL;
-//   uint8_t index = 255;
-//   if(argc >= 3) {
-//     if(str2nbr_valid(argv[1])) {
-//       index = str2nbr(argv[1]);
-//       if(index >= dout_count) return false;
-//       dout += index;
-//     }
-//     else {
-//       dout = *dout_list;
-//       uint8_t i;
-//       while(dout) {
-//         if(!strcmp(argv[1], strtolower(dout->name))) {
-//           index = i;
-//           break;
-//         }
-//         dout++;
-//         i++;
-//       }
-//     }
-//     if(!dout) return false;
-//     char *str;
-//     switch(hash(argv[2])) {
-//       case DOUT_Hash_Set:
-//       case DOUT_Hash_On:
-//       case DOUT_Hash_Enable:
-//         DOUT_Set(dout);
-//         break;
-//       case DOUT_Hash_Rst:
-//       case DOUT_Hash_Reset:
-//       case DOUT_Hash_Off:
-//       case DOUT_Hash_Disable:
-//         DOUT_Rst(dout);
-//         break;
-//       case DOUT_Hash_Tgl:
-//       case DOUT_Hash_Toggle:
-//       case DOUT_Hash_Sw:
-//       case DOUT_Hash_Switch:
-//         DOUT_Tgl(dout);
-//         break;
-//       case DOUT_Hash_Pulse:
-//       case DOUT_Hash_Impulse:
-//       case DOUT_Hash_Burst:
-//         if(argc < 4) return false;
-//         str = argv[3];
-//         if(!str2nbr_valid(str)) return false;
-//         uint16_t pulse = str2nbr(str);
-//         DOUT_Pulse(dout, pulse);
-//         break;
-//       case DOUT_Hash_Duty:
-//       case DOUT_Hash_Fill:
-//         if(argc < 4) return false;
-//         str = argv[3];
-//         if(!str2float_valid(str)) return false;
-//         float duty = str2float(str);
-//         DOUT_Duty(dout, duty);
-//         break;
-//     }
-//   }
-//   dout = *dout_list;
-//   DBG_String("DOUT:");
-//   DBG_Enter();
-//   while(dout) {    
-//     DBG_String("  ");
-//     DOUT_Print(dout);
-//     dout++;
-//   }
-//   return true;
-// }
+void DOUT_Bash(char **argv, uint16_t argc)
+{
+  BASH_Argc(2, 4);
+  uint32_t argv1_hash = hash(argv[1]);
+  if(argv1_hash == HASH_List) {
+    const char *names[bash.count];
+    for(uint16_t i = 0; i < bash.count; i++) {
+      names[i] = bash.dout[i]->name;
+    }
+    #if(LOG_COLORS)
+      LOG_Info("Digital outputs: "ANSI_TEAL"%a %s"ANSI_END, bash.count, names);
+    #elif
+      LOG_Info("Digital outputs: %a, %s", bash.count, names);
+    #endif
+    return;
+  }
+  DOUT_t *dout = NULL;
+  for(uint16_t i = 0; i < bash.count; i++) {
+    if(bash.hash[i] == argv1_hash) {
+      dout = bash.dout[i];
+      break;
+    }
+  }
+  if(!dout) {
+    #if(LOG_COLORS)
+      LOG_Warning("Digital output "ANSI_TEAL"%s"ANSI_END" not found", argv[1]);
+    #else
+      LOG_Warning("Digital output %s not found", argv[1]);
+    #endif
+    return;
+  }
+  bool pulse_todo = false;
+  if(argc >= 3) {
+    switch(hash(argv[2])) {
+      case HASH_Set: case HASH_On: case HASH_Enable: DOUT_Set(dout); break;
+      case HASH_Rst: case HASH_Reset: case HASH_Off: case HASH_Disable: DOUT_Rst(dout); break;
+      case HASH_Tgl: case HASH_Toggle: case HASH_Sw: case HASH_Switch: DOUT_Tgl(dout); break;
+      case HASH_Pulse: case HASH_Impulse: case HASH_Burst: pulse_todo = true;
+      case HASH_Duty: case HASH_Fill: {
+        BASH_Argc(4);
+        if(str2uint16_fault(argv[3])) {
+          LOG_ParseFault("str2uint16", argv[3]);
+          BASH_ArgvExit(3);
+        }
+        uint16_t value = str2nbr(argv[3]);
+        if(pulse_todo) DOUT_Pulse(dout, value);
+        else DOUT_Duty(dout, value);
+        break;
+      }
+      default: BASH_ArgvExit(2);
+    }
+  }
+  LOG_Info("Digital output %o", dout, &DOUT_Print);
+}
 
 //-------------------------------------------------------------------------------------------------

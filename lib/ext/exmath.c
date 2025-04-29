@@ -123,28 +123,6 @@ bool contains_uint32(const uint32_t *array, uint16_t len, uint32_t value)
   return false;
 }
 
-/**
- * @brief Fast approximation of sine for 16-bit phase input.
- * @param phase Phase value (0–65535) mapped to 0–360°.
- * @return Sine output as int16_t (-32768..32767).
- */
-int16_t sin_int16(uint16_t phase)
-{
-  // Convert phase into quadrant (0..3)
-  uint16_t quadrant = (phase >> 14) & 0x3; // top 2 bits
-  uint16_t offset = phase & 0x3FFF;         // lower 14 bits within quadrant
-  // Mirror offset for 2nd and 4th quadrants
-  if(quadrant == 1 || quadrant == 3) offset = 0x4000 - offset;
-  // Fast linear sine approximation in 1st quadrant
-  // sin(x) ≈ x * (π/2) / 0x4000
-  int32_t val = (int32_t)offset * 51471 / 16384; // 51471 ≈ (32767 * π/2) / 0x4000
-  // Return adjusted value based on quadrant
-  if (quadrant == 0) return (int16_t)val;
-  if (quadrant == 1) return (int16_t)(32767 - val);
-  if (quadrant == 2) return (int16_t)(-val);
-  return (int16_t)(val - 32767);
-}
-
 //-------------------------------------------------------------------------------------------------
 
 float distance(float ax, float ay, float bx, float by)
@@ -197,3 +175,55 @@ bool scale_fill(float start, float end, int n, float transition, float *scale_ar
 
 //-------------------------------------------------------------------------------------------------
 
+/**
+ * @brief Simple exponential moving average (EMA) filter.
+ *   Works with both `int16_t` and `uint16_t` (using casting for unsigned types).
+ * @param raw New input sample value.
+ * @param prev Previous sample value.
+ * @param alpha_shift Filter strength (higher shift = stronger smoothing). Example: 3 means alpha = 1/8.
+ * @return Smoothed output value.
+ */
+int16_t ema_filter_int16(int16_t raw, int16_t prev, uint8_t alpha_shift)
+{
+  int32_t diff = (int32_t)raw - (int32_t)prev;
+  // Add a small fraction (1 / 2^alpha_shift) of the difference to the previous output:
+  int32_t step = diff >> alpha_shift;
+  if(step == 0 && diff != 0) step = (diff > 0) ? 1 : -1;
+  prev += (int16_t)step;
+  return (int16_t)prev;
+}
+
+/**
+ * @brief Step limiter to control maximum change between values for `int16_t`
+ * @param raw New input sample `int16_t` value.
+ * @param prev Previous sample `int16_t` value.
+ * @param max_delta Maximum allowed change per step.
+ * @return Limited output value as `int16_t`.
+ */
+int16_t step_limiter_int16(int16_t raw, int16_t prev, uint16_t max_delta)
+{
+  int32_t diff = (int32_t)raw - (int32_t)prev;
+  if(diff > (int32_t)max_delta) prev += max_delta;
+  else if(diff < -(int32_t)max_delta) prev -= max_delta;
+  else prev = raw;
+  return (int16_t)prev;
+}
+
+/**
+ * @brief Step limiter to control maximum change between values for `uint16_t`
+ * @param raw New input sample `uint16_t` value.
+ * @param prev Previous sample `uint16_t` value.
+ * @param max_delta Maximum allowed change per step.
+ * @return Limited output value as `uint16_t`.
+ */
+uint16_t step_limiter_uint16(uint16_t raw, uint16_t prev, uint16_t max_delta)
+{
+  int32_t diff = (int32_t)raw - (int32_t)prev; // pełne różnice na uint16
+  if(diff > (int32_t)max_delta) prev += max_delta;
+  else if(diff < -(int32_t)max_delta) prev -= max_delta;
+  else prev = raw;
+  return prev;
+}
+
+
+//-------------------------------------------------------------------------------------------------

@@ -8,6 +8,8 @@
  *        Interfejs RS1 pracuje jako Master, RS2 jako Slave.
  *        Master odczytuje trzy (wszystkie) rejestry ze Slave'a, chyba że użytkownik wciśnie przycisk.
  *        Wówczas Master nadpisuje jeden z rejestrów, na co Slave reaguje.
+ * @short RS1A --> RS2A
+ *        RS1B --> RS2B
  */
 
 #define MODBUS_ADDR 0x07 // Adres urządzenia Modbus Slave

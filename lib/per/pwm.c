@@ -24,6 +24,17 @@ void PWM_SetValue(PWM_t *pwm, TIM_Channel_t channel, uint32_t value)
   }
 }
 
+uint32_t PWM_GetValue(PWM_t *pwm, TIM_Channel_t channel)
+{
+  switch(channel) {
+    case TIM_CH1: case TIM_CH1N: return pwm->value[TIM_CH1]; break;
+    case TIM_CH2: case TIM_CH2N: return pwm->value[TIM_CH2]; break;
+    case TIM_CH3: case TIM_CH3N: return pwm->value[TIM_CH3]; break;
+    case TIM_CH4: case TIM_CH4N: return pwm->value[TIM_CH4]; break;
+  }
+  return 0;
+}
+
 void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime)
 {
   if(deadtime >= 1024) deadtime = 1024;
@@ -55,7 +66,7 @@ static void PWM_ChannelInit(PWM_t *pwm, TIM_Channel_t channel)
   bool invert_pos = pwm->invert[channel];
   bool invert_neg = pwm->invert[channel + 4];
   RCC_EnableTIM(pwm->reg);
-  pwm->reg->CCER |= ((invert_neg << 3) | TIM_CCER_CC1NE | (invert_pos << 1) | TIM_CCER_CC1E) << (4 * channel);
+  pwm->reg->CCER |= ((invert_neg << TIM_CCER_CC1NP_Pos) | TIM_CCER_CC1NE | (invert_pos << TIM_CCER_CC1P_Pos) | TIM_CCER_CC1E) << (4 * channel);
   PWM_SetValue(pwm, channel, pwm->value[channel]);
   switch(channel) {
     case TIM_CH1: pwm->reg->CCMR1 |= TIM_CCMR1_OC1PE | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1; break;
@@ -84,7 +95,7 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->ARR = pwm->auto_reload;
   pwm->reg->CR1 = TIM_CR1_ARPE | (pwm->center_aligned << 6) | (pwm->center_aligned << 5);
   PWM_SetDeadtime(pwm, pwm->deadtime);
-  pwm->reg->DIER = (pwm->reg->DIER & ~TIM_DIER_UIE) | (pwm->dma_coop << TIM_DIER_UDE_Pos);
+  pwm->reg->DIER = (pwm->reg->DIER & ~TIM_DIER_UIE) | (pwm->dma_trig << TIM_DIER_UDE_Pos);
   pwm->reg->BDTR |= TIM_BDTR_MOE;
   pwm->reg->EGR |= TIM_EGR_UG;
   pwm->reg->CR1 |= TIM_CR1_CEN;

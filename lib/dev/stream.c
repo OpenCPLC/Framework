@@ -19,7 +19,17 @@ uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
       if(CRC_Error(stream->crc, buffer, length)) return 0;
       length -= stream_crc->width / 8;
     #endif
-    if(!stream->data_mode) {
+    if(stream->data_mode) {
+      char **file;
+      char *loc;
+      file = new(sizeof(char*) + (length * sizeof(char)));
+      loc = (char*)file + sizeof(char*);
+      memcpy(loc, buffer, length);
+      file[0] = loc;
+      *argv = file;
+      return length;
+    }
+    else {
       buffer = trim(buffer);
       int argc = explode(argv, buffer, ' ');
       if(stream->modify == STREAM_Modify_Lowercase || stream->modify == STREAM_Modify_Uppercase) {
@@ -29,16 +39,6 @@ uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
         }
       }
       return (uint8_t)argc;
-    }
-    else {
-      char **file;
-      char *loc;
-      file = new(sizeof(char*) + (length * sizeof(char)));
-      loc = (char*)file + sizeof(char*);
-      memcpy(loc, buffer, length);
-      file[0] = loc;
-      *argv = file;
-      return length;
     }
   }
   return 0;

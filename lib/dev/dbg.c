@@ -4,9 +4,9 @@
 
 //------------------------------------------------------------------------------------------------- Basic
 
-static int32_t DBG_ConsolePrintSkip(void) {
+static int32_t DBG_ConsolePrintKill(void) {
   #if(LOG_COLORS)
-    return DBG_String("\e[91m^C\e[0m ");
+    return DBG_String(ANSI_RED"^C"ANSI_END);
   #else
     return DBG_String("^C");
   #endif
@@ -15,30 +15,36 @@ static int32_t DBG_ConsolePrintSkip(void) {
 static int32_t DBG_ConsolePrintExecute(void)
 {
   #if(LOG_COLORS)
-    return DBG_String("\e[32m^E\e[0m ");
+    return DBG_String(ANSI_GREEN"^E"ANSI_END);
   #else
     return DBG_String("^E");
   #endif
 }
 
-static void DBG_ConsoleRun(bool logs_print)
+static void DBG_PrintLogs(bool print)
 {
-  if(!logs_print) {
+  if(LogPrintFlag && !print) {
     #if(LOG_COLORS)
-      DBG_String("\e[93m^S\e[0m ");
+      DBG_String(ANSI_ORANGE">> "ANSI_END);
     #else
-      DBG_String("^S");
+      DBG_String(">> ");
     #endif
   }
-  LogPrintFlag = logs_print;
+  LogPrintFlag = print;
+}
+
+static void DBG_PrintLogsStop(void)
+{
+  LogPrintFlag = false;
 }
 
 static BUFF_Console_t dbg_cosole = {
   .Echo = DBG_Char,
   .Enter = DBG_Enter,
-  .Skip = DBG_ConsolePrintSkip,
+  .Kill = DBG_ConsolePrintKill,
   .Execute = DBG_ConsolePrintExecute,
-  .Run = DBG_ConsoleRun
+  .Run = DBG_PrintLogs,
+  .Stop = DBG_PrintLogsStop
 };
 
 static uint8_t dbg_buffer_rx[DBG_RX_SIZE];
@@ -195,24 +201,22 @@ int32_t DBG_File(FILE_t *file)
   size += DBG_String((char *)file->name);
   size += DBG_Char(' ');
   size += DBG_uDec(file->size);
-  size += DBG_Char('/');
+  #if(LOG_COLORS)
+    size += DBG_String(ANSI_GREY"/"ANSI_END);
+  #else
+    size += DBG_Char('/');
+  #endif
   size += DBG_uDec(file->limit);
   if(file->mutex) size += DBG_String(" mutex");
   if(file->flash_page) {
-    size += DBG_String(" flash:");
+    #if(LOG_COLORS)
+      size += DBG_String(ANSI_GREY" flash:"ANSI_END);
+    #else
+      size += DBG_String(" flash:");
+    #endif
     size += DBG_uDec(file->flash_page);
   }
   return size;
 }
-
-//-------------------------------------------------------------------------------------------------
-
-int32_t DBG_int8_Print(int8_t *nbr) { return DBG_Dec(*nbr); }
-int32_t DBG_uint8_Print(uint8_t *nbr) { return DBG_uDec(*nbr); }
-int32_t DBG_int16_Print(int16_t *nbr) { return DBG_Dec(*nbr); }
-int32_t DBG_uint16_Print(uint16_t *nbr) { return DBG_uDec(*nbr); }
-int32_t DBG_int32_Print(int32_t *nbr) { return DBG_Dec(*nbr); }
-int32_t DBG_uint32_Print(uint32_t *nbr) { return DBG_uDec(*nbr); }
-int32_t DBG_float_Print(float *nbr) { return DBG_Float(*nbr, 6); }
 
 //-------------------------------------------------------------------------------------------------

@@ -74,34 +74,6 @@ bool DIN_Edge(DIN_t *din)
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Zwraca wartość częstotliwości sygnału z określonego wejścia cyfrowego (DI).
- * Wejście cyfrowe musi pracować w trybie szybkiego licznika.
- * Tryb szybkiego licznika aktywuje się, ustawiając `fast_counter` na `true`.
- * @param din Wskaźnik do struktury reprezentującej wejście cyfrowe (DI).
- * @return Częstotliwość sygnału na określonym wejściu cyfrowym (DI).
- */
-float DIN_Freq(DIN_t *din)
-{
-  if(din->frequency) return *din->frequency;
-  return 0;
-}
-
-/**
- * @brief Zwraca wartość wypełnienia sygnału z określonego wejścia cyfrowego (DI).
- * Wejście cyfrowe musi pracować w trybie szybkiego licznika.
- * Tryb szybkiego licznika aktywuje się, ustawiając `fast_counter` na `true`.
- * @param din Wskaźnik do struktury reprezentującej wejście cyfrowe (DI).
- * @return Wypełnienie sygnału na określonym wejściu cyfrowym (DI).
- */
-float DIN_Fill(DIN_t *din)
-{
-  if(din->fill) return *din->fill;
-  return 0;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-/**
  * @brief Inicjalizuje określone wejście cyfrowe (DI).
  * @param din Wskaźnik do struktury reprezentującej wejście cyfrowe (DI).
  * @return Wartość `true` dla konfiguracji trybu szybkiego licznika.
@@ -160,3 +132,31 @@ void DIN_Settings(DIN_t *din, uint16_t ton_ms, uint16_t toff_ms, uint16_t toggle
 }
 
 //-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Zwraca zmierzone wypełnienie z szybkiego licznika.
+ * Gdy licznik nie jest aktywny lub na wejściu cyfrowym (DI) brak sygnału, zwraca `NaN`.
+ * Tryb szybkiego licznika aktywuje się, ustawiając `fast_counter` na `true`.
+ * @param din Wskaźnik do struktury reprezentującej wejście cyfrowe (DI).
+ * @return Wypełnienie sygnału [%] lub `NaN`.
+ */
+float DIN_Duty_Percent(DIN_t *din)
+{
+  float duty = din->pwmi->duty[din->channel];
+  if(!din->fast_counter || isNaN(duty)) return NaN;
+  return din->gpif.gpio.reverse ? (100.0f - duty) : duty;
+}
+
+/**
+ * @brief Zwraca zmierzoną częstotliwość z szybkiego licznika
+ * Gdy licznik nie jest aktywny lub na wejściu cyfrowym (DI) brak sygnału, zwraca NaN.
+ * Tryb szybkiego licznika aktywuje się, ustawiając `fast_counter` na `true`.
+ * @param din Wskaźnik do struktury reprezentującej wejście cyfrowe (DI).
+ * @return Częstotliwość [Hz] lub `NaN`.
+ */
+float DIN_Frequency_Hz(DIN_t *din)
+{
+  float frequency = din->pwmi->frequency[din->channel];
+  if(!din->fast_counter || isNaN(frequency)) return NaN;
+  return frequency;
+}

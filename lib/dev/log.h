@@ -78,7 +78,7 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...);
 #define LOG_PAC LOG_Panic
 #define LOG_MSG LOG_Message
 
-void LOG_ErrorParse(const char *function_name, char *value);
+void LOG_ParseFault(const char *function_name, char *value);
 
 //-------------------------------------------------------------------------------------------------
 #endif

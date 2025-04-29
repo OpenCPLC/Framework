@@ -464,10 +464,10 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...)
 
 //-------------------------------------------------------------------------------------------------
 
-void LOG_ErrorParse(const char *function_name, char *value)
+void LOG_ParseFault(const char *function_name, char *value)
 {
   #if(LOG_COLORS)
-    LOG_Error("Parse "ANSI_YELLOW"%s"ANSI_END"("ANSI_ORANGE"'%s'"ANSI_END"') fault", function_name, value);
+    LOG_Error("Parse "ANSI_YELLOW"%s"ANSI_END"("ANSI_CYAN"%s"ANSI_END"') fault", function_name, value);
   #else
     LOG_Error("Parse %s('%s') fault", function_name, value);
   #endif

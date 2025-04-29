@@ -31,16 +31,11 @@ DOUT_t RO4 = { .name = "RO4", .relay = true, .gpio = { .port = GPIOB, .pin = 4 }
 
 PWM_t to_pwm = {
   .reg = TIM1,
-  #if(SYS_CLOCK_FREQ == 16000000)
-    .prescaler = 46,
-  #elif(SYS_CLOCK_FREQ == 18432000)
-    // .prescaler = TODO, 
-  #endif
+  .auto_reload = PLC_ARR_INIT_1KHz(SYS_CLOCK_FREQ, true),
   .channel[TIM_CH1] = TIM1_CH1_PC8,
   .channel[TIM_CH2] = TIM1_CH2_PC9,
   .channel[TIM_CH3] = TIM1_CH3_PC10,
   .channel[TIM_CH4] = TIM1_CH4_PC11,
-  .auto_reload = 1000,
   .center_aligned = true
 };
 
@@ -58,14 +53,10 @@ void TO_Frequency(float frequency)
 
 PWM_t xo_pwm = {
   .reg = TIM2,
-  #if(SYS_CLOCK_FREQ == 16000000)
-    .prescaler = 460,
-  #elif(SYS_CLOCK_FREQ == 18432000)
-
-  #endif
+  .auto_reload = PLC_ARR_INIT_1KHz(SYS_CLOCK_FREQ, true),
   .channel[TIM_CH1] = TIM2_CH1_PA15,
   .channel[TIM_CH2] = TIM2_CH2_PB3,
-  .auto_reload = 1000,
+  .center_aligned = true
 };
 
 DOUT_t XO1 = { .name = "XO1", .pwm = &xo_pwm, .channel = TIM_CH2, .eeprom = &io_eeprom[3], .save = false };
@@ -82,20 +73,22 @@ EXTI_t din_trig3, din_trig4;
 
 PWMI_t din_pwmi = {
   .reg = TIM3,
-  .prescaler = 49,
-  // .channel[TIM_CH1] = TIM3_CH1_PA6,
-  // .channel[TIM_CH2] = TIM3_CH2_PA7,
-  // .channel[TIM_CH3] = TIM3_CH3_PB0,
-  // .channel[TIM_CH4] = TIM3_CH4_PB1,
-  .input_prescaler = PWMI_Prescaler_1,
-  .filter = TIM_Filter_NoFilter,
-  .oversampling = 4
+  .prescaler = 64,
+  .capture_prescaler = PWMI_CapturePrescaler_1,
+  .filter = TIM_Filter_FCLK_N2,
+  .int_prioryty = INT_Prioryty_VeryHigh,
+  #if(!PWMI_OVERSAMPLING_AUTO)
+    .oversampling = 16,
+  #endif
+  .trig3 = &din_trig3,
+  .trig4 = &din_trig4
+
 };
 
-DIN_t DI1 = { .name = "DI1", .gpif = { .gpio = { .port = GPIOA, .pin = 6, .reverse = true } }, .eeprom = &io_eeprom[3] };
-DIN_t DI2 = { .name = "DI2", .gpif = { .gpio = { .port = GPIOA, .pin = 7, .reverse = true } }, .eeprom = &io_eeprom[3] };
-DIN_t DI3 = { .name = "DI3", .gpif = { .gpio = { .port = GPIOB, .pin = 0, .reverse = true } }, .eeprom = &io_eeprom[3] };
-DIN_t DI4 = { .name = "DI4", .gpif = { .gpio = { .port = GPIOB, .pin = 1, .reverse = true } }, .eeprom = &io_eeprom[3] };
+DIN_t DI1 = { .name = "DI1", .pwmi = &din_pwmi, .channel = TIM_CH1, .gpif = { .gpio = { .port = GPIOA, .pin = 6, .reverse = true } }, .eeprom = &io_eeprom[3] };
+DIN_t DI2 = { .name = "DI2", .pwmi = &din_pwmi, .channel = TIM_CH2, .gpif = { .gpio = { .port = GPIOA, .pin = 7, .reverse = true } }, .eeprom = &io_eeprom[3] };
+DIN_t DI3 = { .name = "DI3", .pwmi = &din_pwmi, .channel = TIM_CH3, .gpif = { .gpio = { .port = GPIOB, .pin = 0, .reverse = true } }, .eeprom = &io_eeprom[3] };
+DIN_t DI4 = { .name = "DI4", .pwmi = &din_pwmi, .channel = TIM_CH4, .gpif = { .gpio = { .port = GPIOB, .pin = 1, .reverse = true } }, .eeprom = &io_eeprom[3] };
 
 bool din_pwmi_init = false;
 
@@ -113,11 +106,11 @@ uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
   .frequency = ADC_Frequency_16MHz,
-  .int_prioryty = 3,
+  .int_prioryty = INT_Prioryty_Low,
   .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
-    .dma_nbr = 1,
+    .dma_nbr = DMA_Nbr_1,
     .sampling_time = ADC_SamplingTime_160,
     .oversampling_enable = true,
     .oversampling_ratio = ADC_OversamplingRatio_64,
@@ -180,10 +173,10 @@ I2C_Master_t i2c_master = {
   .I2C_TIMING_100kHz
 };
 
-GPIO_t _1wire_gpio = { .port = GPIOA, .pin = 10 };
+GPIO_t onewire_gpio = { .port = GPIOA, .pin = 10 };
 TIM_t sleep_us_tim = { .reg = TIM7 };
 
-void _1WIRE_Active(void)
+void ONEWIRE_Active(void)
 {
   sleep_us_init(&sleep_us_tim);
   I2C_Master_Disable(&i2c_master);
@@ -241,54 +234,43 @@ void PLC_Init(void)
   DIN_Init(&BTN);
   DBG_Init(&dbg_uart);
   BASH_AddFile(&cache_file);
-  BASH_AddCallback(&LED_Bash, "led");
+  BASH_AddCallback(&LED_Bash, "LED");
+  BASH_AddCallback(&DOUT_Bash, "DOUT");
   // Magistrala I2C
   TWI_Init(&i2c_master);
   // Wyjścia cyfrowe przekaźnikowe (RO)
-  DOUT_Init(&RO1);
-  DOUT_Init(&RO2);
-  DOUT_Init(&RO3);
-  DOUT_Init(&RO4);
+  DOUT_Init(&RO1); DOUT_Add2Bash(&RO1);
+  DOUT_Init(&RO2); DOUT_Add2Bash(&RO2);
+  DOUT_Init(&RO3); DOUT_Add2Bash(&RO3);
+  DOUT_Init(&RO4); DOUT_Add2Bash(&RO4);
   // Wyjścia cyfrowe tranzystorowe (TO)
-  DOUT_Init(&TO1);
-  DOUT_Init(&TO2);
-  DOUT_Init(&TO3);
-  DOUT_Init(&TO4);
+  DOUT_Init(&TO1); DOUT_Add2Bash(&TO1);
+  DOUT_Init(&TO2); DOUT_Add2Bash(&TO2);
+  DOUT_Init(&TO3); DOUT_Add2Bash(&TO3);
+  DOUT_Init(&TO4); DOUT_Add2Bash(&TO4);
   PWM_Init(&to_pwm);
   // Wyjścia cyfrowe triakowe (XO)
-  DOUT_Init(&XO1);
-  DOUT_Init(&XO2);
+  DOUT_Init(&XO1); DOUT_Add2Bash(&XO1);
+  DOUT_Init(&XO2); DOUT_Add2Bash(&XO2);
   PWM_Init(&xo_pwm);
   // Wejścia cyfrowe (DI)
   if(DIN_Init(&DI1)) {
     din_pwmi.channel[TIM_CH1] = TIM3_CH1_PA6;
-    DI1.frequency = &din_pwmi.frequency[0];
-    DI1.fill = &din_pwmi.fill[0];
     din_pwmi_init = true;
   }
   if(DIN_Init(&DI2)) {
     din_pwmi.channel[TIM_CH2] = TIM3_CH2_PA7;
-    DI2.frequency = &din_pwmi.frequency[1];
-    DI2.fill = &din_pwmi.fill[1];
     din_pwmi_init = true;
   }
   if(DIN_Init(&DI3)) {
     din_pwmi.channel[TIM_CH3] = TIM3_CH3_PB0;
-    DI3.frequency = &din_pwmi.frequency[2];
-    DI3.fill = &din_pwmi.fill[2];
     din_pwmi_init = true;
-    din_pwmi.trig3 = &din_trig3;
   }
   if(DIN_Init(&DI4)) {
     din_pwmi.channel[TIM_CH4] = TIM3_CH4_PB1;
-    DI4.frequency = &din_pwmi.frequency[3];
-    DI4.fill = &din_pwmi.fill[3];
     din_pwmi_init = true;
-    din_pwmi.trig4 = &din_trig4;
   }
-  if(din_pwmi_init) {
-    PWMI_Init(&din_pwmi);
-  }
+  if(din_pwmi_init) PWMI_Init(&din_pwmi);
   // Wejścia analogowe (AI)
   ADC_Init(&ain_adc);
   ADC_Record(&ain_adc);
