@@ -1,5 +1,11 @@
 #include "pwmi.h"
 
+#define PWMI_CONFIG_NOT_READY 0xFFFF
+
+//-------------------------------------------------------------------------------------------------
+
+static uint16_t PWMI_Run(PWMI_t *pwmi);
+
 static void PWMI_Interrupt(PWMI_t *pwmi)
 {
   if(pwmi->reg->SR & TIM_SR_TIF) PWMI_Run(pwmi);
@@ -63,9 +69,7 @@ static void PWMI_Reset(PWMI_t *pwmi)
   }
 }
 
-#include "log.h"
-
-uint16_t PWMI_Run(PWMI_t *pwmi)
+static uint16_t PWMI_Run(PWMI_t *pwmi)
 {
   pwmi->timeout_tick = tick_keep(pwmi->timeout_ms);
   TIM_Channel_t chan = pwmi->inc;
@@ -175,7 +179,7 @@ static float PWMI_GetDuty(PWMI_t *pwmi, TIM_Channel_t chan)
   return pwmi->duty[chan];
 }
 
-//---------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 void PWMI_Init(PWMI_t *pwmi)
 {

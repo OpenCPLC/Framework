@@ -82,7 +82,6 @@ PWMI_t din_pwmi = {
   #endif
   .trig3 = &din_trig3,
   .trig4 = &din_trig4
-
 };
 
 DIN_t DI1 = { .name = "DI1", .pwmi = &din_pwmi, .channel = TIM_CH1, .gpif = { .gpio = { .port = GPIOA, .pin = 6, .reverse = true } }, .eeprom = &io_eeprom[3] };
