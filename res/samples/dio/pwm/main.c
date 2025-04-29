@@ -55,10 +55,10 @@ void monit(void)
 {
   float duty, freq;
   while(1) {
-    duty = DIN_Duty_Percent(&DI1);
-    freq = DIN_Frequency_Hz(&DI1);
-    LOG_Info("Fast counter: %.0f%% %.2fHz", duty, freq);
-    delay(1000);
+    duty = DIN_Duty_Percent(&DI1); // Pobierz pomiar wypełnienia [%]
+    freq = DIN_Frequency_Hz(&DI1); // Pobierz pomiar częstotliwości [Hz]
+    LOG_Info("Fast counter: %.0f%% %.2fHz", duty, freq); // Wyświetl pomiary
+    delay(1000); // ... z interwałem 1s
   }
 }
 
