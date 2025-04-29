@@ -24,7 +24,7 @@ typedef struct {
   I2C_SCL_e scl_pin;
   I2C_SDA_e sda_pin;
   bool pull_up;
-  uint8_t interrupt_level;
+  INT_Prioryty_t int_prioryty;
   uint32_t timing;
   uint8_t filter; // Digital noise filter (0..15)
   #if(I2C_DMA_TX)

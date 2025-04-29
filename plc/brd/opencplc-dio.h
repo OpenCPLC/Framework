@@ -10,15 +10,21 @@
 #include "bash.h"
 #include "rgb.h"
 #include "vrts.h"
+#include "sys.h"
 #include "main.h"
 
 #define PLC_RS485
 
+#ifndef PLC_GREETING
+  #define PLC_GREETING "OpenCPLC DIO"
+#endif
+
 #ifndef PLC_BOOTLOADER
   #define PLC_BOOTLOADER 0
 #endif
+
 #ifndef PLC_BASETIME
-  #define PLC_BASETIME 10
+  #define PLC_BASETIME 1
 #endif
 
 // Wyjścia cyfrowe tranzystorowe (TO)

@@ -15,12 +15,13 @@ typedef struct {
   uint32_t value[4];
   bool center_aligned;
   uint16_t deadtime; // 0-1024 [tick]
-  bool dma_coop;
+  bool dma_trig;
 } PWM_t;
 
 void PWM_SetPrescaler(PWM_t *pwm, uint32_t prescaler);
 void PWM_SetAutoreload(PWM_t *pwm, uint32_t auto_reload);
 void PWM_SetValue(PWM_t *pwm, TIM_Channel_t channel, uint32_t value);
+uint32_t PWM_GetValue(PWM_t *pwm, TIM_Channel_t channel);
 void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime);
 void PWM_Init(PWM_t *pwm);
 void PWM_Off(PWM_t *pwm);

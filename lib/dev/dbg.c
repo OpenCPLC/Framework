@@ -4,9 +4,9 @@
 
 //------------------------------------------------------------------------------------------------- Basic
 
-static int32_t DBG_ConsolePrintSkip(void) {
+static int32_t DBG_ConsolePrintKill(void) {
   #if(LOG_COLORS)
-    return DBG_String("\e[91m^C\e[0m ");
+    return DBG_String(ANSI_RED"^C"ANSI_END);
   #else
     return DBG_String("^C");
   #endif
@@ -15,30 +15,36 @@ static int32_t DBG_ConsolePrintSkip(void) {
 static int32_t DBG_ConsolePrintExecute(void)
 {
   #if(LOG_COLORS)
-    return DBG_String("\e[32m^E\e[0m ");
+    return DBG_String(ANSI_GREEN"^E"ANSI_END);
   #else
     return DBG_String("^E");
   #endif
 }
 
-static void DBG_ConsoleRun(bool logs_print)
+static void DBG_PrintLogs(bool print)
 {
-  if(!logs_print) {
+  if(LogPrintFlag && !print) {
     #if(LOG_COLORS)
-      DBG_String("\e[93m^S\e[0m ");
+      DBG_String(ANSI_ORANGE">> "ANSI_END);
     #else
-      DBG_String("^S");
+      DBG_String(">> ");
     #endif
   }
-  LogPrintFlag = logs_print;
+  LogPrintFlag = print;
+}
+
+static void DBG_PrintLogsStop(void)
+{
+  LogPrintFlag = false;
 }
 
 static BUFF_Console_t dbg_cosole = {
   .Echo = DBG_Char,
   .Enter = DBG_Enter,
-  .Skip = DBG_ConsolePrintSkip,
+  .Kill = DBG_ConsolePrintKill,
   .Execute = DBG_ConsolePrintExecute,
-  .Run = DBG_ConsoleRun
+  .Run = DBG_PrintLogs,
+  .Stop = DBG_PrintLogsStop
 };
 
 static uint8_t dbg_buffer_rx[DBG_RX_SIZE];
@@ -105,15 +111,21 @@ void DBG_Loop(void)
   }
 }
 
-void DBG_Wait4Uart(void)
+void DBG_WaitForFree(void)
 {
   while(UART_IsBusy(DbgUart)) let();
 }
 
+void DBG_WaitForFreeBlock(void)
+{
+  while(UART_IsBusy(DbgUart)) __NOP();
+}
+
 void DBG_Send(uint8_t *array, uint16_t length)
 {
-  DBG_Wait4Uart();
+  DBG_WaitForFree();
   UART_Send(DbgUart, array, length);
+  DBG_WaitForFree();
 }
 
 void DBG_SendFile(FILE_t *file)
@@ -159,19 +171,15 @@ int32_t DBG_String(char *string) { return FILE_String(DbgFile, string); }
 int32_t DBG_Enter(void) { return FILE_Enter(DbgFile); }
 int32_t DBG_ClearLastLine(void) { return FILE_ClearLastLine(DbgFile); }
 int32_t DBG_Bool(bool value) { return FILE_Bool(DbgFile, value); }
-
 int32_t DBG_Int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space) {
   return FILE_Int(DbgFile, nbr, base, sign, fill_zero, fill_space);
 }
-
 int32_t DBG_Float(float nbr, uint8_t accuracy) {
   return FILE_Float(DbgFile, nbr, accuracy, 1);
 }
-
 int32_t DBG_FloatSpace(float nbr, uint8_t accuracy, uint8_t fill_space) {
   return FILE_Float(DbgFile, nbr, accuracy, fill_space);
 }
-
 int32_t DBG_Dec(int32_t nbr) { return FILE_Dec(DbgFile, nbr); }
 int32_t DBG_uDec(uint32_t nbr) { return FILE_uDec(DbgFile, nbr); }
 int32_t DBG_Hex8(uint32_t nbr) { return FILE_Hex8(DbgFile, nbr); }
@@ -193,11 +201,19 @@ int32_t DBG_File(FILE_t *file)
   size += DBG_String((char *)file->name);
   size += DBG_Char(' ');
   size += DBG_uDec(file->size);
-  size += DBG_Char('/');
+  #if(LOG_COLORS)
+    size += DBG_String(ANSI_GREY"/"ANSI_END);
+  #else
+    size += DBG_Char('/');
+  #endif
   size += DBG_uDec(file->limit);
   if(file->mutex) size += DBG_String(" mutex");
   if(file->flash_page) {
-    size += DBG_String(" flash:");
+    #if(LOG_COLORS)
+      size += DBG_String(ANSI_GREY" flash:"ANSI_END);
+    #else
+      size += DBG_String(" flash:");
+    #endif
     size += DBG_uDec(file->flash_page);
   }
   return size;

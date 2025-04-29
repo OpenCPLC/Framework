@@ -45,8 +45,8 @@ uint8_t ADC_Record(ADC_t *adc)
          adc->record.oversampling_enable;
     ADC1->SMPR = adc->record.sampling_time;
     ADC_SetChannels(adc->record.channels, adc->record.count);
-    adc->record.dma->cha->CMAR = (uint32_t)(adc->record.buffer);
-    adc->record.dma->cha->CNDTR = (uint32_t)(adc->record.buffer_length);
+    adc->record.dma.cha->CMAR = (uint32_t)(adc->record.buffer);
+    adc->record.dma.cha->CNDTR = (uint32_t)(adc->record.buffer_length);
     if(adc->record.tim) {
       TIM_Enable(adc->record.tim);
       ADC1->CFGR1 |= ADC_CFGR1_EXTEN;
@@ -55,7 +55,7 @@ uint8_t ADC_Record(ADC_t *adc)
       ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
       ADC1->CFGR1 |= ADC_CFGR1_CONT;
     }
-    adc->record.dma->cha->CCR |= DMA_CCR_EN;
+    adc->record.dma.cha->CCR |= DMA_CCR_EN;
     ADC1->CR |= ADC_CR_ADSTART;
     return FREE;
   }
@@ -73,7 +73,7 @@ void ADC_Stop(ADC_t *adc)
     #if(ADC_RECORD)
       case ADC_StatusRecord:
         if(adc->record.tim) TIM_Disable(adc->record.tim);
-        adc->record.dma->cha->CCR &= ~DMA_CCR_EN;
+        adc->record.dma.cha->CCR &= ~DMA_CCR_EN;
         break;
     #endif
   }
@@ -135,8 +135,8 @@ static void ADC_InterruptEV(ADC_t *adc)
 #if(ADC_RECORD)
 static void ADC_InterruptDMA(ADC_t *adc)
 {
-  if(adc->record.dma->reg->ISR & DMA_ISR_TCIF(adc->record.dma->pos)) {
-    adc->record.dma->reg->IFCR |= DMA_ISR_TCIF(adc->record.dma->pos);
+  if(adc->record.dma.reg->ISR & DMA_ISR_TCIF(adc->record.dma.pos)) {
+    adc->record.dma.reg->IFCR |= DMA_ISR_TCIF(adc->record.dma.pos);
     ADC_Stop(adc);
     if(adc->record.tim) TIM_Disable(adc->record.tim);
   }
@@ -172,12 +172,12 @@ void ADC_Init(ADC_t *adc)
   ADC1->ISR |= ADC_ISR_EOCAL;
   #if(ADC_RECORD)
     DMA_SetRegisters(adc->record.dma_nbr, &adc->record.dma);
-    RCC_EnableDMA(adc->record.dma->reg);
+    RCC_EnableDMA(adc->record.dma.reg);
     ADC1->CFGR1 &= ~ADC_CFGR1_DMAEN;
-    adc->record.dma->mux->CCR &= 0xFFFFFFC0;
-    adc->record.dma->mux->CCR |= DMAMUX_REQ_ADC;
-    adc->record.dma->cha->CPAR = (uint32_t)(&(ADC1->DR));
-    adc->record.dma->cha->CCR |= DMA_CCR_MINC | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0 | DMA_CCR_TCIE;
+    adc->record.dma.mux->CCR &= 0xFFFFFFC0;
+    adc->record.dma.mux->CCR |= DMAMUX_REQ_ADC;
+    adc->record.dma.cha->CPAR = (uint32_t)(&(ADC1->DR));
+    adc->record.dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0 | DMA_CCR_TCIE;
     ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
     INT_EnableDMA(adc->record.dma_nbr, adc->int_prioryty, (void (*)(void *))&ADC_InterruptDMA, adc);
   #endif

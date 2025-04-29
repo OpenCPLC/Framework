@@ -1,11 +1,6 @@
 #ifndef DOUT_H_
 #define DOUT_H_
 
-/**
- * @file dout.h
- * @brief Obsługa wyjść cyfrowych tranzystorowych i triakowych OpenCPLC
- */
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "eeprom.h"
@@ -14,31 +9,16 @@
 #include "exstring.h"
 #include "main.h"
 
+// Obsługa wyjść cyfrowych tranzystorowych i triakowych OpenCPLC
 //-------------------------------------------------------------------------------------------------
 
 #ifndef DOUT_RELAY_DELAY
   #define DOUT_RELAY_DELAY 200
 #endif
 
-typedef enum {
-  DOUT_Hash_Dout = 2090192161,
-  DOUT_Hash_Set = 193505681,
-  DOUT_Hash_On = 5863682,
-  DOUT_Hash_Enable = 4218778540,
-  DOUT_Hash_Rst = 193505054,
-  DOUT_Hash_Reset = 273105544,
-  DOUT_Hash_Off = 193501344,
-  DOUT_Hash_Disable = 314893497,
-  DOUT_Hash_Tgl = 193506828,
-  DOUT_Hash_Toggle = 512249127,
-  DOUT_Hash_Sw = 5863823,
-  DOUT_Hash_Switch = 482686839,
-  DOUT_Hash_Pulse = 271301518,
-  DOUT_Hash_Impulse = 2630979716,
-  DOUT_Hash_Burst = 254705173,
-  DOUT_Hash_Duty = 2090198667,
-  DOUT_Hash_Fill = 2090257196
-} DOUT_Hash_e;
+#ifndef DOUT_BASH_LIMIT
+  #define DOUT_BASH_LIMIT 36
+#endif
 
 typedef struct {
   bool relay;            // Czy wyjście jest przekaźnikowe RO
@@ -55,7 +35,10 @@ typedef struct {
   uint16_t _pulse;
 } DOUT_t;
 
+float PWM_GetFrequency(PWM_t *pwm);
 float PWM_Frequency(PWM_t *pwm, float frequency);
+float DOUT_GetFrequency(DOUT_t *dout);
+float DOUT_Frequency(DOUT_t *dout, float frequency);
 float DOUT_Duty(DOUT_t *dout, float duty);
 void DOUT_Set(DOUT_t *dout);
 void DOUT_Rst(DOUT_t *dout);
@@ -69,9 +52,8 @@ void DOUT_Init(DOUT_t *dout);
 void DOUT_Loop(DOUT_t *dout);
 void DOUT_Settings(DOUT_t *dout, bool save);
 
-void DOUT_Print(DOUT_t *dout);
-void DOUT_BashInit(DOUT_t *douts[]);
-bool DOUT_Bash(char **argv, uint16_t argc);
+void DOUT_Add2Bash(DOUT_t *dout);
+void DOUT_Bash(char **argv, uint16_t argc);
 
 //-------------------------------------------------------------------------------------------------
 #endif

@@ -75,7 +75,7 @@ static void I2C_Master_InterruptDMA(I2C_Master_t *i2c)
 void I2C_Master_Init(I2C_Master_t *i2c)
 {
   RCC_EnableI2C(i2c->reg);
-  INT_EnableI2C(i2c->reg, i2c->interrupt_level, (void (*)(void *))&I2C_Master_InterruptEV, i2c);
+  INT_EnableI2C(i2c->reg, i2c->int_prioryty, (void (*)(void *))&I2C_Master_InterruptEV, i2c);
   GPIO_AlternateInit(&i2c_scl_map[i2c->scl_pin], i2c->pull_up);
   GPIO_AlternateInit(&i2c_sdc_map[i2c->sda_pin], i2c->pull_up);
 	i2c->reg->TIMINGR = i2c->timing;
@@ -89,7 +89,7 @@ void I2C_Master_Init(I2C_Master_t *i2c)
 	  i2c->tx_dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE+(4*(i2c->tx_dma_channel-1)));
 	  i2c->tx_dma->CPAR = (uint32_t) &(i2c->reg->TXDR);
 	  i2c->tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
-	  INT_EnableDMA(i2c->tx_dma_channel, i2c->interrupt_level, (void (*)(void *))&I2C_Master_InterruptDMA, i2c);
+	  INT_EnableDMA(i2c->tx_dma_channel, i2c->int_prioryty, (void (*)(void *))&I2C_Master_InterruptDMA, i2c);
 	  switch((uint32_t) i2c->reg) {
 	    case (uint32_t) I2C1: i2c->tx_dmamux->CCR = (i2c->tx_dmamux->CCR & 0xFFFFFFC0) | 11; break;
 	    case (uint32_t) I2C2: i2c->tx_dmamux->CCR = (i2c->tx_dmamux->CCR & 0xFFFFFFC0) | 13; break;

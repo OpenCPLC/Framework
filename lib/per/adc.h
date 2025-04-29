@@ -116,7 +116,7 @@ typedef struct {
   uint8_t oversampling_shift; // 0-8 [bit]
   uint16_t *buffer;
   uint16_t buffer_length;
-  DMA_t *dma;
+  DMA_t dma;
 } ADC_Record_t;
 #endif
 
@@ -128,7 +128,7 @@ typedef struct {
     ADC_Record_t record;
   #endif
   uint16_t overrun;
-  uint8_t busy;
+  volatile uint8_t busy;
 } ADC_t;
 
 //-------------------------------------------------------------------------------------------------

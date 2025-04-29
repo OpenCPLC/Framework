@@ -1,6 +1,6 @@
 #include "sys.h"
 
-void system_clock_init(void)
+void sys_clock_init(void)
 {
   #if(SYS_CLOCK_FREQ == 16000000)
     RCC_16MHz();
@@ -19,9 +19,16 @@ void system_clock_init(void)
 
 void panic(const char *message)
 {
+  #if(SYS_PANIC_HANDLER)
+    SYS_PANIC_HANDLER()
+  #endif
   LOG_Panic(message);
-  DBG_Wait4Uart();
-  PWR_Reset();
+  __disable_irq(); // Disable interrupts
+  #if(SYS_PANIC_RESET)
+    PWR_Reset();
+  #endif
+  volatile uint32_t i = 0;
+  while(1) i++; // Infinite loop to halt system
 }
 
 static TIM_t *SystemSleepTimer;
@@ -35,4 +42,16 @@ void sleep_us_init(TIM_t *tim)
 void sleep_us(uint32_t us)
 {
   DELAY_Wait(SystemSleepTimer, us);
+}
+
+volatile static uint32_t memory_guard = 0xA5A5DEAD;
+
+void sys_memory_guard(void)
+{
+  while(1) {
+    if(memory_guard != 0xA5A5DEAD) {
+      panic("Memory corruption "LOG_Module("SYS"));
+    }
+    delay(500);
+  }
 }

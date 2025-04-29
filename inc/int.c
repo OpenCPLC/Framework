@@ -332,11 +332,13 @@ void DMA_SetRegisters(DMA_Nbr_t dma_nbr, DMA_t *dma)
     dma->pos = dma_nbr - 1;
     dma->cha = (DMA_Channel_TypeDef *)(DMA1_BASE + 8 + (20 * dma->pos));
   }
-  else {
-    dma->reg = DMA2;
-    dma->pos = dma_nbr - 1 - DMA_Nbr_7;
-    dma->cha = (DMA_Channel_TypeDef *)(DMA2_BASE + 8 + (20 * dma->pos));
-  }
+  #ifdef STM32G0C1xx
+    else {
+      dma->reg = DMA2;
+      dma->pos = dma_nbr - 1 - DMA_Nbr_7;
+      dma->cha = (DMA_Channel_TypeDef *)(DMA2_BASE + 8 + (20 * dma->pos));
+    }
+  #endif
   dma->mux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (dma_nbr - 1)));
 }
 

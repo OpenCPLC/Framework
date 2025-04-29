@@ -21,8 +21,8 @@
 //-------------------------------------------------------------------------------------------------
 
 // Total allocated memory limit
-#ifndef NEW_TOTAL
-  #define NEW_TOTAL 8000 
+#ifndef MEM_SIZE_LIMIT
+  #define MEM_SIZE_LIMIT 8000 
 #endif
 
 // Variables limit allocated by the 'new' function
@@ -35,11 +35,13 @@
   #define ALOC_LIMIT 16 
 #endif
 
-#define NEW_OK 0
-#define NEW_ERROR_SIZE -1
-#define NEW_ERROR_LIMIT -2
-#define ALOC_ERROR_SIZE -3
-#define DLOC_NOT_FOUND -3
+typedef enum {
+  MEM_OK = 0,
+  MEM_ERR_Overflow = 1,
+  MEM_ERR_NewLimit = 2,
+  MEM_ERR_AlocLimit = 3,
+  MEM_ERR_DlocNotFound = 4
+} MEM_ERR_t;
 
 //-------------------------------------------------------------------------------------------------
 

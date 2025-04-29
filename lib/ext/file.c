@@ -124,12 +124,16 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
 {
   if(file->mutex) return 0;
   if(isNaN(nbr)) {
-    uint8_t len = fill_space > 3 ? fill_space : 3;
+    // uint8_t len = fill_space > 3 ? fill_space : 3;
+    // char nan[len + 1];
+    // memset(nan, ' ', len - 3);
+    // nan[len - 3] = 'N';
+    // nan[len - 2] = 'a';
+    // nan[len - 1] = 'N';
+    uint8_t len = fill_space > 1 ? fill_space : 1; 
     char nan[len + 1];
-    memset(nan, ' ', len - 3);
-    nan[len - 3] = 'N';
-    nan[len - 2] = 'a';
-    nan[len - 1] = 'N';
+    memset(nan, ' ', len - 1);
+    nan[len - 1] = '-'; 
     nan[len] = '\0';
     return FILE_String(file, nan);
   }

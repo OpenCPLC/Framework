@@ -33,7 +33,7 @@ typedef struct {
   DMA_t tx_dma;
   DMA_t rx_dma;
   uint8_t const_reg;
-  bool busy_flag;
+  volatile  bool busy_flag;
 } SPI_Master_t;
 
 void SPI_Master_Init(SPI_Master_t *spi);

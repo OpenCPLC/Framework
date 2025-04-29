@@ -1,4 +1,5 @@
 #include "new.h"
+#include "sys.h"
 
 static struct {
   #if(VRTS_SWITCHING)
@@ -55,12 +56,15 @@ NEW_t *new_init(uint16_t limit)
  * Disables interrupts and enters an infinite loop to halt execution.
  * @param error_code The error code indicating the type of memory error.
  */
-static void MEM_ErrorHandler(int8_t error_code)
+static void MEM_ErrorHandler(MEM_ERR_t err)
 {
-  // TODO: Implement critical error handling
-  __disable_irq(); // Disable interrupts
-  volatile uint32_t i = 0;
-  while(1) i++; // Infinite loop to halt system
+  switch(err) {
+    case MEM_ERR_Overflow: panic("Memory overflow "LOG_Module("NEW")); break;
+    case MEM_ERR_NewLimit: panic("Memory new-limit exceeded "LOG_Module("NEW")); break;
+    case MEM_ERR_AlocLimit: panic("Memory aloc-limit exceeded "LOG_Module("NEW")); break;
+    case MEM_ERR_DlocNotFound: panic("Memory dloc not-found "LOG_Module("NEW")); break;
+    default: return;
+  }
 }
 
 /**
@@ -79,8 +83,8 @@ void *new(size_t size)
   if(!stack) {
     stack = new_init(NEW_DEFAULT_LIMIT);
   }
-  if(stack->count >= stack->limit) MEM_ErrorHandler(NEW_ERROR_LIMIT);
-  if((state.total + size) >= NEW_TOTAL) MEM_ErrorHandler(NEW_ERROR_SIZE);
+  if(stack->count >= stack->limit) MEM_ErrorHandler(MEM_ERR_NewLimit);
+  if((state.total + size) >= MEM_SIZE_LIMIT) MEM_ErrorHandler(MEM_ERR_Overflow);
   pointer = malloc(size);
   stack->var[stack->count] = pointer;
   stack->count++;
@@ -120,10 +124,10 @@ void *aloc(size_t size)
   uint16_t i = 0;
   void *pointer = 0;
   if(!size) return pointer;
-  if((state.total + size) >= NEW_TOTAL) MEM_ErrorHandler(NEW_ERROR_SIZE);
+  if((state.total + size) >= MEM_SIZE_LIMIT) MEM_ErrorHandler(MEM_ERR_Overflow);
   while(state.aloc_vars[i]) {
     i++;
-    if(i >= ALOC_LIMIT) MEM_ErrorHandler(ALOC_ERROR_SIZE);
+    if(i >= ALOC_LIMIT) MEM_ErrorHandler(MEM_ERR_AlocLimit);
   }
   pointer = malloc(size);
   state.aloc_vars[i] = pointer;
@@ -152,7 +156,7 @@ void dloc(void **pointer)
     }
     i++;
   }
-  MEM_ErrorHandler(DLOC_NOT_FOUND);
+  MEM_ErrorHandler(MEM_ERR_DlocNotFound);
   return;
 }
 

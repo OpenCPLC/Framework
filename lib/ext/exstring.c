@@ -287,7 +287,7 @@ uint32_t str2nbr(const char *str)
     base = 2;
     str += 2;
   } 
-  else if (str[0] == '0' && str[1] == 'x') {
+  else if(str[0] == '0' && str[1] == 'x') {
     base = 16;
     str += 2;
   }
@@ -365,7 +365,7 @@ uint32_t str2nbr64(const char *str)
     base = 2;
     str += 2;
   } 
-  else if (str[0] == '0' && str[1] == 'x') {
+  else if(str[0] == '0' && str[1] == 'x') {
     base = 16;
     str += 2;
   }
@@ -1046,3 +1046,78 @@ char *replace_string(const char *pattern, const char *replacement, const char *o
 }
 
 //-------------------------------------------------------------------------------------------------
+
+
+
+// /**
+//  * @brief Processes a raw input buffer and handles backspace, arrows, and delete keys.
+//  * @param buffer Pointer to the character buffer to process.
+//  * @param length Length of the input buffer (number of bytes).
+//  * @return New length of the processed buffer (after editing).
+//  */
+// uint16_t process_buffer(char *buffer, uint16_t length)
+// {
+//   uint16_t cursor = 0; // current cursor position in the output buffer
+//   uint16_t current_length = 0; // current text length in the output buffer
+//   uint16_t i = 0; // input buffer iterator index
+//   while(i < length) {
+//     char c = buffer[i];
+//     if(c == '\b' || c == 0x7F) { // Backspace (BS, ASCII 8) – remove character before the cursor if exists
+//       if(cursor > 0) { // Shift all characters left from current cursor position
+//         memmove(buffer + cursor - 1, buffer + cursor, current_length - cursor);
+//         current_length--;
+//         cursor--;
+//       }
+//       i++; // If cursor == 0 (start of line), ignore backspace
+//       continue;
+//     }
+//     else if(c == 0x1B) { // Escape (ASCII 27) – potential start of control sequence
+//       if(i + 1 < length && buffer[i + 1] == '[') { // Sequence starts with ESC [
+//         if(i + 2 < length) {
+//           unsigned char seq = buffer[i + 2];
+//           if(seq == 'A' || seq == 'B') { // Up or down arrow – ignore (no text or cursor change)
+//             i += 3; continue;
+//           }
+//           else if(seq == 'C') { // Right arrow – move cursor right if possible
+//             if(cursor < current_length) cursor++;
+//             i += 3; continue;
+//           }
+//           else if(seq == 'D') { // Left arrow – move cursor left if possible
+//             if(cursor > 0) cursor--;        
+//             i += 3; continue;
+//           }
+//           else if(seq == '3') { // Potential Delete sequence: check next character
+//             if(i + 3 < length && buffer[i + 3] == '~') { // Delete key – remove character under cursor if exists
+//               if(cursor < current_length) {
+//                 memmove(buffer + cursor, buffer + cursor + 1, current_length - cursor - 1);
+//                 current_length--; // (cursor stays at the same position)
+//               }
+//               i += 4; continue;
+//             }
+//             else { i += 3; continue; } // ESC [ 3 without full '~' termination – skip as unknown sequence
+//           } else { i += 3; continue; } // Other unhandled ESC [ X sequence – skip three characters (ESC, '[', code) 
+//         }
+//         else { i += 2;  continue; } // ESC [ at the end of buffer without code – skip available characters
+//       }
+//       else { i++; continue; } // Single ESC without known sequence – skip it
+//     }
+//     else if((c < 0x20 && c != '\n' && c != '\r') || c == 0x7F) { i++; continue; } // Not a normal character, skip
+//     else { // Normal character – insert into output buffer at cursor position
+//       if(cursor < current_length) {
+//         // If inserting inside text, shift existing characters right to make space
+//         memmove(buffer + cursor + 1, buffer + cursor, current_length - cursor);
+//       }
+//       // Insert character at cursor
+//       buffer[cursor] = c;
+//       current_length++;
+//       cursor++;
+//       i++;
+//       continue;
+//     }
+//   }
+//   // Terminate resulting text with null if the buffer is to be treated as a C-string
+//   if(current_length < length) {
+//     buffer[current_length] = '\0';
+//   }
+//   return current_length;
+// }

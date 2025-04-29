@@ -274,16 +274,17 @@ void LOG_Init(const char *greeting, const char *version)
     DBG_String(ANSI_CYAN "INI " ANSI_END);
     DBG_String((char *)greeting);
     if(version) {
-      DBG_String(" " ANSI_GREY);
+      DBG_String(ANSI_GREY" {"ANSI_BLUE);
       DBG_String((char *)version);
-      DBG_String(ANSI_END);
+      DBG_String(ANSI_GREY"}"ANSI_END);
     }
   #else
     DBG_String("INI: ");
     DBG_String(greeting);
     if(version) {
-      DBG_Char(' ');
+      DBG_String(" {");
       DBG_String((char *)version);
+      DBG_Char('}');
     }
   #endif
   DBG_Enter();
@@ -414,7 +415,6 @@ static void LOG_CriticalArgs(const char *message, va_list args)
     DBG_Enter();
     DbgSendFlag = false;
     DBG_Send(DbgFile->buffer, DbgFile->size);
-    DBG_Wait4Uart();
     FILE_Clear(DbgFile);
     DbgSendFlag = true;
   #endif
@@ -439,9 +439,9 @@ void LOG_Panic(const char *message)
     #endif
     DBG_String((char *)message);
     DBG_Enter();
-    DBG_Send(DbgFile->buffer, DbgFile->size);
-    // DBG_Wait4Uart() + no-thread-switching
-    while(UART_IsBusy(DbgUart)) __WFI();
+    DBG_WaitForFreeBlock();
+    UART_Send(DbgUart, DbgFile->buffer, DbgFile->size);
+    DBG_WaitForFreeBlock();
     FILE_Clear(DbgFile);
   #endif
 }
@@ -464,10 +464,10 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...)
 
 //-------------------------------------------------------------------------------------------------
 
-void LOG_ErrorParse(const char *function_name, char *value)
+void LOG_ParseFault(const char *function_name, char *value)
 {
   #if(LOG_COLORS)
-    LOG_Error("Parse "ANSI_YELLOW"%s"ANSI_END"("ANSI_ORANGE"'%s'"ANSI_END"') fault", function_name, value);
+    LOG_Error("Parse "ANSI_YELLOW"%s"ANSI_END"("ANSI_CYAN"%s"ANSI_END"') fault", function_name, value);
   #else
     LOG_Error("Parse %s('%s') fault", function_name, value);
   #endif
