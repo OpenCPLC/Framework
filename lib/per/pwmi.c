@@ -51,7 +51,12 @@ static void PWMI_Begin(PWMI_t *pwmi)
     if(pwmi->channel[chan]) GPIO_AlternateInit(&TIM_CHx_MAP[pwmi->channel[chan]], true);
   }
   INT_EnableTIM(pwmi->reg, pwmi->int_prioryty, (void (*)(void *))&PWMI_Interrupt, pwmi);
-  #if(!PWMI_OVERSAMPLING_AUTO)
+  #if(PWMI_AUTO_OVERSAMPLING)
+    if(!pwmi->threshold) {
+      if(pwmi->reg == TIM2) pwmi->threshold = 0xFFFFFF;
+      else pwmi->threshold = 0xFFFF;
+    }
+  #else
     if(!pwmi->oversampling) pwmi->oversampling = 1;
   #endif
   if(!pwmi->timeout_ms) pwmi->timeout_ms = PWMI_GetTimeoutMaxMs(pwmi);
@@ -83,13 +88,13 @@ static uint16_t PWMI_Run(PWMI_t *pwmi)
     }
   }
   pwmi->reg->CNT = 0;
-  #if(PWMI_OVERSAMPLING_AUTO)
-    if(pwmi->count != PWMI_CONFIG_NOT_READY && pwmi->reload[chan] < PWMI_OVERSAMPLING_AUTO) pwmi->count++;
+  #if(PWMI_AUTO_OVERSAMPLING)
+    if(pwmi->count != PWMI_CONFIG_NOT_READY && pwmi->reload[chan] < pwmi->threshold) pwmi->count++;
   #else
     if(pwmi->count < pwmi->oversampling) pwmi->count++;
   #endif
   else {
-    #if(PWMI_OVERSAMPLING_AUTO)
+    #if(PWMI_AUTO_OVERSAMPLING)
       pwmi->oversampling[chan] = pwmi->count;
     #endif
     pwmi->count = 0;
@@ -163,7 +168,7 @@ static bool PWMI_IsInterrupt(PWMI_t *pwmi)
 
 static float PWMI_GetFrequency(PWMI_t *pwmi, TIM_Channel_t chan)
 {
-  #if(PWMI_OVERSAMPLING_AUTO)
+  #if(PWMI_AUTO_OVERSAMPLING)
     uint16_t ovs = pwmi->oversampling[chan];
   #else
     uint16_t ovs = pwmi->oversampling;

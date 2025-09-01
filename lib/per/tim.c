@@ -50,8 +50,8 @@ const GPIO_Map_t TIM_CHx_MAP[] = {
   [TIM15_CH2_PA3] = { .port = GPIOA, .pin = 3, .alternate = 5 },
   [TIM15_CH1N_PB13] = { .port = GPIOB, .pin = 13, .alternate = 5 },
   [TIM15_CH1_PB14] = { .port = GPIOB, .pin = 14, .alternate = 5 },
-  [TIM15_CH1N_PB15] = { .port = GPIOB, .pin = 15, .alternate = 5 },
-  [TIM15_CH2_PB15] = { .port = GPIOB, .pin = 15, .alternate = 4 },
+  [TIM15_CH1N_PB15] = { .port = GPIOB, .pin = 15, .alternate = 4 },
+  [TIM15_CH2_PB15] = { .port = GPIOB, .pin = 15, .alternate = 5 },
   [TIM15_CH1_PC1] = { .port = GPIOC, .pin = 1, .alternate = 2 },
   [TIM15_CH2_PC2] = { .port = GPIOC, .pin = 2, .alternate = 2 },
   [TIM16_CH1_PA6] = { .port = GPIOA, .pin = 6, .alternate = 5 },
@@ -124,12 +124,14 @@ inline uint32_t TIM_GetValue(TIM_t *tim)
 
 void TIM_SetPrescaler(TIM_t *tim, uint32_t prescaler)
 {
-  tim->prescaler = prescaler;
-  tim->reg->PSC = tim->prescaler;
+  if(!prescaler) prescaler = 1;
+  tim->prescaler = prescaler;  
+  tim->reg->PSC = tim->prescaler - 1;
 }
 
 void TIM_SetAutoreload(TIM_t *tim, uint32_t auto_reload)
 {
+  if(!auto_reload) return;
   tim->auto_reload = auto_reload;
   tim->reg->ARR = tim->auto_reload;
 }
@@ -167,10 +169,11 @@ static void TIM_Interrupt(TIM_t *tim)
 void TIM_Init(TIM_t *tim)
 {
   RCC_EnableTIM(tim->reg);
-	tim->reg->PSC = tim->prescaler;
+	TIM_SetPrescaler(tim, tim->prescaler);
 	if(!tim->auto_reload) TIM_MaxAutoreload(tim);
-	else tim->reg->ARR = tim->auto_reload;
+	else TIM_SetAutoreload(tim, tim->auto_reload);
 	tim->reg->CR1 |= (!(tim->one_pulse_mode) << TIM_CR1_ARPE_Pos) | (tim->one_pulse_mode << TIM_CR1_OPM_Pos);
+  tim->reg->DIER |= tim->dma_trig ? TIM_DIER_UDE : 0;
 	if(tim->enable) TIM_Enable(tim);
 	if(tim->enable_interrupt) {
 	  INT_EnableTIM(tim->reg, tim->int_prioryty, (void (*)(void *))&TIM_Interrupt, tim);

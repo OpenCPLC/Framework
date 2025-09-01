@@ -17,11 +17,9 @@ typedef enum {
 } PWMI_CapturePrescaler_t;
 
 // Setting to 0 forces using a fixed oversampling count for measurements.
-// When a value is set, samples are counted until the threshold is reached.
-// The number of samples is stored and used for final calculations.
-// This ensures a roughly constant measurement time, regardless of the input frequency.
-#ifndef PWMI_OVERSAMPLING_AUTO
-  #define PWMI_OVERSAMPLING_AUTO 0xFFFF
+// When a value is set, samples are counted until the `threshold` is reached.
+#ifndef PWMI_AUTO_OVERSAMPLING
+  #define PWMI_AUTO_OVERSAMPLING 1
 #endif
 
 // Using TIM2 requires buffer variables of type uint64_t,
@@ -41,17 +39,23 @@ typedef struct {
   #if(PWMI_USED_TIM2)
     uint64_t reload[4];
     uint64_t value[4];
+    #if(PWMI_AUTO_OVERSAMPLING)
+      uint64_t threshold;
+    #endif
   #else
     uint32_t reload[4];
     uint32_t value[4];
+    #if(PWMI_AUTO_OVERSAMPLING)
+      uint32_t threshold;
+    #endif
   #endif
-  float frequency[4];
-  float duty[4];
-  #if(PWMI_OVERSAMPLING_AUTO)
+  #if(PWMI_AUTO_OVERSAMPLING)
     uint16_t oversampling[4];
   #else
     uint16_t oversampling;
   #endif
+  float frequency[4];
+  float duty[4];
   uint16_t count;
   uint8_t inc;
   uint64_t timeout_tick;

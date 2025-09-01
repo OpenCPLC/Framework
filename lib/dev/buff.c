@@ -1,24 +1,28 @@
 #include "buff.h"
 #include "stream.h"
+#include "dbg.h"
 
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Inicjalizuje bufor kołowy.
- * @param buff Wskaźnik do struktury bufora.
+ * @brief Initializes the circular buffer.
+ * @param buff Pointer to the buffer structure.
  */
 inline void BUFF_Init(BUFF_t *buff)
 {
-  buff->head = buff->mem;
-  buff->tail = buff->mem;
-  buff->end = buff->mem + buff->size;
+  buff->head = buff->memory;
+  buff->tail = buff->memory;
+  buff->end_memory = buff->memory + buff->size;
+  buff->echo = buff->memory;
   buff->msg_head = 0;
   buff->msg_tail = 0;
+  buff->break_allow = false;
 }
 
 /**
- * @brief Oznacza koniec bieżącej wiadomości, jeśli ustawiona jest przerwa.
- * @param buff Wskaźnik do struktury bufora.
+ * @brief Marks the end of the current message if break is allowed.
+ * @param buff Pointer to the buffer structure.
+ * @return `true` if the break was performed, false otherwise.
  */
 bool BUFF_Break(BUFF_t *buff)
 {
@@ -27,24 +31,17 @@ bool BUFF_Break(BUFF_t *buff)
   buff->msg_counter = 0;
   buff->msg_head++;
   if(buff->msg_head >= BUFF_MESSAGE_LIMIT) buff->msg_head = 0;
+  if(buff->msg_head == buff->msg_tail) {
+    if(buff->Overflow) buff->Overflow();
+  }
   buff->break_allow = false;
   return true;
 }
 
-bool BUFF_BreakConsole(BUFF_t *buff)
-{
-  if(BUFF_Break(buff)) {
-    if(buff->console->cursor) buff->console->cursor = 0;
-    buff->console->Enter();
-    return true;
-  }
-  return false;
-}
-
 /**
- * @brief Zwraca rozmiar bieżącej wiadomości w buforze.
- * @param buff Wskaźnik do struktury bufora.
- * @return Rozmiar bieżącej wiadomości.
+ * @brief Returns the size of the current message in the buffer.
+ * @param buff Pointer to the buffer structure.
+ * @return Size of the current message.
  */
 uint16_t BUFF_Size(BUFF_t *buff)
 {
@@ -53,140 +50,114 @@ uint16_t BUFF_Size(BUFF_t *buff)
 }
 
 /**
- * @brief Dodaje bajt 'value' do bufora kołowego.
- * @param buff Wskaźnik do struktury bufora.
- * @param value Wartość do dodania.
+ * @brief Appends a byte `value` to the circular buffer.
+ * @param buff Pointer to the buffer structure.
+ * @param value Value to append.
+ * @return `true` if the value was appended, `false` if the buffer is full.
  */
-static inline void BUFF_Add(BUFF_t *buff, uint8_t value)
+bool BUFF_Append(BUFF_t *buff, uint8_t value)
 {
   *buff->head = value;
   buff->msg_counter++;
   buff->head++;
-  if(buff->head >= buff->end) buff->head = buff->mem;
-  if(buff->head == buff->tail) BUFF_Skip(buff);
+  if(buff->head >= buff->end_memory) buff->head = buff->memory;
+  if(!buff->console_mode) buff->echo = buff->head;
   buff->break_allow = true;
+  if(buff->head == buff->tail) {
+    if(buff->Overflow) buff->Overflow();
+    return false;
+  }
+  return true;
 }
 
-bool BUFF_Pop(BUFF_t *buff)
+/**
+ * @brief Reads the next byte from the buffer without removing it.
+ * @param buff Pointer to the buffer structure.
+ * @param value Pointer to variable to store the peeked byte.
+ * @return true if a byte was read, false if at the end.
+ */
+bool BUFF_Echo(BUFF_t *buff, char *value)
+{
+  if(value) *value = *buff->echo;
+  if(buff->echo == buff->head) return false;
+  buff->echo++;
+  if(buff->echo >= buff->end_memory) buff->echo = buff->memory;
+  return true;
+}
+
+/**
+ * @brief Removes the last byte from the current message in the buffer.
+ * @param buff Pointer to the buffer structure.
+ * @param value Pointer to variable to store the removed byte.
+ * @return `true` if a byte was removed, `false` if the message is empty.
+ */
+bool BUFF_Pop(BUFF_t *buff, uint8_t *value)
 {
   if(buff->msg_counter) {
     buff->msg_counter--;
     if(!buff->msg_counter) buff->break_allow = false;
-    if(buff->head == buff->mem) buff->head = buff->end;
+    if(buff->head == buff->memory) buff->head = buff->end_memory;
     buff->head--;
+    if(buff->echo == buff->memory) buff->echo = buff->end_memory;
+    buff->echo--;
+    if(value) *value = *buff->head;
     return true;
   }
-  return false;
-}
-
-static uint16_t BUFF_LoadHistory(BUFF_t *buff, int16_t index)
-{
-  if(index < 0) index = 0;
-  uint16_t msg = buff->msg_tail;
-  uint16_t limit = BUFF_MESSAGE_LIMIT;
-  uint8_t *p = buff->tail;
-  uint8_t *data = NULL;
-  int16_t cursor = 0;
-  while(index) {
-    if(!msg) msg = BUFF_MESSAGE_LIMIT - 1;
-    else msg--;
-    p -= buff->msg_size[msg];
-    if(p < buff->mem) data += buff->size;
-    if(buff->msg_history[msg]) {
-      data = p;
-      index--;
-      cursor++;
-    }
-    limit--;
-    if(!limit) return cursor;
-  }
-  if(!data) return cursor;
-  uint16_t size = buff->msg_size[msg];
-  buff->console->Echo('\r');
-  buff->console->Echo(0x1B);
-  buff->console->Echo('[');
-  buff->console->Echo('2');
-  buff->console->Echo('K');
-  BUFF_Break(buff);
-  BUFF_Skip(buff);
-  buff->console->Run(true);
-  buff->console->Run(false);
-  while(size) {
-    BUFF_Add(buff, *data);
-    buff->console->Echo(*data);
-    data++;
-    if(data >= buff->end) data = buff->mem;
-    size--;
-  }
-  return cursor;
-}
-
-static bool BUFF_ConsoleMode(BUFF_t *buff, uint8_t value)
-{
-  if(buff->console->esc) {
-    if(buff->console->esc == 2) {
-      if(value == 'A') buff->console->cursor = BUFF_LoadHistory(buff, ++buff->console->cursor);
-      else if(value == 'B') buff->console->cursor = BUFF_LoadHistory(buff, --buff->console->cursor);
-      buff->console->esc = 0;
-    }
-    if(value == '[') buff->console->esc = 2;
-    else buff->console->esc = 0;
-    return true;
-  }
-  if(!buff->console) return false;
-  if(value == '\r' || value == '\n') {
-    if(buff->break_allow) buff->console->Execute();
-    if(BUFF_BreakConsole(buff)) buff->console->Run(true);
-    return true;
-  }
-  if(value == '\f' || value == 0x03) {
-    if(!buff->break_allow) return true;
-    buff->console->Kill();
-    if(BUFF_BreakConsole(buff)) {
-      BUFF_Skip(buff);
-      buff->console->Run(true);
-    }
-    return true;
-  }
-  if(value == '\b' || value == 0x7F) {
-    if(BUFF_Pop(buff)) buff->console->Echo(value);
-    return true;
-  }
-  if(value == 0x13) {
-    buff->console->Stop();
-    return true;
-  }
-  if(value == 0x1B) {
-    buff->console->esc = 1;
-    return true;
-  }
-  buff->console->Run(false);
-  buff->console->Echo(value);
   return false;
 }
 
 /**
- * @brief Dodaje bajt 'value' do bufora kołowego.
- * @param buff Wskaźnik do struktury bufora.
- * @param value Wartość do dodania.
+ * @brief Pushes a byte to the circular buffer (console mode aware).
+ *   Handles escape sequences, Enter, Ctrl+C, and line breaks for console input.
+ * @param buff Pointer to the buffer structure.
+ * @param value Value to push.
+ * @return `true` if the value was appended or message ended, `false` if ignored or buffer is full.
  */
-inline void BUFF_Push(BUFF_t *buff, uint8_t value)
+bool BUFF_Push(BUFF_t *buff, uint8_t value)
 {
-  if(BUFF_ConsoleMode(buff, value)) return;
-  BUFF_Add(buff, value);
+  if(buff->console_mode) {
+    if(buff->esc == 1) {
+      if(value == '[' || value == 'O') buff->esc = 2;
+      else buff->esc = 0;
+      return false;
+    }
+    if(buff->esc == 2) {
+      if(value >= 0x40 && value <= 0x7E) buff->esc = 0;
+      return false;
+    }
+    if(value == 0x1B) { 
+      buff->esc = 1;
+      return false;
+    }
+    if(value == '\r' || value == '\n') {
+      if(!buff->break_allow) return false;
+      BUFF_Append(buff, '\n');
+      BUFF_Break(buff);
+      return true;
+    }
+    if(value == '\f' || value == 0x03) {
+      BUFF_Append(buff, '\f');
+      BUFF_Break(buff);
+      BUFF_Skip(buff);
+      return true;
+    }
+    if(value == 0x13) {
+      return false;
+    }
+  }
+  return BUFF_Append(buff, value);
 }
 
 /**
- * @brief Kopiuje zawartość bieżącej wiadomości do zewnętrznej tablicy.
- * @param buff Wskaźnik do struktury bufora.
- * @param array Wskaźnik do tablicy docelowej.
- * @return Rozmiar skopiowanej wiadomości.
+ * @brief Copies the content of the current message to an external array.
+ * @param buff Pointer to the buffer structure.
+ * @param array Pointer to the destination array.
+ * @return Size of the copied message.
  */
 uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array)
 {
   uint16_t size = BUFF_Size(buff);
   if(!size) return 0;
-  buff->msg_history[buff->msg_tail] = array ? true : false;
   uint16_t n = size;
   while(n) {
     if(array) {
@@ -194,7 +165,7 @@ uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array)
       array++;
     }
     buff->tail++;
-    if(buff->tail >= buff->end) buff->tail = buff->mem;
+    if(buff->tail >= buff->end_memory) buff->tail = buff->memory;
     n--;
   }
   buff->msg_tail++;
@@ -204,9 +175,9 @@ uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array)
 }
 
 /**
- * @brief Pomija bieżącą wiadomość w buforze.
- * @param buff Wskaźnik do struktury bufora.
- * @return Zwraca 'true', jeżeli wiadomość zostałą pominięta/
+ * @brief Skips the current message in the buffer.
+ * @param buff Pointer to the buffer structure.
+ * @return Returns `true` if the message was skipped, `false` otherwise.
  */
 bool BUFF_Skip(BUFF_t *buff)
 {
@@ -214,9 +185,9 @@ bool BUFF_Skip(BUFF_t *buff)
 }
 
 /**
- * @brief Tworzy dynamiczny ciąg znaków z zawartością bieżącej wiadomości w buforze.
- * @param buff Wskaźnik do struktury bufora.
- * @return Wskaźnik do dynamicznie alokowanego ciągu znaków.
+ * @brief Creates a dynamically allocated string from the current message in the buffer.
+ * @param buff Pointer to the buffer structure.
+ * @return Pointer to the dynamically allocated string.
  */
 char *BUFF_String(BUFF_t *buff)
 {
@@ -231,8 +202,8 @@ char *BUFF_String(BUFF_t *buff)
 }
 
 /**
- * @brief Czyści cały bufor przez pomijanie wiadomości, dopóki nie ma więcej wiadomości.
- * @param buff Wskaźnik do struktury bufora.
+ * @brief Clears the entire buffer by skipping messages until none remain.
+ * @param buff Pointer to the buffer structure.
  */
 void BUFF_Clear(BUFF_t *buff)
 {

@@ -25,12 +25,12 @@ extern const char UpperCase[];
 
 //-------------------------------------------------------------------------------------------------
 
-uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space);
-char *itoa_int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space); // Convert integer to string with base
-char *itoa_dec(int32_t nbr); // Convert signed decimal integer to string
-char *itoa_udec(uint32_t nbr); // Convert unsigned decimal integer to string
-char *itoa_hex8(uint32_t nbr); // Convert integer to 2-digit hexadecimal string
-char *itoa_hex16(uint32_t nbr); // Convert integer to 4-digit hexadecimal string
+uint8_t itoa_base(int64_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space);
+char *itoa_int64(int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space); // Convert integer to string with base
+char *itoa_dec(int64_t nbr); // Convert signed decimal integer to string
+char *itoa_udec(uint64_t nbr); // Convert unsigned decimal integer to string
+char *itoa_hex8(uint8_t nbr); // Convert integer to 2-digit hexadecimal string
+char *itoa_hex16(uint16_t nbr); // Convert integer to 4-digit hexadecimal string
 char *itoa_hex32(uint32_t nbr); // Convert integer to 8-digit hexadecimal string
 
 bool str2uint16_fault(const char *str); // Validate if string can be converted to uint16_t number

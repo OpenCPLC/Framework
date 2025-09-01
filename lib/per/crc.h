@@ -29,12 +29,15 @@ state_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count);
 state_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count);
 
 #if(CRC_STANDARD_USED)
-  extern const CRC_t crc32;
+  extern const CRC_t crc32_iso;
+  extern const CRC_t crc32_aixm;
+  extern const CRC_t crc32_autosar;
+  extern const CRC_t crc32_cksum;
   extern const CRC_t crc16_kermit;
   extern const CRC_t crc16_modbus;
   extern const CRC_t crc16_buypass;
   extern const CRC_t crc8_maxim;
-  extern const CRC_t crc8;
+  extern const CRC_t crc8_smbus;
 #endif
 
 //-------------------------------------------------------------------------------------------------

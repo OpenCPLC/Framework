@@ -41,12 +41,12 @@ int32_t FILE_Enter(FILE_t *file);
 int32_t FILE_ClearLastLine(FILE_t *file);
 int32_t FILE_Bool(FILE_t *file, bool value);
 
-int32_t FILE_Int(FILE_t *file, int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space);
+int32_t FILE_Int(FILE_t *file, int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space);
 int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space);
-int32_t FILE_Dec(FILE_t *file, int32_t nbr);
-int32_t FILE_uDec(FILE_t *file, uint32_t nbr);
-int32_t FILE_Hex8(FILE_t *file, uint32_t nbr);
-int32_t FILE_Hex16(FILE_t *file, uint32_t nbr);
+int32_t FILE_Dec(FILE_t *file, int64_t nbr);
+int32_t FILE_uDec(FILE_t *file, uint64_t nbr);
+int32_t FILE_Hex8(FILE_t *file, uint8_t nbr);
+int32_t FILE_Hex16(FILE_t *file, uint16_t nbr);
 int32_t FILE_Hex32(FILE_t *file, uint32_t nbr);
 int32_t FILE_Bin8(FILE_t *file, uint8_t nbr);
 

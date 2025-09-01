@@ -225,3 +225,6 @@ Podczas korzystania z VRTS należy uwzględnić dwie istotne kwestie:
 - Każdy wątek musi być wyposażony w nieskończoną pętlę, która zapobiegnie opuszczeniu funkcji wątku. Tak jak robi się to w funkcji głownej `main`.
 
 Gdy zdecydujemy się nie korzystać z wielowątkowości _(np. ramach testów pojedyńczego wątku)_ trzeba, w pliku [`main.h`](./src/main.h), ustawić definicję `VRTS_SWITCHING` na `0`
+
+
+PIszę rzezcy na ma tyej . I jest spoko.A

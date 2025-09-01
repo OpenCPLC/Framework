@@ -107,7 +107,7 @@ int32_t FILE_Bool(FILE_t *file, bool value)
 
 static char file_cache[33];
 
-int32_t FILE_Int(FILE_t *file, int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+int32_t FILE_Int(FILE_t *file, int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
 {
   if(file->mutex) return 0;
   int32_t length = (int32_t)itoa_base(nbr, file_cache, base, sign, fill_zero, fill_space);
@@ -158,12 +158,12 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
   return length;
 }
 
-int32_t FILE_Dec(FILE_t *file, int32_t nbr) { return FILE_Int(file, nbr, 10, true, 0, 0); }
-int32_t FILE_uDec(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 10, false, 0, 0); }
-int32_t FILE_Hex8(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 2, 2); }
-int32_t FILE_Hex16(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 4, 4); }
-int32_t FILE_Hex32(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int32_t)nbr, 16, false, 8, 8); }
-int32_t FILE_Bin8(FILE_t *file, uint8_t nbr) { return FILE_Int(file, (int32_t)nbr, 2, false, 8, 8); }
+int32_t FILE_Dec(FILE_t *file, int64_t nbr) { return FILE_Int(file, nbr, 10, true, 0, 0); }
+int32_t FILE_uDec(FILE_t *file, uint64_t nbr) { return FILE_Int(file, (int64_t)nbr, 10, false, 0, 0); }
+int32_t FILE_Hex8(FILE_t *file, uint8_t nbr) { return FILE_Int(file, (int64_t)nbr, 16, false, 2, 2); }
+int32_t FILE_Hex16(FILE_t *file, uint16_t nbr) { return FILE_Int(file, (int64_t)nbr, 16, false, 4, 4); }
+int32_t FILE_Hex32(FILE_t *file, uint32_t nbr) { return FILE_Int(file, (int64_t)nbr, 16, false, 8, 8); }
+int32_t FILE_Bin8(FILE_t *file, uint8_t nbr) { return FILE_Int(file, (int64_t)nbr, 2, false, 8, 8); }
 
 //------------------------------------------------------------------------------------------------- RTC
 
