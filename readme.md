@@ -94,7 +94,7 @@ _Dane w tabeli są poglądowe. Większość sterowników umożliwia rozbudowę o
 
 Na rynku automatyki coraz więcej firm i inżynierów dostrzega, że własne konstrukcje mogą dać im przewagę rynkową. Takie rozwiązania można skalować wraz z rozwojem biznesu oraz dopasować do specyfiki projektu. Problemem mogą być brak doświadczenia w embedded, długi czas tworzenia rozwiązania od podstaw oraz ryzyko, że pomimo pochłoniętych zasobów projekt po prostu się nie uda. OpenCPLC upraszcza ten proces, oferując otwarty framework i gotową bazę sprzętową. Całość można zrealizować w przejrzystym, dwustopniowym modelu:
 
-1️⃣ Wdrożenie projektu na naszych sterownikach referencyjnych z otwartym firmware. Pozwala od razu testować pomysły i rozwijać aplikację.
-2️⃣ Projekt dedykowanego hardware. Można go rozpocząć równolegle, aby szybciej dojść do rozwiązania docelowego, podjąć po uruchomieniu prototypu, by ograniczyć ryzyko, albo zrealizować dopiero wtedy, gdy wzrośnie zapotrzebowanie i konieczne będzie skalowanie.
+- 1️⃣ Wdrożenie projektu na naszych sterownikach referencyjnych z otwartym firmware. Pozwala od razu testować pomysły i rozwijać aplikację.
+- 2️⃣ Projekt dedykowanego hardware. Można go rozpocząć równolegle, aby szybciej dojść do rozwiązania docelowego, podjąć po uruchomieniu prototypu, by ograniczyć ryzyko, albo zrealizować dopiero wtedy, gdy wzrośnie zapotrzebowanie i konieczne będzie skalowanie.
 
 W ten sposób powstają rozwiązania szybkie i dopasowane, łatwe do skalowania dzięki własnej produkcji, a stabilny framework zapewnia im wysoką niezawodność.
