@@ -4,12 +4,13 @@ Projekt to warstwa abstrakcji między aplikacją a peryferiami mikrokontrolera. 
 
 W świecie technologii, programowanie staje się coraz bardziej złożone _(często na życzenie samych programistów)_. Niekiedy poziom skomplikowania aplikacji jest nieproporcjonalny do problemu, który rozwiązuje lub wartości, jaką dostarcza. Chcemy, aby nasze rozwiązanie były możliwie proste, interfejs intuicyjny, a nakład technologiczny minimalny. Wykorzystujemy dobrze znane narzędzia, takie jak [**Visual Studio Code**](https://code.visualstudio.com/), system kontroli wersji [**Git**](https://git-scm.com/) oraz język [**C**](https://www.learn-c.org/pl/), który pomimo swojego wieku nadal jest [numerem jeden](https://www.geeksforgeeks.org/blogs/embedded-systems-programming-languages/) wśród programistów Embedded. Nic nie stoi więc na przeszkodzie, aby pojawiło się go trochę więcej w automatyce, co pozwoli iść branży z duchem 🌐IT!
 
-Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszłości, kiedy programistów było niewielu, a za automatykę brali się głównie elektrycy, zaprojektowanie języka drabinkowego ladder logic **🪜LAD** było strzałem w dziesiątkę! Opierał się bowiem na logice znanej z układów elektrycznych. Dziś sytuacja się odwróciła: kod w języku **C** jest często bardziej czytelny dla absolwentów kierunków technicznych niż drzewo logiczne ze styków i cewek. Nie zapominajmy, że język [**C**](<https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)>) powstał jako język ogólnego przeznaczenia, dlatego charakteryzuje się dużą uniwersalnością, szczególnie w porównaniu do sandbox'ów dostarczanych przez producentów sterowników PLC. 
+Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszłości, kiedy programistów było niewielu, a za automatykę brali się głównie elektrycy, zaprojektowanie języka drabinkowego ladder logic **🪜LAD** było strzałem w dziesiątkę! Opierał się bowiem na logice znanej z układów elektrycznych. Dziś sytuacja się odwróciła: kod w języku **C** jest często bardziej czytelny dla absolwentów kierunków technicznych niż drzewo logiczne ze styków i cewek. Nie zapominajmy, że język [**C**](<https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)>) powstał jako język ogólnego przeznaczenia, dlatego charakteryzuje się dużą uniwersalnością, szczególnie w porównaniu do sandbox'ów dostarczanych przez producentów sterowników PLC.
+
 _Praktyczne porównanie języków LAD, ST i ANSI C można zobaczyć na przykładzie systemu [**🟢start🔴stop**](res/manuals/ext-code.md)._
 
 ## ⚙️ Boards
 
-Wszystkie sterowniki bazują na rodzinie **STM32G0** i zostały zaprojektowane tak, aby w pełni wykorzystać potencjał mikrokontrolera. Mają ustandaryzowane wymiary dopasowane do montażu na szynie **DIN**. Wyposażono je w rozłączne terminale **5.0mm**, co ułatwia instalacje oraz serwis. Cała linia została pomyślana jako spójna platforma, gdzie różne modele uzupełniają się funkcjonalnie, dzięki czemu można je łatwo łączyć w większe systemy.
+Wszystkie sterowniki bazują na rodzinie [**STM32G0**](https://www.st.com/en/microcontrollers-microprocessors/stm32g0-series.html) i zostały zaprojektowane tak, aby w pełni wykorzystać potencjał mikrokontrolera. Mają ustandaryzowane wymiary dopasowane do montażu na szynie **DIN**. Wyposażono je w rozłączne terminale **5.0mm**, co ułatwia instalacje oraz serwis. Cała linia została pomyślana jako spójna platforma, gdzie różne modele uzupełniają się funkcjonalnie, dzięki czemu można je łatwo łączyć w większe systemy.
 
 <table>
   <tr>
@@ -68,35 +69,32 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast GPIO c
 
 Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach, gdzie typowe PLC zawodzą. Obsługują standardową automatykę **24VDC**, ale także **12VDC**, typowe dla maszyn mobilnych w przemyśle _(np. budowlanym czy rolniczym)_. Dodatkowo przyjmują bezpośrednie sygnały **230VAC** na wejściach, co eliminuje konieczność stosowania dodatkowych modułów. Wyjścia **4A** pozwalają sterować obciążeniami bezpośrednio, a firmware _(🎸FW)_ wgrywany bez systemu operacyjnego _(🐧OS)_ zapewnia szybki start i wysoką stabilność pracy. Każdy sterownik jest fabrycznie skonfigurowany jako moduł rozszerzeń, ale można go łatwo przeprogramować do pracy jako samodzielny PLC.
 
-| Sterownik PLC                          |    Zasilanie | DI `0` |  DI `1` | DI 230V | Typ `TO`      | Prąd `TO` | Pomiar<br>zasilania [V] | 🎸FW / 🐧OS |
-| -------------------------------------- | -----------: | -----: | ------: | :-----: | ------------- | :-------: | :---------------------: | :-------: |
-| Siemens S7-1200                        | 20.4–28.8V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Source      |   0.5A    |            ❌            |    🎸FW    |
-| Siemens S7-1500                        | 19.2–28.8V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Source/Sink |   0.5A    |            ✅            |    🎸FW    |
-| Mitsubishi MELSEC iQ-F _(FX5U)_        |    ~20–28V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Source/Sink |   0.5A    |            ✅            |    🎸FW    |
-| Beckhoff CX7000 _(Embedded-PC)_        | 20.4–28.8V ❌ |   ≤ 5V | ≥ 11V ✅ |    ❌    | ✅ Source      |   0.5A    |            ❌            |    🐧OS    |
-| WAGO PFC200 _(750-8212)_               |   18–31.2V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Sink/Source |   0.5A    |            ❌            |    🐧OS    |
-| Allen-Bradley CompactLogix _(1769-Lx)_ |   10–28.8V ✅ |   ≤ 5V | ≥ 11V ✅ |    ❌    | ✅ Source      |   0.5A    |            ❌            |    🎸FW    |
-| Schneider Modicon M221                 | 20.4–28.8V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Source      |   0.5A    |            ❌            |    🎸FW    |
-| Phoenix Contact AXC F 2152             |   19.2–30V ❌ |   ≤ 5V | ≥ 11V ✅ |    ❌    | ✅ Sink/Source |   0.5A    |            ❌            |    🐧OS    |
-| B&R X20                                | 20.4–28.8V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ❌ Sink        |   0.5A    |            ✅            |    🎸FW    |
-| Delta DVP-SS2                          | 20.4–28.8V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Sink/Source |   0.5A    |            ❌            |    🎸FW    |
-| Eaton easyE4                           | 12.2–28.8V ✅ |  ≤ 5 V |  ≥ 9V ✅ |    ✅    | ✅ Sink/Source |   0.5A    |            ❌            |    🎸FW    |
-| ABB AC500 _(PM573)_                    |     20–30V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Sink/Source |   0.5A    |            ✅            |    🎸FW    |
-| Bosch Rexroth IndraLogic               |     18–30V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Sink/Source |   0.5A    |            ✅            |    🎸FW    |
-| Unitronics UniStream _(USC-B5-B1)_     | 10.2–28.8V ✅ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Sink/Source |   0.5A    |            ❌            |    🎸FW    |
-| Turck TX500 _(TX513-P3CV01)_           |     10–32V ✅ |  ≤ 6 V | ≥ 12V ✅ |    ❌    | ✅ Source      |   0.5A    |            ❌            |    🐧OS    |
-| **OpenCPLC**                           |     11–32V ✅ |  ≤ 5 V |  ≥ 9V ✅ |    ✅    | ✅ Source      |  **4A**   |            ✅            |    🎸FW    |
+| Sterownik PLC                |    Zasilanie | DI `0` |  DI `1` | DI 230V | Typ `TO` | Prąd `TO` | Pomiar `VCC` | 🎸FW / 🐧OS |
+| ---------------------------- | -----------: | -----: | ------: | :-----: | -------- | :-------: | :----------: | :-------: |
+| Siemens S7-1200              | 20.4–28.8V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🎸FW    |
+| Siemens S7-1500              | 19.2–28.8V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
+| Mitsubishi MELSEC iQ-F       |    ~20–28V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
+| Beckhoff CX7000              | 20.4–28.8V ❌ |   ≤ 5V | ≥ 11V ✅ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🐧OS    |
+| WAGO PFC200 _(750-8212)_     |   18–31.2V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🐧OS    |
+| Allen-Bradley CompactLogix   |   10–28.8V ✅ |   ≤ 5V | ≥ 11V ✅ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🎸FW    |
+| Schneider Modicon M221       | 20.4–28.8V ❌ |   ≤ 5V | ≥ 15V ❌ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🎸FW    |
+| Phoenix Contact AXC F 2152   |   19.2–30V ❌ |   ≤ 5V | ≥ 11V ✅ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🐧OS    |
+| B&R X20                      | 20.4–28.8V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ❌ Sink   |   0.5A    |      ✅       |    🎸FW    |
+| Delta DVP-SS2                | 20.4–28.8V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🎸FW    |
+| Eaton easyE4                 | 12.2–28.8V ✅ |  ≤ 5 V |  ≥ 9V ✅ |    ✅    | ✅ Both   |   0.5A    |      ❌       |    🎸FW    |
+| ABB AC500 _(PM573)_          |     20–30V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
+| Bosch Rexroth IndraLogic     |     18–30V ❌ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
+| Unitronics UniStream         | 10.2–28.8V ✅ |  ≤ 5 V | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🎸FW    |
+| Turck TX500 _(TX513-P3CV01)_ |     10–32V ✅ |  ≤ 6 V | ≥ 12V ✅ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🐧OS    |
+| **OpenCPLC**                 |     11–32V ✅ |  ≤ 5 V |  ≥ 9V ✅ |    ✅    | ✅ Source |  **4A**   |      ✅       |    🎸FW    |
 
-_Dane w tabeli są poglądowe – większość sterowników umożliwia rozbudowę o dodatkowe moduły, np. z wyższą wydajnością prądową lub do obsługi sygnałów 230V. Wartości odnoszą się do standardowych wejść cyfrowych i wyjść tranzystorowych._
-
-
+_Dane w tabeli są poglądowe. Większość sterowników umożliwia rozbudowę o dodatkowe moduły, np. z wyższą wydajnością prądową lub do obsługi sygnałów 230V. Wartości odnoszą się do standardowych wejść cyfrowych i wyjść tranzystorowych._
 
 ## 🤝 Cooperation
 
-Na rynku automatyki wiele osób i firm napotyka bariery: wysokie koszty licencji, ograniczoną elastyczność gotowych PLC czy długi czas wdrożeń własnych rozwiązań. OpenCPLC upraszcza ten proces, zapewniając solidną bazę sprzętową i otwarty framework.
+Na rynku automatyki coraz więcej firm i inżynierów dostrzega, że własne konstrukcje mogą dać im przewagę rynkową. Takie rozwiązania można skalować wraz z rozwojem biznesu oraz dopasować do specyfiki projektu. Problemem mogą być brak doświadczenia w embedded, długi czas tworzenia rozwiązania od podstaw oraz ryzyko, że pomimo pochłoniętych zasobów projekt po prostu się nie uda. OpenCPLC upraszcza ten proces, oferując otwarty framework i gotową bazę sprzętową. Całość można zrealizować w przejrzystym, dwustopniowym modelu:
 
-- 1️⃣ Uruchomienie projektu na naszych sterownikach referencyjnych z otwartym firmware, co umożliwia szybkie testy i sprawdzenie koncepcji.
-- 2️⃣ Przy rosnącej skali lub szczególnych wymaganiach projektujemy dedykowany hardware, w pełni zgodny z frameworkiem.
+1️⃣ Wdrożenie projektu na naszych sterownikach referencyjnych z otwartym firmware. Pozwala od razu testować pomysły i rozwijać aplikację.
+2️⃣ Projekt dedykowanego hardware. Można go rozpocząć równolegle, aby szybciej dojść do rozwiązania docelowego, podjąć po uruchomieniu prototypu, by ograniczyć ryzyko, albo zrealizować dopiero wtedy, gdy wzrośnie zapotrzebowanie i konieczne będzie skalowanie.
 
-Dzięki temu każde wdrożenie może być dopasowane, skalowalne i wykonane na profesjonalnym poziomie.
-
+W ten sposób powstają rozwiązania szybkie i dopasowane, łatwe do skalowania dzięki własnej produkcji, a stabilny framework zapewnia im wysoką niezawodność.
