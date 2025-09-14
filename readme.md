@@ -71,22 +71,22 @@ Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach,
 
 | Sterownik PLC                |    Zasilanie |  DI `1` | DI 230V | Typ `TO` | Prąd `TO` | Pomiar `VCC` | 🎸FW / 🐧OS |
 | ---------------------------- | -----------: | ------: | :-----: | -------- | :-------: | :----------: | :-------: |
-| Siemens S7-1200              | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🎸FW    |
-| Siemens S7-1500              | 19.2-28.8V ❌ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
-| Mitsubishi MELSEC iQ-F       |    ~20-28V ❌ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
-| Beckhoff CX7000              | 20.4-28.8V ❌ | ≥ 11V ✅ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🐧OS    |
-| WAGO PFC200 _(750-8212)_     |   18-31.2V ❌ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🐧OS    |
-| Allen-Bradley CompactLogix   |   10-28.8V ✅ | ≥ 11V ✅ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🎸FW    |
-| Schneider Modicon M221       | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🎸FW    |
-| Phoenix Contact AXC F 2152   |   19.2-30V ❌ | ≥ 11V ✅ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🐧OS    |
-| B&R X20                      | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | ❌ Sink   |   0.5A    |      ✅       |    🎸FW    |
-| Delta DVP-SS2                | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🎸FW    |
-| Eaton easyE4                 | 12.2-28.8V ✅ |  ≥ 9V ✅ |    ✅    | ✅ Both   |   0.5A    |      ❌       |    🎸FW    |
-| ABB AC500 _(PM573)_          |     20-30V ❌ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
-| Bosch Rexroth IndraLogic     |     18-30V ❌ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ✅       |    🎸FW    |
-| Unitronics UniStream         | 10.2-28.8V ✅ | ≥ 15V ❌ |    ❌    | ✅ Both   |   0.5A    |      ❌       |    🎸FW    |
-| Turck TX500 _(TX513-P3CV01)_ |     10-32V ✅ | ≥ 12V ✅ |    ❌    | ✅ Source |   0.5A    |      ❌       |    🐧OS    |
-| **OpenCPLC**                 |     11-32V ✅ |  ≥ 9V ✅ |    ✅    | ✅ Source |  **4A**   |      ✅       |    🎸FW    |
+| Siemens S7-1200              | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | Source |   0.5A    |      ❌       |    🎸FW    |
+| Siemens S7-1500              | 19.2-28.8V ❌ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ✅       |    🎸FW    |
+| Mitsubishi MELSEC iQ-F       |    ~20-28V ❌ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ✅       |    🎸FW    |
+| Beckhoff CX7000              | 20.4-28.8V ❌ | ≥ 11V ✅ |    ❌    | Source |   0.5A    |      ❌       |    🐧OS    |
+| WAGO PFC200 _(750-8212)_     |   18-31.2V ❌ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ❌       |    🐧OS    |
+| Allen-Bradley CompactLogix   |   10-28.8V ✅ | ≥ 11V ✅ |    ❌    | Source |   0.5A    |      ❌       |    🎸FW    |
+| Schneider Modicon M221       | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | Source |   0.5A    |      ❌       |    🎸FW    |
+| Phoenix Contact AXC F 2152   |   19.2-30V ❌ | ≥ 11V ✅ |    ❌    | Both   |   0.5A    |      ❌       |    🐧OS    |
+| B&R X20                      | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | Sink   |   0.5A    |      ✅       |    🎸FW    |
+| Delta DVP-SS2                | 20.4-28.8V ❌ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ❌       |    🎸FW    |
+| Eaton easyE4                 | 12.2-28.8V ✅ |  ≥ 9V ✅ |    ✅    | Both   |   0.5A    |      ❌       |    🎸FW    |
+| ABB AC500 _(PM573)_          |     20-30V ❌ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ✅       |    🎸FW    |
+| Bosch Rexroth IndraLogic     |     18-30V ❌ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ✅       |    🎸FW    |
+| Unitronics UniStream         | 10.2-28.8V ✅ | ≥ 15V ❌ |    ❌    | Both   |   0.5A    |      ❌       |    🎸FW    |
+| Turck TX500 _(TX513-P3CV01)_ |     10-32V ✅ | ≥ 12V ✅ |    ❌    | Source |   0.5A    |      ❌       |    🐧OS    |
+| **OpenCPLC**                 |     11-32V ✅ |  ≥ 9V ✅ |    ✅    | Source |  **4A**   |      ✅       |    🎸FW    |
 
 _Dane w tabeli są poglądowe. Większość sterowników umożliwia rozbudowę o dodatkowe moduły, np. z wyższą wydajnością prądową lub do obsługi sygnałów 230V. Wartości odnoszą się do standardowych wejść cyfrowych i wyjść tranzystorowych._
 
