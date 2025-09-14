@@ -2,31 +2,33 @@
 
 //-------------------------------------------------------------------------------------------------
 
+static const char Int2Ascii[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 /**
- * @brief Funkcja pomocnicza do konwersji liczby całkowitej na odwrócony ciąg znaków w zadanym systemie liczbowym.
- * @param nbr Liczba do konwersji.
- * @param str Bufor wynikowy (ciąg znaków odwrócony).
- * @param base Podstawa systemu liczbowego (zakres 2–36).
- * @param sign Czy uwzględnić znak liczby (true dla liczb ze znakiem, false dla bez znaku).
- * @param fill_zero Minimalna liczba cyfr (uzupełniane zerami).
- * @param fill_space Minimalna długość ciągu (uzupełniane spacjami).
- * @return uint8_t Liczba znaków zapisanych w `str`.
+ * @brief Helper function to convert integer (64-bit) into reversed string using selected number base.
+ * @param nbr Number to convert.
+ * @param str Output buffer (string reversed).
+ * @param base Numeric base (range 2–36).
+ * @param sign Include sign (true = signed number, false = unsigned).
+ * @param fill_zero Minimal digit count (filled with zeros).
+ * @param fill_space Minimal string length (filled with spaces).
+ * @return uint8_t Number of chars written to `str`.
  */
-uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+uint8_t itoa_base(int64_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
 {
-  static const char ITOA_ARRAY[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  if(base < 2 || base > 36) return 0;
   uint8_t n = 0;
   bool is_negative = false;
-  uint32_t unbr;
+  uint64_t unbr;
   if(!fill_zero) fill_zero = 1;
   if(fill_space < fill_zero) fill_space = fill_zero;
   if(sign && nbr < 0) {
     is_negative = true;
-    unbr = (uint32_t)(-nbr);
+    unbr = (uint64_t)(-nbr);
   }
-  else unbr = (uint32_t)nbr;
+  else unbr = (uint64_t)nbr;
   do {
-    str[n++] = ITOA_ARRAY[unbr % base];
+    str[n++] = Int2Ascii[unbr % base];
     unbr /= base;
   } while(unbr > 0);
   while(n < fill_zero - is_negative) {
@@ -38,75 +40,75 @@ uint8_t itoa_base(int32_t nbr, char *str, uint8_t base, bool sign, uint8_t fill_
 }
 
 /**
- * @brief Główna funkcja konwersji liczby całkowitej na ciąg znaków w odpowiednim systemie liczbowym.
- * @param nbr Liczba do konwersji.
- * @param base Podstawa systemu liczbowego (np. 10 dla dziesiętnego, 16 dla szesnastkowego).
- * @param sign Czy uwzględnić znak liczby.
- * @param fill_zero Minimalna liczba cyfr (uzupełniane zerami).
- * @param fill_space Minimalna długość ciągu (uzupełniane spacjami).
- * @return char* Wskaźnik na nowo zaalokowany łańcuch znaków (należy zwolnić pamięć).
+ * @brief Main function for converting 64-bit integer to string in selected number base.
+ * @param nbr Number to convert.
+ * @param base Numeric base (e.g. 10 for decimal, 16 for hex).
+ * @param sign Include sign if true.
+ * @param fill_zero Minimum number of digits (filled with zeros).
+ * @param fill_space Minimum string length (filled with spaces).
+ * @return char* Pointer to newly allocated string (must be freed manually).
  */
-char *itoa_int(int32_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
+char *itoa_int64(int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
 {
-  char temp[33];
+  char temp[65]; // Enough for 64-bit binary number + padding
   uint8_t len = itoa_base(nbr, temp, base, sign, fill_zero, fill_space);
-  char *string = new(len + 1);
+  char *string = new(len + 1); // or malloc if using C
   if(!string) return NULL;
   for(uint8_t i = 0; i < len; i++) {
-    string[i] = temp[len - i - 1];
+    string[i] = temp[len - 1 - i];
   }
   string[len] = '\0';
   return string;
 }
 
 /**
- * @brief Funkcja konwertuje liczbę całkowitą na ciąg w systemie dziesiętnym (ze znakiem).
- * @param nbr Liczba do konwersji.
- * @return char* Wskaźnik na wynikowy ciąg znaków.
+ * @brief Converts signed 64-bit integer to decimal string.
+ * @param nbr Number to convert.
+ * @return char* Pointer to result string (must be freed manually).
  */
-char *itoa_dec(int32_t nbr)
+char *itoa_dec(int64_t nbr)
 {
-  return itoa_int(nbr, 10, true, 0, 0);
+  return itoa_int64(nbr, 10, true, 0, 0);
 }
 
 /**
- * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie dziesiętnym.
- * @param nbr Liczba do konwersji.
- * @return char* Wskaźnik na wynikowy ciąg znaków.
+ * @brief Converts unsigned 64-bit integer to decimal string.
+ * @param nbr Number to convert.
+ * @return char* Pointer to result string (must be freed manually).
  */
-char *itoa_udec(uint32_t nbr)
+char *itoa_udec(uint64_t nbr)
 {
-  return itoa_int((int32_t)nbr, 10, false, 0, 0);
+  return itoa_int64((int64_t)nbr, 10, false, 0, 0);
 }
 
 /**
- * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie szesnastkowym (8 bitów).
- * @param nbr Liczba do konwersji.
- * @return char* Wskaźnik na wynikowy ciąg znaków.
+ * @brief Converts 8-bit unsigned number to hexadecimal string (2 digits).
+ * @param nbr Value to convert.
+ * @return char* Pointer to result string (must be freed manually).
  */
-char *itoa_hex8(uint32_t nbr)
+char *itoa_hex8(uint8_t nbr)
 {
-  return itoa_int((int32_t)nbr, 16, false, 2, 2);
+  return itoa_int64((int64_t)nbr, 16, false, 2, 2);
 }
 
 /**
- * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie szesnastkowym (16 bitów).
- * @param nbr Liczba do konwersji.
- * @return char* Wskaźnik na wynikowy ciąg znaków.
+ * @brief Converts 16-bit unsigned number to hexadecimal string (4 digits).
+ * @param nbr Value to convert.
+ * @return char* Pointer to result string (must be freed manually).
  */
-char *itoa_hex16(uint32_t nbr)
+char *itoa_hex16(uint16_t nbr)
 {
-  return itoa_int((int32_t)nbr, 16, false, 4, 4);
+  return itoa_int64((int64_t)nbr, 16, false, 4, 4);
 }
 
 /**
- * @brief Funkcja konwertuje liczbę całkowitą bez znaku na ciąg w systemie szesnastkowym (32 bity).
- * @param nbr Liczba do konwersji.
- * @return char* Wskaźnik na wynikowy ciąg znaków.
+ * @brief Converts 32-bit unsigned number to hexadecimal string (8 digits).
+ * @param nbr Value to convert.
+ * @return char* Pointer to result string (must be freed manually).
  */
 char *itoa_hex32(uint32_t nbr)
 {
-  return itoa_int((int32_t)nbr, 16, false, 8, 8);
+  return itoa_int64((int64_t)nbr, 16, false, 8, 8);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -150,7 +150,7 @@ uint64_t tick_keep(uint32_t offset_ms)
 /**
  * @brief Checks if an event time has passed.
  * @param tick Pointer to the event time tick.
- * @return true if passed, resets tick; false otherwise.
+ * @return `true` if passed, resets tick; `false` otherwise.
  */
 bool tick_over(uint64_t *tick)
 {
@@ -162,7 +162,7 @@ bool tick_over(uint64_t *tick)
 /**
  * @brief Checks if an event time is still to come.
  * @param tick Pointer to the future event time tick.
- * @return true if future, false if passed and resets tick.
+ * @return `true` if future, `false` if passed and resets tick.
  */
 bool tick_away(uint64_t *tick)
 {

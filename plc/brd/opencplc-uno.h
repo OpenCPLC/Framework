@@ -32,7 +32,7 @@
   #define PLC_BASETIME 1
 #endif
 
-#define PLC_ARR_INIT_1KHz(clock, center_aligned) (clock / 1000 / (center_aligned + 1))
+#define PLC_ARR_INIT(clock, center_aligned) (clock / 1000 / (center_aligned + 1))
 
 // Wyjścia cyfrowe przekaźnikowse (RO)
 extern DOUT_t RO1;

@@ -14,25 +14,30 @@ static uint8_t print_args_getstrnbr(const char **format)
 
 void print_args(const char *format, va_list args)
 {
-  uint8_t ary_type, ary_sep_len, ary_count = 0;
-  char ary_sep[LOG_ARYSEP_MAXLEN + 1];
+  uint8_t ary_type, ary_space_len, ary_count = 0;
+  char ary_space[LOG_ARYSPACE_MAXLEN + 1];
   while(*format) {
     if(*format == '%') {
       format++;
       uint8_t width = print_args_getstrnbr(&format);
       if(*format == '-') format++;
       uint8_t precision = 0;
+      bool default_precision = true;
       if(*format == '.') {
         format++;
         precision = print_args_getstrnbr(&format);
+        default_precision = false;
       }
+      bool long_int = false;
+      if(*format == 'l') { format++; long_int = true; }
+      if(*format == 'l') { format++; long_int = true; }
       switch(*format) {
         case 'a': case 'A': {
           ary_count = va_arg(args, uint32_t);
           ary_type = precision > width ? precision : width;
           if(!ary_type) ary_type = 1;
-          memset(ary_sep, 0, LOG_ARYSEP_MAXLEN + 1);
-          ary_sep_len = 0;
+          memset(ary_space, 0, LOG_ARYSPACE_MAXLEN + 1);
+          ary_space_len = 0;
           break;
         }
         case 'i': case 'd': {
@@ -40,17 +45,20 @@ void print_args(const char *format, va_list args)
             uint8_t *ary = va_arg(args, uint8_t *);
             while(ary_count) {
               switch(ary_type) {
-                case 4: DBG_Int(*(int32_t *)ary, 10, true, precision, width); ary += 4; break;
-                case 2: DBG_Int(*(int16_t *)ary, 10, true, precision, width); ary += 2; break;
-                default: DBG_Int(*(int8_t *)ary, 10, true, precision, width); ary++; break;
+                case 8: DBG_Int(*(int64_t *)ary, 10, true, width, precision); ary += 8; break;
+                case 4: DBG_Int(*(int32_t *)ary, 10, true, width, precision); ary += 4; break;
+                case 2: DBG_Int(*(int16_t *)ary, 10, true, width, precision); ary += 2; break;
+                default: DBG_Int(*(int8_t *)ary, 10, true, width, precision); ary++; break;
               }
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
             }
           }
           else {
-            int32_t nbr = va_arg(args, int32_t);
-            DBG_Int(nbr, 10, true, precision, width);
+            int64_t nbr;
+            if(long_int) nbr = va_arg(args, int64_t);
+            else nbr = va_arg(args, int32_t);
+            DBG_Int(nbr, 10, true, width, precision);
           }
           break;
         }
@@ -59,30 +67,33 @@ void print_args(const char *format, va_list args)
             uint8_t *ary = va_arg(args, uint8_t *);
             while(ary_count) {
               switch(ary_type) {
-                case 4: DBG_Int(*(uint32_t *)ary, 10, false, precision, width); ary += 4; break;
-                case 2: DBG_Int(*(uint16_t *)ary, 10, false, precision, width); ary += 2; break;
-                default: DBG_Int(*(uint8_t *)ary, 10, false, precision, width); ary++; break;
+                case 8: DBG_Int(*(uint64_t *)ary, 10, false, width, precision); ary += 8; break;
+                case 4: DBG_Int(*(uint32_t *)ary, 10, false, width, precision); ary += 4; break;
+                case 2: DBG_Int(*(uint16_t *)ary, 10, false, width, precision); ary += 2; break;
+                default: DBG_Int(*(uint8_t *)ary, 10, false, width, precision); ary++; break;
               }
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
             }
           }
           else {
-            uint32_t nbr = va_arg(args, uint32_t);
-            DBG_Int(nbr, 10, false, precision, width);
+            uint64_t nbr;
+            if(long_int) nbr = va_arg(args, uint64_t);
+            else nbr = va_arg(args, uint32_t);
+            DBG_Int(nbr, 10, false, width, precision);
           }
           break;
         }
         case 'f':
-          if(!precision) precision = 3;
+          if(default_precision) precision = 3;
         case 'F': {
-          if(!precision) precision = 2;
+          if(default_precision) precision = 2;
           if(ary_count) {
             float *ary = va_arg(args, float *);
             while(ary_count) {
               DBG_FloatSpace(*ary, precision, width);
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
               ary++;
             }
           }
@@ -98,16 +109,19 @@ void print_args(const char *format, va_list args)
             uint8_t *ary = va_arg(args, uint8_t *);
             while(ary_count) {
               switch(ary_type) {
+                case 8: DBG_Int(*(uint64_t *)ary, 16, false, fill_zero, fill_zero); ary += 8; break;
                 case 4: DBG_Int(*(uint8_t *)ary, 16, false, fill_zero, fill_zero); ary += 4; break;
                 case 2: DBG_Int(*(uint8_t *)ary, 16, false, fill_zero, fill_zero); ary += 2; break;
                 default: DBG_Int(*(uint8_t *)ary, 16, false, fill_zero, fill_zero); ary++; break;
               }
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
             }
           }
           else {
-            uint32_t nbr = va_arg(args, uint32_t);
+            uint64_t nbr;
+            if(long_int) nbr = va_arg(args, uint64_t);
+            else nbr = va_arg(args, uint32_t);
             DBG_Int(nbr, 16, false, fill_zero, fill_zero);
           }
           break;
@@ -118,7 +132,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_Char(*ary);
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
               ary++;
             }
           }
@@ -134,7 +148,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_String(*str);
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
               str++;
             }
           }
@@ -156,7 +170,7 @@ void print_args(const char *format, va_list args)
                 default: ary++; break;
               }
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
             }
           }
           else {
@@ -174,7 +188,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               Print(obj);
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
               obj = (void *)((uint8_t *)obj + size);
             }
           }
@@ -192,7 +206,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_Int(*ary, 2, false, fill_zero, fill_zero);
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
               ary++;
             }
           }
@@ -208,7 +222,7 @@ void print_args(const char *format, va_list args)
             while(ary_count) {
               DBG_Bool(*ary);
               ary_count--;
-              if(ary_sep_len && ary_count) DBG_String((char *)&ary_sep);
+              if(ary_space_len && ary_count) DBG_String((char *)&ary_space);
               ary++;
             }
           }
@@ -225,7 +239,7 @@ void print_args(const char *format, va_list args)
     }
     else {
       if(ary_count) {
-        if(ary_sep_len < LOG_ARYSEP_MAXLEN) ary_sep[ary_sep_len++] = *format;
+        if(ary_space_len < LOG_ARYSPACE_MAXLEN) ary_space[ary_space_len++] = *format;
       }
       else DBG_Char(*format);
     }
@@ -245,21 +259,26 @@ void print(const char *template, ...)
 
 inline static void LOG_Datetime(void)
 {
-  if(!rtc_init) return;
-  RTC_Datetime_t dt = RTC_Datetime();
-  #if(LOG_INCLUDE_MS)
-    #if(LOG_TIME_ONLY)
-      DBG_TimeMs(&dt);
+  if(rtc_init) {
+    RTC_Datetime_t dt = RTC_Datetime();
+    #if(LOG_INCLUDE_MS)
+      #if(LOG_TIME_ONLY)
+        DBG_TimeMs(&dt);
+      #else
+        DBG_DatetimeMs(&dt);
+      #endif
     #else
-      DBG_DatetimeMs(&dt);
+      #if(LOG_TIME_ONLY)
+        DBG_Time(&dt);
+      #else
+        DBG_Datetime(&dt);
+      #endif
     #endif
-  #else
-    #if(LOG_TIME_ONLY)
-      DBG_Time(&dt);
-    #else
-      DBG_Datetime(&dt);
-    #endif
-  #endif
+  }
+  else {
+    int64_t tick = tick_keep(0);
+    DBG_Int(tick, 10, false, 8, 8);
+  }
   DBG_Char(' ');
 }
 
@@ -288,6 +307,11 @@ void LOG_Init(const char *greeting, const char *version)
     }
   #endif
   DBG_Enter();
+}
+
+void LOG_Nope(const char *message, ...)
+{
+  __NOP();
 }
 
 static void LOG_BashArgs(const char *message, va_list args)
@@ -413,10 +437,10 @@ static void LOG_CriticalArgs(const char *message, va_list args)
     #endif
     print_args(message, args);
     DBG_Enter();
-    DbgSendFlag = false;
+    // DbgSendFlag = false;
     DBG_Send(DbgFile->buffer, DbgFile->size);
     FILE_Clear(DbgFile);
-    DbgSendFlag = true;
+    // DbgSendFlag = true;
   #endif
 }
 

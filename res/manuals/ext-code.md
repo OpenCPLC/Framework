@@ -54,7 +54,7 @@ void loop(void)
     else if(start_button || motor_running) {
       motor_running = true;
     }
-    RELAY_Preset(&RO1, motor_running);
+    DOUT_Preset(&RO1, motor_running);
     let();
   }
 }

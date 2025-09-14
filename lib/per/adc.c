@@ -1,5 +1,9 @@
 #include "adc.h"
 
+const uint16_t AdcPrescalerTab[] = { 1, 2, 4, 6, 8, 10, 12, 16, 32, 64, 128, 256 };
+const uint8_t AdcSamplingTimeTab[] = { 14, 16, 20, 25, 32, 52, 92, 173 };
+const uint16_t AdcOversamplingRatioTab[] = { 2, 4, 8, 16, 32, 64, 128, 256 };
+
 //-------------------------------------------------------------------------------------------------
 
 static void ADC_SetChannels(uint8_t *cha, uint8_t count)
@@ -12,55 +16,74 @@ static void ADC_SetChannels(uint8_t *cha, uint8_t count)
   ADC1->CHSELR = chselr;
 }
 
-uint8_t ADC_Measurements(ADC_t *adc)
+uint8_t ADC_Measure(ADC_t *adc)
 {
-  if(!adc->busy) {
-    adc->busy = ADC_StatusSingle;
-    adc->measurements._active = 0;
-    ADC1->CFGR2 =
-        (adc->measurements.oversampling_shift << 5) |
-        (adc->measurements.oversampling_ratio << 2) |
-         adc->measurements.oversampling_enable;
-    ADC1->SMPR = adc->measurements.sampling_time;
-    ADC_SetChannels(adc->measurements.channels, adc->measurements.count);
-    #if(ADC_RECORD)
-      ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
-      ADC1->CFGR1 |= ADC_CFGR1_CONT;
-    #endif
-    ADC1->IER |= ADC_IER_EOCIE;
-    ADC1->CR |= ADC_CR_ADSTART;
-    return OK;
+  if(adc->busy) return BUSY;
+  adc->busy = ADC_State_Measure;
+  adc->measure.active = 0;
+  if(adc->prescaler != adc->measure.prescaler) {
+    ADC_Disable();
+    adc->prescaler = adc->measure.prescaler;
+    ADC->CCR = (ADC->CCR & ~ADC_CCR_PRESC_Msk) | (adc->prescaler << ADC_CCR_PRESC_Pos);
+    ADC_Enable();
   }
-  return BUSY;
+  ADC1->CFGR2 =
+    (adc->measure.oversampling.shift << ADC_CFGR2_OVSS_Pos) |
+    (adc->measure.oversampling.ratio << ADC_CFGR2_OVSR_Pos) |
+    adc->measure.oversampling.enable << ADC_CFGR2_OVSE_Pos;
+  ADC1->SMPR = adc->measure.sampling_time;
+  ADC_SetChannels(adc->measure.channels, adc->measure.count);
+  #if(ADC_RECORD)
+    ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
+    ADC1->CFGR1 |= ADC_CFGR1_CONT;
+  #endif
+  ADC1->IER |= ADC_IER_EOCIE;
+  ADC1->CR |= ADC_CR_ADSTART;
+  return OK;
 }
 
 #if(ADC_RECORD)
+
 uint8_t ADC_Record(ADC_t *adc)
 {
-  if(!adc->busy) {
-    adc->busy = ADC_StatusRecord;
-    ADC1->CFGR2 =
-        (adc->record.oversampling_shift << 5) |
-        (adc->record.oversampling_ratio << 2) |
-         adc->record.oversampling_enable;
-    ADC1->SMPR = adc->record.sampling_time;
-    ADC_SetChannels(adc->record.channels, adc->record.count);
-    adc->record.dma.cha->CMAR = (uint32_t)(adc->record.buffer);
-    adc->record.dma.cha->CNDTR = (uint32_t)(adc->record.buffer_length);
-    if(adc->record.tim) {
-      TIM_Enable(adc->record.tim);
-      ADC1->CFGR1 |= ADC_CFGR1_EXTEN;
-      ADC1->CFGR1 &= ~ADC_CFGR1_CONT;
-    } else {
-      ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
-      ADC1->CFGR1 |= ADC_CFGR1_CONT;
-    }
-    adc->record.dma.cha->CCR |= DMA_CCR_EN;
-    ADC1->CR |= ADC_CR_ADSTART;
-    return FREE;
+  if(adc->busy) return BUSY;
+  adc->busy = ADC_State_Record;
+  if(adc->prescaler != adc->record.prescaler) {
+    ADC_Disable();
+    adc->prescaler = adc->record.prescaler;
+    ADC->CCR = (ADC->CCR & ~ADC_CCR_PRESC_Msk) | (adc->prescaler << ADC_CCR_PRESC_Pos);
+    ADC_Enable();
   }
-  return BUSY;
+  ADC1->CFGR2 =
+    (adc->record.oversampling.shift << ADC_CFGR2_OVSS_Pos) |
+    (adc->record.oversampling.ratio << ADC_CFGR2_OVSR_Pos) |
+    adc->record.oversampling.enable << ADC_CFGR2_OVSE_Pos;
+  ADC1->SMPR = adc->record.sampling_time;
+  ADC_SetChannels(adc->record.channels, adc->record.count);
+  adc->record.dma.cha->CMAR = (uint32_t)(adc->record.buffer);
+  adc->record.dma.cha->CNDTR = (uint32_t)(adc->record.buffer_length);
+  if(adc->record.tim) {
+    TIM_Enable(adc->record.tim);
+    ADC1->CFGR1 |= ADC_CFGR1_EXTEN;
+    ADC1->CFGR1 &= ~ADC_CFGR1_CONT;
+  }
+  else {
+    ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
+    ADC1->CFGR1 |= ADC_CFGR1_CONT;
+  }
+  adc->record.dma.cha->CCR |= DMA_CCR_EN;
+  ADC1->CR |= ADC_CR_ADSTART;
+  return OK;
 }
+
+float ADC_RecordSampleTime_s(ADC_t *adc)
+{
+  float freq = adc->freq_16Mhz ? 16000000.0f : (float)SystemCoreClock / AdcPrescalerTab[adc->record.prescaler];
+  float time = (float)adc->record.count * (float)AdcSamplingTimeTab[adc->record.sampling_time] / freq;
+  if(adc->record.oversampling.enable) time *= (float)AdcOversamplingRatioTab[adc->record.oversampling.ratio];
+  return time;
+}
+
 #endif
 
 //-------------------------------------------------------------------------------------------------
@@ -68,16 +91,17 @@ uint8_t ADC_Record(ADC_t *adc)
 void ADC_Stop(ADC_t *adc)
 {
   ADC1->CR |= ADC_CR_ADSTP;
+  while(ADC1->CR & ADC_CR_ADSTP) __NOP();
   switch(adc->busy) {
-    case ADC_StatusSingle: ADC1->IER &= ~ADC_IER_EOCIE; break;
+    case ADC_State_Measure: ADC1->IER &= ~ADC_IER_EOCIE; break;
     #if(ADC_RECORD)
-      case ADC_StatusRecord:
+      case ADC_State_Record:
         if(adc->record.tim) TIM_Disable(adc->record.tim);
         adc->record.dma.cha->CCR &= ~DMA_CCR_EN;
         break;
     #endif
   }
-  adc->busy = ADC_StatusFree;
+  adc->busy = ADC_State_Free;
 }
 
 bool ADC_IsBusy(ADC_t *adc)
@@ -94,22 +118,22 @@ bool ADC_IsFree(ADC_t *adc)
 
 void ADC_Wait(ADC_t *adc)
 {
-  while(ADC_IsBusy(adc)) __DSB();
+  while(ADC_IsBusy(adc)) let();
 }
 
-void ADC_Enabled(void)
+void ADC_Enable(void)
 {
   do {
     ADC1->CR |= ADC_CR_ADEN;
   } while((ADC1->ISR & ADC_ISR_ADRDY) == 0);
 }
 
-void ADC_Disabled(void)
+void ADC_Disable(void)
 {
-  if((ADC1->CR & ADC_CR_ADSTART)) ADC1->CR |= ADC_CR_ADSTP;
-  while((ADC1->CR & ADC_CR_ADSTP)) __DSB();
+  if(ADC1->CR & ADC_CR_ADSTART) ADC1->CR |= ADC_CR_ADSTP;
+  while((ADC1->CR & ADC_CR_ADSTP)) let();
   ADC1->CR |= ADC_CR_ADDIS;
-  while((ADC1->CR & ADC_CR_ADEN) != 0) __DSB();
+  while(ADC1->CR & ADC_CR_ADEN) let();
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -119,16 +143,14 @@ static void ADC_InterruptEV(ADC_t *adc)
 {
   if(ADC1->ISR & ADC_ISR_OVR) {
     ADC1->ISR |= ADC_ISR_OVR;
-    #if(INCLUDE_DBG)
-      adc->overrun++;
-    #endif
+    adc->overrun++;
     ADC_Stop(adc);
   }
   else if(ADC1->ISR & ADC_ISR_EOC) {
     ADC1->ISR |= ADC_ISR_EOC;
-    adc->measurements.output[adc->measurements._active] = ADC1->DR;
-    adc->measurements._active++;
-    if(adc->measurements._active >= adc->measurements.count) ADC_Stop(adc);
+    adc->measure.output[adc->measure.active] = ADC1->DR;
+    adc->measure.active++;
+    if(adc->measure.active >= adc->measure.count) ADC_Stop(adc);
   }
 }
 
@@ -138,7 +160,6 @@ static void ADC_InterruptDMA(ADC_t *adc)
   if(adc->record.dma.reg->ISR & DMA_ISR_TCIF(adc->record.dma.pos)) {
     adc->record.dma.reg->IFCR |= DMA_ISR_TCIF(adc->record.dma.pos);
     ADC_Stop(adc);
-    if(adc->record.tim) TIM_Disable(adc->record.tim);
   }
 }
 #endif
@@ -163,12 +184,17 @@ static void ADC_InitGPIO(uint32_t *chselr, uint8_t *cha, uint8_t count)
 
 void ADC_Init(ADC_t *adc)
 {
+  RCC->CCIPR &= ~RCC_CCIPR_ADCSEL_Msk;
+  if(adc->freq_16Mhz) {
+    RCC->CCIPR |= RCC_CCIPR_ADCSEL_1; // HSI16
+  }
   RCC->APBENR2 |= RCC_APBENR2_ADCEN;
+  ADC->CCR = (ADC->CCR & ~ADC_CCR_PRESC_Msk) | (adc->prescaler << ADC_CCR_PRESC_Pos);
   ADC1->CR |= ADC_CR_ADVREGEN;
-  for(uint32_t i = 0; i < SystemCoreClock / 500000; i++) __DSB();
+  for(uint32_t i = 0; i < SystemCoreClock / 500000; i++) let();
   ADC1->CR &= ~ADC_CR_ADEN;
   ADC1->CR |= ADC_CR_ADCAL;
-  while(!(ADC1->ISR & ADC_ISR_EOCAL)) __DSB();
+  while(!(ADC1->ISR & ADC_ISR_EOCAL)) let();
   ADC1->ISR |= ADC_ISR_EOCAL;
   #if(ADC_RECORD)
     DMA_SetRegisters(adc->record.dma_nbr, &adc->record.dma);
@@ -181,9 +207,8 @@ void ADC_Init(ADC_t *adc)
     ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
     INT_EnableDMA(adc->record.dma_nbr, adc->int_prioryty, (void (*)(void *))&ADC_InterruptDMA, adc);
   #endif
-  ADC->CCR |= (adc->frequency << ADC_CCR_PRESC_Pos);
   uint32_t chselr = 0;
-  ADC_InitGPIO(&chselr, adc->measurements.channels, adc->measurements.count);
+  ADC_InitGPIO(&chselr, adc->measure.channels, adc->measure.count);
   #if(ADC_RECORD)
     if(adc->record.channels) ADC_InitGPIO(&chselr, adc->record.channels, adc->record.count);
   #endif
@@ -193,10 +218,10 @@ void ADC_Init(ADC_t *adc)
   #if(ADC_RECORD)
     if(adc->record.tim) {
       switch((uint32_t)adc->record.tim->reg) {
-        case (uint32_t)TIM1: ADC1->CFGR1 |= (0 << 6); break;
-        case (uint32_t)TIM3: ADC1->CFGR1 |= (3 << 6); break;
-        case (uint32_t)TIM6: ADC1->CFGR1 |= (5 << 6); break;
-        case (uint32_t)TIM15: ADC1->CFGR1 |= (4 << 6); break;
+        case (uint32_t)TIM1: ADC1->CFGR1 |= (0 << ADC_CFGR1_EXTSEL_Pos); break;
+        case (uint32_t)TIM3: ADC1->CFGR1 |= (3 << ADC_CFGR1_EXTSEL_Pos); break;
+        case (uint32_t)TIM6: ADC1->CFGR1 |= (5 << ADC_CFGR1_EXTSEL_Pos); break;
+        case (uint32_t)TIM15: ADC1->CFGR1 |= (4 << ADC_CFGR1_EXTSEL_Pos); break;
       }
       adc->record.tim->int_prioryty = adc->int_prioryty;
       adc->record.tim->one_pulse_mode = false;
@@ -209,7 +234,7 @@ void ADC_Init(ADC_t *adc)
     ADC1->CFGR1 &= ~ADC_CFGR1_EXTEN;
     ADC1->CFGR1 |= ADC_CFGR1_CONT;
   #endif
-  ADC_Enabled();
+  ADC_Enable();
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -5,6 +5,7 @@
 #include "int.h"
 #include "gpio.h"
 #include "exdef.h"
+#include "vrts.h"
 #include "main.h"
 
 #ifndef ADC_RECORD
@@ -16,7 +17,7 @@
 #endif
 
 #define adc_record_buffer_size(time_ms, sample_time, oversampling, channel_count) \
-  (uint16_t)(channel_count * (time_ms * 16000 / (sample_time + 12) / oversampling / channel_count))
+  (uint16_t)(channel_count * (time_ms * 16000 / sample_time / oversampling / channel_count))
 
 #define resistor_divider_factor(vcc, up, down, resolution) \
   ((float)vcc * ((float)up + down) / down / ((1 << resolution) - 1))
@@ -27,10 +28,10 @@
 //-------------------------------------------------------------------------------------------------
 
 typedef enum {
-  ADC_StatusFree = 0,
-  ADC_StatusSingle = 1,
-  ADC_StatusRecord = 2
-} ADC_Status_t;
+  ADC_State_Free = 0,
+  ADC_State_Measure = 1,
+  ADC_State_Record = 2
+} ADC_State_t;
 
 typedef enum {
   ADC_IN_PA0 = 0,
@@ -66,64 +67,69 @@ typedef enum {
 } ADC_OversamplingRatio_t;
 
 typedef enum {
-  ADC_SamplingTime_1 = 0,
-  ADC_SamplingTime_3 = 1,
-  ADC_SamplingTime_7 = 2,
-  ADC_SamplingTime_12 = 3,
-  ADC_SamplingTime_19 = 4,
-  ADC_SamplingTime_39 = 5,
-  ADC_SamplingTime_79 = 6,
-  ADC_SamplingTime_160 = 7
+  ADC_SamplingTime_14 = 0,
+  ADC_SamplingTime_16 = 1,
+  ADC_SamplingTime_20 = 2,
+  ADC_SamplingTime_25 = 3,
+  ADC_SamplingTime_32 = 4,
+  ADC_SamplingTime_52 = 5,
+  ADC_SamplingTime_92 = 6,
+  ADC_SamplingTime_173 = 7
 } ADC_SamplingTime_t;
 
 typedef enum {
-  ADC_Frequency_16MHz = 0,  // Prescaler:1
-  ADC_Frequency_8Mhz = 1, // Prescaler:2
-  ADC_Frequency_4Mhz = 2, // Prescaler:4
-  ADC_Frequency_2_7MHz = 3, // Prescaler:6
-  ADC_Frequency_2Mhz = 4, // Prescaler:8
-  ADC_Frequency_1_6MHz = 5, // Prescaler:10
-  ADC_Frequency_1_3MHz = 6, // Prescaler:12
-  ADC_Frequency_1MHz = 7, // Prescaler:16
-  ADC_Frequency_500kHz = 8, // Prescaler:32
-  ADC_Frequency_250kHz = 9, // Prescaler:64
-  ADC_Frequency_125kHz = 10, // Prescaler:128
-  ADC_Frequency_62_5kHz = 11 // Prescaler:256
-} ADC_Frequency_t;
+  ADC_Prescaler_1 = 0,
+  ADC_Prescaler_2 = 1,
+  ADC_Prescaler_4 = 2,
+  ADC_Prescaler_6 = 3,
+  ADC_Prescaler_8 = 4,
+  ADC_Prescaler_10 = 5,
+  ADC_Prescaler_12 = 6,
+  ADC_Prescaler_16 = 7,
+  ADC_Prescaler_32 = 8,
+  ADC_Prescaler_64 = 9,
+  ADC_Prescaler_128 = 10,
+  ADC_Prescaler_256 = 11
+} ADC_Prescaler_t;
 
 //-------------------------------------------------------------------------------------------------
 
 typedef struct {
-  uint8_t *channels; // TODO array
+  bool enable;
+  ADC_OversamplingRatio_t ratio;
+  uint8_t shift; // 0-8 [bit]
+} ADC_Oversampling_t;
+
+typedef struct {
+  uint8_t *channels;
   uint8_t count;
-  uint16_t *output; // TODO std output
+  uint16_t *output;
+  ADC_Prescaler_t prescaler;
   ADC_SamplingTime_t sampling_time;
-  bool oversampling_enable;
-  ADC_OversamplingRatio_t oversampling_ratio;
-  uint8_t oversampling_shift; // 0-8 [bit]
-  uint8_t _active;
+  ADC_Oversampling_t oversampling;
+  uint8_t active;
 } ADC_Measurements_t;
 
 #if(ADC_RECORD)
 typedef struct {
   uint8_t *channels;
   uint8_t count;
-  TIM_t *tim;
   DMA_Nbr_t dma_nbr;
+  ADC_Prescaler_t prescaler;
   ADC_SamplingTime_t sampling_time;
-  bool oversampling_enable;
-  ADC_OversamplingRatio_t oversampling_ratio;
-  uint8_t oversampling_shift; // 0-8 [bit]
+  ADC_Oversampling_t oversampling;
   uint16_t *buffer;
   uint16_t buffer_length;
+  TIM_t *tim;
   DMA_t dma;
 } ADC_Record_t;
 #endif
 
 typedef struct {
   INT_Prioryty_t int_prioryty;
-  ADC_Frequency_t frequency;
-  ADC_Measurements_t measurements;
+  bool freq_16Mhz;
+  ADC_Prescaler_t prescaler;
+  ADC_Measurements_t measure;
   #if(ADC_RECORD)
     ADC_Record_t record;
   #endif
@@ -133,27 +139,24 @@ typedef struct {
 
 //-------------------------------------------------------------------------------------------------
 
-uint8_t ADC_Measurements(ADC_t *adc);
+uint8_t ADC_Measure(ADC_t *adc);
 uint8_t ADC_Record(ADC_t *adc);
+float ADC_RecordSampleTime_s(ADC_t *adc);
 
 bool ADC_IsBusy(ADC_t *adc);
 bool ADC_IsFree(ADC_t *adc);
 void ADC_Wait(ADC_t *adc);
 void ADC_Stop(ADC_t *adc);
-void ADC_Enabled(void);
-void ADC_Disabled(void);
+void ADC_Enable(void);
+void ADC_Disable(void);
 
 void ADC_Init(ADC_t *adc);
 
 //-------------------------------------------------------------------------------------------------
 
-extern const uint8_t(*ANA_Single_ErtsVector[])(ADC_t *adc);
-extern const uint16_t ANA_Single_ErtsTime[];
-
-#if(ADC_RECORD)
-  extern const uint8_t(*ANA_Record_ErtsVector[])(ADC_t *adc);
-  extern const uint16_t ANA_Record_ErtsTime[];
-#endif
+extern const uint32_t AdcFrequencyTab[];
+extern const uint8_t AdcSamplingTimeTab[];
+extern const uint16_t AdcOversamplingRatioTab[];
 
 //-------------------------------------------------------------------------------------------------
 #endif

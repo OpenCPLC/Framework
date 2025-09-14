@@ -9,6 +9,7 @@ static struct {
   void (*callbacks[BASH_CALLBACK_LIMIT])(char **, uint16_t);
   uint32_t callbacks_hash[BASH_CALLBACK_LIMIT];
   uint8_t callbacks_count;
+  void (*callback_default)(char **, uint16_t);
   bool flash_autosave;
   FILE_t *file_active;
   void (*Sleep)(PWR_SleepMode_e);
@@ -22,7 +23,7 @@ static struct {
 void BASH_AddFile(FILE_t *file)
 {
   if(bash.files_count >= BASH_FILE_LIMIT) {
-    LOG_Error("BASH Exceeded file limit (max %u)", BASH_FILE_LIMIT);
+    LOG_Error("BASH Exceeded file limit (max:%u)", BASH_FILE_LIMIT);
     return;
   }
   bash.files[bash.files_count] = file;
@@ -42,8 +43,12 @@ void BASH_AddFile(FILE_t *file)
  */
 void BASH_AddCallback(void (*callback)(char **, uint16_t), char *argv0)
 {
+  if(!argv0 || !strlen(argv0)) {
+    bash.callback_default = callback;
+    return;
+  }
   if(bash.callbacks_count >= BASH_CALLBACK_LIMIT) {
-    LOG_Error("BASH Exceeded callback limit (max %u)", BASH_CALLBACK_LIMIT);
+    LOG_Error("BASH Exceeded callback limit (max:%u)", BASH_CALLBACK_LIMIT);
     return;
   }
   bash.callbacks[bash.callbacks_count] = callback;
@@ -64,7 +69,7 @@ void BASH_FlashAutosave(bool autosave)
 static inline void BASH_WrongCommand(char *cmd)
 {
   #if(LOG_COLORS)
-    LOG_Warning("Wrong "ANSI_CYAN"%s"ANSI_END" command usage", cmd);
+    LOG_Warning("Wrong "ANSI_TEAL"%s"ANSI_END" command usage", cmd);
   #else
     LOG_Warning("Wrong '%s' command usage", cmd);
   #endif
@@ -106,8 +111,11 @@ void BASH_WrongArgv(char *cmd, char *argv, uint16_t pos)
 static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
 {
   stream->packages--;
-  if(stream->packages) LOG_Bash("File %s transfer, packages left: %d ", (char *)bash.file_active->name, stream->packages);
-  else LOG_Bash("File %s transfer end", (char *)bash.file_active->name);
+  #if(LOG_COLORS)
+    LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " data pack:" ANSI_LIME "%d" ANSI_END, bash.file_active->name, stream->packages);
+  #elif
+    LOG_Bash("File %s data pack:%d", bash.file_active->name, stream->packages);
+  #endif
   bash.file_active->mutex = false;
   FILE_Append(bash.file_active, data, size);
   if(!stream->packages) {
@@ -157,7 +165,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
         file_names[i] = bash.files[i]->name;
       }
       #if(LOG_COLORS)
-        LOG_Bash("File list: %a"ANSI_GREY", "ANSI_END"%s", bash.files_count, file_names);
+        LOG_Bash("File list: " ANSI_CREAM "%a %s" ANSI_END, bash.files_count, file_names);
       #elif
         LOG_Bash("File list: %a, %s", bash.files_count, file_names);
       #endif
@@ -169,7 +177,11 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       FILE_t *file = BASH_FindFile(argv[2]);
       if(!file) return;
       bash.file_active = file;
-      LOG_Bash("File %s was selected", bash.file_active->name);
+      #if(LOG_COLORS)
+        LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " selected", bash.file_active->name);
+      #elif
+        LOG_Bash("File %s was selected", bash.file_active->name);
+      #endif
       break;
     }
     case HASH_Info: {  // FILE info
@@ -201,23 +213,31 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
         STREAM_DataMode(stream);
         stream->packages = packages;
         bash.file_active->mutex = true;
-        LOG_Bash("File %s save, packages: %d", bash.file_active->name, stream->packages);
+        #if(LOG_COLORS)
+          LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " save pack:" ANSI_LIME "%d" ANSI_END, bash.file_active->name, stream->packages);
+        #elif
+          LOG_Bash("File %s save pack:%d", bash.file_active->name, stream->packages);
+        #endif
       }
       break;
     }
     case HASH_Append: { // FILE append <packages:uint16>?
-      BASH_Argc(2, 3);
-      if(bash.file_active->mutex) BASH_AccessDenied(bash.file_active);
-      else {
-        STREAM_DataMode(stream);
+      uint16_t packages = 1;
+      if(argc == 3) {
         if(str2uint16_fault(argv[2])) {
           LOG_ParseFault("str2uint16", argv[2]);
           BASH_ArgvExit(2);
         }
-        stream->packages = argc == 3 ? str2nbr(argv[2]) : 1;
-        bash.file_active->mutex = true;
-        LOG_Bash("File %s append, packages: %d", bash.file_active->name, stream->packages);
+        packages = str2nbr(argv[2]);
       }
+      STREAM_DataMode(stream);
+      stream->packages = packages;
+      bash.file_active->mutex = true;
+      #if(LOG_COLORS)
+        LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " append pack:" ANSI_LIME "%d" ANSI_END, bash.file_active->name, stream->packages);
+      #elif
+        LOG_Bash("File %s append pack:%d", bash.file_active->name, stream->packages);
+      #endif
       break;
     }
     case HASH_Load: { // FILE load <limit:uint16>? <offset:uint16>?
@@ -340,7 +360,7 @@ static void BASH_Rtc(char **argv, uint16_t argc)
       uint32_t argv1_hash = hash(argv[1]);
       if(argv1_hash == HASH_Rst || argv1_hash == HASH_Reset) {
         RTC_Reset();
-        LOG_Bash("RTC was reset");
+        LOG_Bash("RTC reset");
         return;
       }
       if(str2uint64_fault(argv[1])) {
@@ -348,7 +368,7 @@ static void BASH_Rtc(char **argv, uint16_t argc)
         BASH_ArgvExit(1);
       }
       uint64_t stamp = str2nbr64(argv[1]);
-      LOG_Bash("RTC was set by timestamp");
+      LOG_Bash("RTC preset timestamp");
       RTC_SetTimestamp(stamp);
       break;
     }
@@ -390,7 +410,7 @@ static void BASH_Rtc(char **argv, uint16_t argc)
         .second = second_nbr
       };
       RTC_SetDatetime(&dt);
-      LOG_Bash("RTC was set by datatime");
+      LOG_Bash("RTC preset datatime");
       break;
     }
   }
@@ -561,12 +581,18 @@ bool BASH_Loop(STREAM_t *stream)
               return true;
             }
           }
-          #if(LOG_COLORS)
-            LOG_Warning("Command "ANSI_CYAN"%s"ANSI_END" not found", argv[0]);
-          #else
-            LOG_Warning("Command '%s' not found", argv[0]);
-          #endif
-          return false;
+          if(bash.callback_default) {
+            bash.callback_default(argv, argc);
+            return true;
+          }
+          else {
+            #if(LOG_COLORS)
+              LOG_Warning("Command " ANSI_TEAL "%s" ANSI_END " not found", argv[0]);
+            #else
+              LOG_Warning("Command '%s' not found", argv[0]);
+            #endif
+            return false;
+          }
         }
       }
     }

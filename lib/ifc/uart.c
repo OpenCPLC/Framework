@@ -233,7 +233,7 @@ state_t UART_Send(UART_t *uart, uint8_t *data, uint16_t length)
 
 //------------------------------------------------------------------------------------------------- Read
 
-uint16_t UART_ReadSize(UART_t *uart)
+uint16_t UART_GetSize(UART_t *uart)
 {
   return BUFF_Size(uart->buff);
 }
@@ -248,12 +248,12 @@ char *UART_ReadString(UART_t *uart)
   return BUFF_String(uart->buff);
 }
 
-bool UART_ReadSkip(UART_t *uart)
+bool UART_Skip(UART_t *uart)
 {
   return BUFF_Skip(uart->buff);
 }
 
-void UART_ReadClear(UART_t *uart)
+void UART_Clear(UART_t *uart)
 {
   return BUFF_Clear(uart->buff);
 }
@@ -261,18 +261,18 @@ void UART_ReadClear(UART_t *uart)
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Oblicza czas trwania transmisji dla określonej długości ramki UART.
- * @param uart Wskaźnik do struktury UART_t reprezentującej ustawienia interfejsu UART.
- * @param length Długość ramki w ilości bajtów.
- * @return uint16_t Czas trwania transmisji w milisekundach.
+ * @brief Calculates transmission time for given UART frame length.
+ * @param uart UART_t structure with UART settings.
+ * @param length Frame length in bytes.
+ * @return uint16_t Transmission time in milliseconds.
  */
-uint16_t UART_CalcTime(UART_t *uart, uint16_t length)
+uint32_t UART_CalcTime_ms(UART_t *uart, uint16_t length)
 {
   uint32_t bits = 10; // start_bit + space
   if(uart->parity) bits++;
   switch(uart->stop_bits) {
-    case UART_StopBits_0_5: case UART_StopBits_1_0: bits += 1; 
-    case UART_StopBits_1_5: case UART_StopBits_2_0: bits += 2;
+    case UART_StopBits_0_5: case UART_StopBits_1_0: bits += 1; break;
+    case UART_StopBits_1_5: case UART_StopBits_2_0: bits += 2; break;
   } 
   return 1000 * ((bits * length) + uart->timeout) / uart->baud;
 }

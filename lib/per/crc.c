@@ -90,12 +90,42 @@ state_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count)
 //---------------------------------------------------------------------------------------------------------------------
 #if(CRC_STANDARD_USED)
 
-const CRC_t crc32 = {
+const CRC_t crc32_iso = {
   .width = 32,
   .polynomial = 0x04C11DB7,
   .initial = 0xFFFFFFFF,
   .reflect_data_in = 32,
   .reflect_data_out = true,
+  .final_xor = 0xFFFFFFFF,
+  .invert_out = false
+};
+
+const CRC_t crc32_aixm = {
+  .width = 32,
+  .polynomial = 0x814141AB,
+  .initial = 0x00000000,
+  .reflect_data_in = false,
+  .reflect_data_out = false,
+  .final_xor = 0x00000000,
+  .invert_out = false
+};
+
+const CRC_t crc32_autosar = {
+  .width = 32,
+  .polynomial = 0xF4ACFB13,
+  .initial = 0xFFFFFFFF,
+  .reflect_data_in = 32,
+  .reflect_data_out = true,
+  .final_xor = 0xFFFFFFFF,
+  .invert_out = false
+};
+
+const CRC_t crc32_cksum = {
+  .width = 32,
+  .polynomial = 0x04C11DB7,
+  .initial = 0x00000000,
+  .reflect_data_in = false,
+  .reflect_data_out = false,
   .final_xor = 0xFFFFFFFF,
   .invert_out = false
 };
@@ -140,7 +170,7 @@ const CRC_t crc8_maxim = {
   .invert_out = false
 };
 
-const CRC_t crc8 = {
+const CRC_t crc8_smbus = {
   .width = 8,
   .polynomial = 0x07,
   .initial = 0x00,

@@ -84,6 +84,7 @@ typedef struct {
 	uint32_t auto_reload;
 	void (*function)(void *);
 	void *function_struct;
+  bool dma_trig;
 	volatile uint16_t _inc;
 	volatile bool enable;
 	volatile bool enable_interrupt;

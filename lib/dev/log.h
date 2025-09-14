@@ -3,13 +3,14 @@
 
 #include "dbg.h"
 #include "exdef.h"
+#include "vrts.h"
 #include "main.h"
 
 //-------------------------------------------------------------------------------------------------
 
 // Maksymalna długość separatora używanego przy wypisywaniu elementów tablicy (iterable)
-#ifndef LOG_ARYSEP_MAXLEN
-  #define LOG_ARYSEP_MAXLEN 16
+#ifndef LOG_ARYSPACE_MAXLEN
+  #define LOG_ARYSPACE_MAXLEN 32
 #endif
 
 // Czy dodawać milisekundy do znacznika czasu w logach?
@@ -60,6 +61,7 @@ extern bool LogPrintFlag;
 
 void print(const char *template, ...);
 void LOG_Init(const char *greeting, const char *version);
+void LOG_Nope(const char *message, ...);
 void LOG_Bash(const char *message, ...);
 void LOG_Debug(const char *message, ...);
 void LOG_Info(const char *message, ...);
@@ -70,6 +72,7 @@ void LOG_Panic(const char *message);
 void LOG_Message(LOG_Level_e lvl, char *message, ...);
 
 #define LOG_INI LOG_Init
+#define LOG_NOP LOG_Nope
 #define LOG_DBG LOG_Debug
 #define LOG_INF LOG_Info
 #define LOG_WRN LOG_Warning

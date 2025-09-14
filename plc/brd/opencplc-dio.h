@@ -27,19 +27,14 @@
   #define PLC_BASETIME 1
 #endif
 
+#ifndef PLC_ARR_INIT
+  #define PLC_ARR_INIT(clock, center_aligned) TIM_ARR_INIT(1000, clock, center_aligned)
+#endif
+
 // Wyjścia cyfrowe tranzystorowe (TO)
-extern DOUT_t TO1;
-extern DOUT_t TO2;
-extern DOUT_t TO3;
-extern DOUT_t TO4;
-extern DOUT_t TO5;
-extern DOUT_t TO6;
-extern DOUT_t TO7;
-extern DOUT_t TO8;
-extern DOUT_t TO9;
-extern DOUT_t TO10;
-extern DOUT_t TO11;
-extern DOUT_t TO12;
+extern DOUT_t TO1, TO2, TO3, TO4, TO5, TO6;
+extern DOUT_t TO7, TO8, TO9, TO10, TO11, TO12;
+
 void TO149C_Frequency(float frequency);
 void TO2_Frequency(float frequency);
 void TO3_Frequency(float frequency);
@@ -48,18 +43,8 @@ void TO7A_Frequency(float frequency);
 void TO_Frequency(float frequency);
 
 // Wejścia cyfrowe (DI)
-extern DIN_t DI1;
-extern DIN_t DI2;
-extern DIN_t DI3;
-extern DIN_t DI4;
-extern DIN_t DI5;
-extern DIN_t DI6;
-extern DIN_t DI7;
-extern DIN_t DI8;
-extern DIN_t DI9;
-extern DIN_t DI10;
-extern DIN_t DI11;
-extern DIN_t DI12;
+extern DIN_t DI1, DI2, DI3, DI4, DI5, DI6;
+extern DIN_t DI7, DI8, DI9, DI10, DI11, DI12;
 
 // Wejścia analogowe (AI)
 extern AIN_t AI1;
@@ -73,9 +58,11 @@ float VCC_Value(void);
   #define RS_BUFFER_SIZE 1000
 #endif
 extern UART_t RS;
+#define RS1 RS
 
 // Dioda RGB
 extern RGB_t RGB;
+#define RGB1 RGB
 
 // Functions
 void PLC_Init(void);

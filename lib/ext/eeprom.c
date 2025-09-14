@@ -99,7 +99,7 @@ uint8_t EEPROM_Init(EEPROM_t *eeprom)
 
 //-------------------------------------------------------------------------------------------------
 
-uint8_t EEPROM_WriteCell(EEPROM_t * eeprom, uint32_t cell, uint32_t * data)
+uint8_t EEPROM_WriteCell(EEPROM_t *eeprom, uint32_t cell, uint32_t *data)
 {
   if(FLASH_Write(eeprom->_page_pointner, cell, *data)) return 1;
   eeprom->_page_pointner += 8;
@@ -123,8 +123,8 @@ uint8_t EEPROM_Read(EEPROM_t *eeprom, uint32_t *data)
 {
   uint32_t i, pointner, temp_data;
   for(i = eeprom->_page_address_end[eeprom->_page_active] - 8; i >= eeprom->_page_address_start[eeprom->_page_active]; i -= 8) {
-    pointner = *(uint32_t *) (i);
-    temp_data = *(uint32_t *) (i + 4);
+    pointner = *(uint32_t *)(i);
+    temp_data = *(uint32_t *)(i + 4);
     if((uint32_t)data == pointner) {
       *data = temp_data;
       return OK;

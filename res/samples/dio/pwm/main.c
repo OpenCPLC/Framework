@@ -4,12 +4,13 @@
  * @name  Projekt: dio/pwm
  * @brief Modyfikacja parametrów sygnału proporcjonalnego PWM (wypełnienie, częstotliwość)
  *        wraz z równoległym pomiarem tych parametrów za pomocą szybkiego licznika.
- *        Wątek `loop` zmienia częstotliwość (lub wypełnienie) sygnału na wyjściu TO1 po wciśnięciu przycisku BTN1.
+ *        Wątek `loop` zmienia częstotliwość (lub wypełnienie) sygnału na wyjściu TO1.
+ *        Zmiana wartości jest realizowana po wciśnięciu przycisku BTN1.
  *        Wątek `monit` mierzy i wyświetla zmierzoną częstotliwość i wypełnienie.
  * @short TO1 --> DI1 (połączenie wymagane)
  *        TO1 --> 1kΩ --> GND (połączenie dodatkowe)
- * @note  Wyjście cyfrowe jest typu P (Source), a nie Push-Pull, więc żeby przebieg był lepszej jakości,
- *        trzeba wymusić przepływ prądu.
+ * @note  Wyjście cyfrowe jest typu P (Source), a nie Push-Pull,
+ *        więc żeby przebieg był lepszej jakości, trzeba wymusić przepływ prądu.
  */
 
 // Zmiana wypełnienia sygnału proporcjonalnego PWM
@@ -27,7 +28,8 @@ float next_freq(float freq)
 {
   freq /= 2; // Zmniejszenie częstotliwości 2-krotnie
   if(freq < 10.0) freq = 2000.0; // Ustawienie częstotliwości na 2kHz, gdy spadnie poniżej 10Hz
-  DOUT_Frequency(&TO1, freq); // Ustaw wartość częstotliwości wyjścia TO1 (oraz pozostałych, które dzielą ten sam TIM'er)
+  // Ustaw wartość częstotliwości wyjścia TO1 (oraz pozostałych, które dzielą ten sam TIM'er)
+  DOUT_Frequency(&TO1, freq); 
   LOG_Warning("Modify frequency: %.0fHz", freq);
   return freq;
 }
@@ -38,7 +40,8 @@ void loop(void)
   float duty = 50.0; // Początkowo ustaw 50% wypełnienia
   DOUT_Duty(&TO1, duty); // Ustaw wartość wypełnienia wyjścia TO1
   LOG_Info("Init duty: %.0f%%", duty);
-  float freq = DOUT_GetFrequency(&TO1); // Pobranie wartości częstotliwości sygnału proporcjonalnego PWM
+  // Pobranie wartości częstotliwości sygnału proporcjonalnego PWM
+  float freq = DOUT_GetFrequency(&TO1);
   // Częstotliwość jest często wspólna dla kilku wyjść, gdyż wykorzystują ten sam TIM'er
   LOG_Info("Init frequency: %.2fHz", freq);
   while(1) {
@@ -70,8 +73,8 @@ stack(stack_monit, 1024); // Stos pamięci dla funkcji monit
 int main(void)
 {
   DI1.fast_counter = true; // Aktywacja szybkiego licznika na wejściu DI1
-// DI1.pwmi->prescaler = 1; // Pomiar wysokich częstotliwości: > 10kHz
-// DI1.pwmi->prescaler = 1024; // Pomiar niskich częstotliwości: < 10Hz
+  // DI1.pwmi->prescaler = 1; // Pomiar wysokich częstotliwości: > 10kHz
+  // DI1.pwmi->prescaler = 1024; // Pomiar niskich częstotliwości: < 10Hz
   thread(PLC_Thread, stack_plc); // Dodanie wątku sterownika
   thread(DBG_Loop, stack_dbg); // Dodanie wątku debug'era (logs + bash)
   thread(loop, stack_loop); // Dodanie funkcji loop jako wątek

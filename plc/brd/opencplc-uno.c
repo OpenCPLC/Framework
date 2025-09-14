@@ -31,7 +31,7 @@ DOUT_t RO4 = { .name = "RO4", .relay = true, .gpio = { .port = GPIOB, .pin = 4 }
 
 PWM_t to_pwm = {
   .reg = TIM1,
-  .auto_reload = PLC_ARR_INIT_1KHz(SYS_CLOCK_FREQ, true),
+  .auto_reload = PLC_ARR_INIT(SYS_CLOCK_FREQ, true), // 1kHz
   .channel[TIM_CH1] = TIM1_CH1_PC8,
   .channel[TIM_CH2] = TIM1_CH2_PC9,
   .channel[TIM_CH3] = TIM1_CH3_PC10,
@@ -53,7 +53,8 @@ void TO_Frequency(float frequency)
 
 PWM_t xo_pwm = {
   .reg = TIM2,
-  .auto_reload = PLC_ARR_INIT_1KHz(SYS_CLOCK_FREQ, true),
+  .prescaler = 1000,
+  .auto_reload = PLC_ARR_INIT(SYS_CLOCK_FREQ, true), // 1Hz
   .channel[TIM_CH1] = TIM2_CH1_PA15,
   .channel[TIM_CH2] = TIM2_CH2_PB3,
   .center_aligned = true
@@ -77,12 +78,11 @@ PWMI_t din_pwmi = {
   .capture_prescaler = PWMI_CapturePrescaler_1,
   .filter = TIM_Filter_FCLK_N2,
   .int_prioryty = INT_Prioryty_VeryHigh,
-  #if(!PWMI_OVERSAMPLING_AUTO)
+  #if(!PWMI_AUTO_OVERSAMPLING)
     .oversampling = 16,
   #endif
   .trig3 = &din_trig3,
   .trig4 = &din_trig4
-
 };
 
 DIN_t DI1 = { .name = "DI1", .pwmi = &din_pwmi, .channel = TIM_CH1, .gpif = { .gpio = { .port = GPIOA, .pin = 6, .reverse = true } }, .eeprom = &io_eeprom[3] };
