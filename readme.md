@@ -69,7 +69,7 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast GPIO c
 
 Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach, gdzie typowe PLC zawodzą. Obsługują standardową automatykę **24VDC**, ale także **12VDC**, typowe dla maszyn mobilnych w przemyśle _(np. budowlanym czy rolniczym)_. Dodatkowo przyjmują bezpośrednie sygnały **230VAC** na wejściach, co eliminuje konieczność stosowania dodatkowych modułów. Wyjścia **4A** pozwalają sterować obciążeniami bezpośrednio, a firmware _(🎸FW)_ wgrywany bez systemu operacyjnego _(🐧OS)_ zapewnia szybki start i wysoką stabilność pracy. Każdy sterownik jest fabrycznie skonfigurowany jako moduł rozszerzeń, ale można go łatwo przeprogramować do pracy jako samodzielny PLC.
 
-| Sterownik PLC                |   Zasilanie | DI `1` | DI 230V | Typ `TO` | Prąd `TO` | Pomiar `VCC` | FW🎸/🐧OS |
+| Sterownik PLC                |   Zasilanie | DI `1` | DI 230V | Typ `TO` | Prąd `TO` | Pomiar `VCC` | FW🎸 🐧OS |
 | ---------------------------- | ----------: | -----: | :-----: | -------- | :-------: | :----------: | :-----: |
 | Siemens S7-1200              | 20.4-28.8V❌ | ≥15V ❌ |    ❌    | Source   |   0.5A    |      ❌       |   🎸FW   |
 | Siemens S7-1500              | 19.2-28.8V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |      ✅       |   🎸FW   |
