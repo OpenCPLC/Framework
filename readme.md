@@ -73,7 +73,7 @@ Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach,
 | :------------------- | ----------: | -----: | :-----: | -------- | :-------: | :-------: | :---: |
 | Siemens S7-1200      | 20.4-28.8V❌ | ≥15V ❌ |    ❌    | Source   |   0.5A    |     ❌     |  🎸FW  |
 | Siemens S7-1500      | 19.2-28.8V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸FW  |
-| Mitsubishi           |    ~20-28V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸FW  |
+| Mitsubishi iQ-F      |     20-28V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸FW  |
 | Beckhoff CX7000      | 20.4-28.8V❌ | ≥11V ✅ |    ❌    | Source   |   0.5A    |     ❌     |  🐧OS  |
 | WAGO PFC200          |   18-31.2V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |  🐧OS  |
 | Allen-Bradley        |   10-28.8V✅ | ≥11V ✅ |    ❌    | Source   |   0.5A    |     ❌     |  🎸FW  |
