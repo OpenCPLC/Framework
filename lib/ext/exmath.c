@@ -190,29 +190,53 @@ float step_limiter_float(float input, float prev, float max_delta)
 }
 
 /**
- * @brief Simple exponential moving average (EMA) filter.
- *   Works with both `int16_t` and `uint16_t` (using casting for unsigned types).
+ * @brief Simple exponential moving average (EMA) filter. Works with `int16_t` values (-32768..32767).
  * @param input New input sample value.
  * @param prev Previous sample value.
  * @param alpha_shift Filter strength (higher shift = stronger smoothing). Example: 3 means alpha = 1/8.
- * @return Smoothed output value.
+ * @return Smoothed output value (-32768..32767).
  */
 int16_t ema_filter_int16(int16_t input, int16_t prev, uint8_t alpha_shift)
 {
+  if(alpha_shift > 15) alpha_shift = 15;
   int32_t diff = (int32_t)input - (int32_t)prev;
-  // Add a small fraction (1 / 2^alpha_shift) of the difference to the previous output:
   int32_t step = diff >> alpha_shift;
-  if(step == 0 && diff != 0) step = (diff > 0) ? 1 : -1;
+  if(step == 0 && diff != 0) {
+    if(abs(diff) > 4) step = (diff > 0) ? 1 : -1;
+    else prev = input;
+  }
   prev += (int16_t)step;
   return (int16_t)prev;
 }
 
 /**
- * @brief Step limiter to control maximum change between values for `int16_t`
+ * @brief Simple exponential moving average (EMA) filter. Works with `uint16_t` values (0..65535).
+ * @param input New input sample value.
+ * @param prev Previous sample value.
+ * @param alpha_shift Filter strength (higher shift = stronger smoothing). Example: 3 means alpha = 1/8.
+ * @return Smoothed output value (0..65535).
+ */
+uint16_t ema_filter_uint16(uint16_t input, uint16_t prev, uint8_t alpha_shift)
+{
+  if(alpha_shift > 15) alpha_shift = 15;
+  int32_t diff = (int32_t)input - (int32_t)prev;
+  int32_t step = diff >> alpha_shift;
+  if(step == 0 && diff != 0) {
+    if(abs(diff) > 4) step = (diff > 0) ? 1 : -1;
+    else prev = input;
+  }
+  int32_t new_value = (int32_t)prev + step;
+  if(new_value < 0) new_value = 0;
+  if(new_value > 0xFFFF) new_value = 0xFFFF;
+  return (uint16_t)new_value;
+}
+
+/**
+ * @brief Step limiter to control maximum change between values for `int16_t` (-32768..32767).
  * @param input New input sample `int16_t` value.
  * @param prev Previous sample `int16_t` value.
  * @param max_delta Maximum allowed change per step.
- * @return Limited output value as `int16_t`.
+ * @return Limited output value as `int16_t` (-32768..32767).
  */
 int16_t step_limiter_int16(int16_t input, int16_t prev, uint16_t max_delta)
 {
@@ -224,11 +248,11 @@ int16_t step_limiter_int16(int16_t input, int16_t prev, uint16_t max_delta)
 }
 
 /**
- * @brief Step limiter to control maximum change between values for `uint16_t`
+ * @brief Step limiter to control maximum change between values for `uint16_t` (0..65535).
  * @param input New input sample `uint16_t` value.
  * @param prev Previous sample `uint16_t` value.
  * @param max_delta Maximum allowed change per step.
- * @return Limited output value as `uint16_t`.
+ * @return Limited output value as `uint16_t` (0..65535).
  */
 uint16_t step_limiter_uint16(uint16_t input, uint16_t prev, uint16_t max_delta)
 {
@@ -239,5 +263,50 @@ uint16_t step_limiter_uint16(uint16_t input, uint16_t prev, uint16_t max_delta)
   return prev;
 }
 
-
 //-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Find maximum value among multiple floats, ignoring NaN.
+ *   Accepts a variable number of float arguments and returns the maximum.
+ *   If all values are NaN, the result is NaN.
+ * @param count Number of float arguments passed.
+ * @param ...   List of float arguments (promoted to double in varargs).
+ * @return Maximum valid float value, or NaN if none are valid.
+ */
+float max_float_NaN(int count, ...)
+{
+  va_list args;
+  va_start(args, count);
+  float max_value = NaN;
+  for(int i = 0; i < count; i++) {
+    float v = (float)va_arg(args, double);
+    if(!isNaN(v)) {
+      if(isNaN(max_value) || v > max_value) max_value = v;
+    }
+  }
+  va_end(args);
+  return max_value;
+}
+
+/**
+ * @brief Find minimum value among multiple floats, ignoring NaN.
+ *   Accepts a variable number of float arguments and returns the minimum.
+ *   If all values are NaN, the result is NaN.
+ * @param count Number of float arguments passed.
+ * @param ...   List of float arguments (promoted to double in varargs).
+ * @return Minimum valid float value, or NaN if none are valid.
+ */
+float min_float_NaN(int count, ...)
+{
+  va_list args;
+  va_start(args, count);
+  float min_value = NaN;
+  for(int i = 0; i < count; i++) {
+    float v = (float)va_arg(args, double);
+    if(!isNaN(v)) {
+      if(isNaN(min_value) || v < min_value) min_value = v;
+    }
+  }
+  va_end(args);
+  return min_value;
+}

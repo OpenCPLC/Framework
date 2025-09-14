@@ -45,17 +45,17 @@ void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime)
   }
   else if(deadtime < 256) {
     temp = ((deadtime - 128) / 2);
-    dtg = (0b10 << 6) | temp;
+    dtg = (0b10 << 6) | temp; // 2 * DTG + 128
     pwm->deadtime = (uint16_t)temp * 2 + 128;
   }
   else if(deadtime < 512) {
     temp = ((deadtime - 256) / 8);
-    dtg = (0b110 << 5) | temp;
+    dtg = (0b110 << 5) | temp; // 8 * DTG + 256
     pwm->deadtime = (uint16_t)temp * 8 + 256;
   }
   else {
     temp = ((deadtime - 512) / 16);
-    dtg = (0b111 << 5) | temp;
+    dtg = (0b111 << 5) | temp; // 16 * DTG + 512
     pwm->deadtime = (uint16_t)temp * 16 + 512;
   }
   pwm->reg->BDTR = (pwm->reg->BDTR & ~TIM_BDTR_DTG_Msk) | dtg;

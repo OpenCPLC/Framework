@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdarg.h>
 #include "exdef.h"
 
 //-------------------------------------------------------------------------------------------------
@@ -28,9 +29,12 @@ bool scale_fill(float start, float end, int n, float transition, float *scale_ar
 float ema_filter_float(float input, float prev, float alpha);
 float step_limiter_float(float input, float prev, float max_delta);
 int16_t ema_filter_int16(int16_t input, int16_t prev, uint8_t alpha_shift);
-#define ema_filter_uint16(input, prev, alpha_shift) (uint16_t)(ema_filter_int16((int16_t)(input), (int16_t)(prev), (alpha_shift)))
+uint16_t ema_filter_uint16(uint16_t input, uint16_t prev, uint8_t alpha_shift);
 int16_t step_limiter_int16(int16_t input, int16_t prev, uint16_t max_delta);
 uint16_t step_limiter_uint16(uint16_t input, uint16_t prev, uint16_t max_delta);
+
+float max_float_NaN(int count, ...);
+float min_float_NaN(int count, ...);
 
 //-------------------------------------------------------------------------------------------------
 

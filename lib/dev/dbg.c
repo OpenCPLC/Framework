@@ -62,8 +62,7 @@ void DBG_Echo(void)
   while(BUFF_Echo(&dbg_buff, &EchoValue)) {
     if(EchoValue == '\b' || EchoValue == 0x7F) {
       BUFF_Pop(&dbg_buff, NULL);
-      BUFF_Pop(&dbg_buff, NULL);
-      DBG_Char(0x7F);
+      if(BUFF_Pop(&dbg_buff, NULL)) DBG_Char(0x7F);
       continue;
     }
     if(EchoValue == '\n' || EchoValue == '\f') {
@@ -75,7 +74,6 @@ void DBG_Echo(void)
           DBG_String(EchoValue == '\n' ? "^E" : "^C");
         #endif
         DBG_Enter();
-        // if(EchoValue == '\n') BASH_Loop(&dbg_stream);
       }
       EchoEnter = true;
       EchoInput = false;
@@ -93,7 +91,6 @@ void DBG_Echo(void)
     EchoEnter = false;
     DBG_Char(EchoValue);
   }
-  if(EchoEnter) BASH_Loop(&dbg_stream);;
 }
 #endif
 
@@ -103,9 +100,8 @@ void DBG_Loop(void)
   while(1) {
     #if(DBG_ECHO_MODE)
       DBG_Echo();
-    #else
-      BASH_Loop(&dbg_stream);
     #endif
+    BASH_Loop(&dbg_stream);
     if(UART_IsFree(DbgUart)) {
       clear();
       if(DbgFile->size) {
