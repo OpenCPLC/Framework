@@ -61,11 +61,11 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast znanyc
 | **`RTD`** | Wejście czujników rezystancyjnych, dostosowane do **PT100** i **PT1000**.                             |   1   |   -   |   -    |   -    |
 | **`RS`**  | Interfejs komunikacyjny **RS485** z obsługą **Modbus RTU**, **BACnet** lub bare metal.                |   2   |   1   |   1    |   2    |
 | **`I2C`** | Magistra komunikacyjna z buforem **5V** i pull-up **1kΩ**.                                            |   1   |   -   |   -    |   1    |
-| **`POT`** | Potencjometr. Działa jak wewnętrzne `DI`.                                                             |   1   | **6** |   3    |   -    |
-| **`BTN`** | Przycisk. Działa jak wewnętrzne `AI`. Umożliwia konfigurację bez użycia komputera.                    |   1   | **5** |   -    |   -    |
+| **`POT`** | Potencjometr.  Działa jak wewnętrzne `AI`. Umożliwia konfigurację bez użycia komputera.               |   1   | **6** |   3    |   -    |
+| **`BTN`** | Przycisk. Działa jak wewnętrzne `DI`.                                                                 |   1   | **5** |   -    |   -    |
 | **`LED`** | Dioda informacyjna **RGB**.                                                                           |   1   |   1   |   1    |   1    |
-|  `FLASH`  | Pamięć nieulotna **`kB`**: program, konfiguracja, emulacja EEPROM.                                      | `512` | `128` | `144`  | `144`  |
-|   `RAM`   | Pamięć operacyjna **`kB`**: bufory i obliczenia.                                                        | `144` | `36`  | `144`  | `144`  |
+|  `FLASH`  | Pamięć nieulotna **`kB`**: program, konfiguracja, emulacja EEPROM.                                    | `512` | `128` | `144`  | `144`  |
+|   `RAM`   | Pamięć operacyjna **`kB`**: bufory i obliczenia.                                                      | `144` | `36`  | `144`  | `144`  |
 |   `RTC`   | Zegar czasu rzeczywistego: data i godzina.                                                            |   🕑   |   -   |   🕑    |   🕑    |
 
 ## 🆚 Key Advantages
