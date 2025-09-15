@@ -1,4 +1,4 @@
-# 💡 OpenCPLC
+# 💡 OpenC𝐏𝐋𝐂
 
 Projekt to warstwa abstrakcji między aplikacją a peryferiami mikrokontrolera. Podobnie jak **Arduino**, ale ukierunkowana na automatykę. Bez własnego IDE i C++. Wielowątkowość zapewnia [**🔀VRTS**](https://github.com/Xaeian/VRTS), eliminując typowe problemy **RTOS**. System ma wbudowaną konsolę CMD jak **🐧Linux**, a [🔮Wizard](https://github.com/OpenCPLC/Wizard) upraszcza programowanie mikrokontrolerów do poziomu znanego z [**🐍Python**'a](https://www.python.org/). Technologicznie najbliżej mu do [**🪁Zephyr**'a](https://www.zephyrproject.org/), ale jest prostszy, bliższy natywnym rozwiązaniom, z działającym debuggerem i skupiony na automatyce zamiast IoT.
 
@@ -8,7 +8,7 @@ Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszło�
 
 _Praktyczne porównanie języków LAD, ST i ANSI C można zobaczyć na przykładzie systemu [**🟢start🔴stop**](res/manuals/ext-code.md)._
 
-## ⚙️ Boards
+## 🖥️ Our Controllers
 
 Wszystkie sterowniki bazują na rodzinie [**STM32G0**](https://www.st.com/en/microcontrollers-microprocessors/stm32g0-series.html) i zostały zaprojektowane tak, aby w pełni wykorzystać potencjał mikrokontrolera. Mają ustandaryzowane wymiary dopasowane do montażu na szynie **DIN**. Wyposażono je w rozłączne terminale **5.0mm**, co ułatwia instalacje oraz serwis. Cała linia została pomyślana jako spójna platforma, gdzie różne modele uzupełniają się funkcjonalnie, dzięki czemu można je łatwo łączyć w większe systemy.
 
@@ -68,7 +68,7 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast GPIO c
 |   `RAM`   | Pamięć operacyjna: bufory i obliczenia.                                                               | `144kB` | `36kB`  | `144kB` | `144kB` |
 |   `RTC`   | Zegar czasu rzeczywistego: data i godzina.                                                            |    🕑    |    -    |    🕑    |    🕑    |
 
-### 🆚 What makes us different
+## 🆚 Key Advantages
 
 Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach, gdzie typowe PLC zawodzą. Obsługują standardową automatykę **24VDC**, ale także **12VDC**, typowe dla maszyn mobilnych w przemyśle _(np. budowlanym czy rolniczym)_. Zapewniają pomiar napięcia zasilania `VCC`, co ma znaczenie przy zasilaniu sterownika bezpośrednio z akumulatora. Przyjmują bezpośrednie sygnały **230VAC** na wejściach, co eliminuje konieczność stosowania dodatkowych modułów. Wyjścia **4A** pozwalają sterować obciążeniami bezpośrednio, a firmware 🎸 wgrywany bez systemu operacyjnego 🐧 zapewnia szybki start i wysoką stabilność pracy. Każdy sterownik jest fabrycznie skonfigurowany jako moduł rozszerzeń, ale można go łatwo przeprogramować do pracy jako samodzielny PLC.
 
@@ -93,7 +93,7 @@ Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach,
 
 _Dane w tabeli są poglądowe. Większość sterowników umożliwia rozbudowę o dodatkowe moduły, np. z wyższą wydajnością prądową lub do obsługi sygnałów 230V. Wartości odnoszą się do standardowych wejść cyfrowych i wyjść tranzystorowych._
 
-## 🤝 Cooperation
+## 🤝 Collaboration
 
 Na rynku automatyki coraz więcej firm i inżynierów dostrzega, że własne konstrukcje mogą dać im przewagę rynkową. Takie rozwiązania można skalować wraz z rozwojem biznesu oraz dopasować do specyfiki projektu. Problemem mogą być brak doświadczenia w embedded, długi czas tworzenia rozwiązania od podstaw oraz ryzyko, że pomimo pochłoniętych zasobów projekt po prostu się nie uda. OpenCPLC upraszcza ten proces, oferując otwarty framework i gotową bazę sprzętową. Całość można zrealizować w przejrzystym, dwustopniowym modelu:
 
