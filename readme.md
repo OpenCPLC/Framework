@@ -26,7 +26,7 @@ Wszystkie sterowniki bazują na rodzinie [**STM32G0**](https://www.st.com/en/mic
       Pierwszy sterownik z rodziny OpenCPLC. Cechuje się wszechstronnością ze względu na różnorodność peryferii. Choć pełni funkcję demonstracyjno-edukacyjną, z powodzeniem sprawdzi się również w małych projektach.
     </td>
     <td align="center">
-      Mały i tani sterownik do pracy autonomicznej, szczególnie w maszynach budowlanych. Wyposażony w wiele potencjometrów do ustawień bez komputera oraz napięcie referencyjne <code>10V</code> do obsługi joysticków i bezpośredniego pomiaru na wejściach analogowych.
+      Mały i tani sterownik do pracy autonomicznej, szczególnie w maszynach budowlanych. Wyposażony w wiele potencjometrów dla konfiguracji bez komputera oraz napięcie referencyjne <code>10V</code> do obsługi joysticków i bezpośredniego pomiaru na wejściach analogowych.
     </td>
   </tr>
 <table>
