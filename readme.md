@@ -50,23 +50,23 @@ Wszystkie sterowniki bazują na rodzinie [**STM32G0**](https://www.st.com/en/mic
 
 Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast znanych z embedded GPIO _(general purpose input output)_ czy ADC _(analog digital converter)_ pracujemy z **TO**, **RO**, **DI** oraz **AI**, **AO**. Sprzęt jest mapowany do tej warstwy, więc każdy nowy sterownik wymaga tylko nowej mapy peryferiów, aby działać w ekosystemie.
 
-|   Układ   | Opis                                                                                                  |   Uno   |   Eco   |   Dio   |   Aio   |
-| :-------: | :---------------------------------------------------------------------------------------------------- | :-----: | :-----: | :-----: | :-----: |
-| **`RO`**  | Wyjścia przekaźnikowe: **5A** 230VAC, 7A 30VDC. Licznik przełączeń.                                   |    4    |    2    |    -    |    -    |
-| **`TO`**  | Wyjścia tranzystorowe: **4A**. Sterowane napięciem zasilania. Wszystkie mogą pracować w trybie PWM.   |    4    |    5    | **12**  |    4    |
-| **`XO`**  | Wyjście triakowe: 12-230VAC. Detekcja przejścia przez zero z wykorzystaniem wejścia cyfrowego.        |    2    |    -    |    -    |    -    |
-| **`DI`**  | Wejścia cyfrowe: od **12VDC**  stan wysoki. Obsługa **230VAC**. Większość może działać jako liczniki. |    4    |    4    | **12**  |    4    |
-| **`AI`**  | Wejścia analogowe: **0-10V**, **4-20mA**, 0-20mA lub 0-10V z wtórnikiem napięciowym.                  |    2    |    4    |    4    | **10**  |
-| **`AO`**  | Wyjście analogowe: **0-10V**, **0-20mA** rail-to-rail.                                                |    -    |    -    |    -    |  **4**  |
-| **`RTD`** | Wejście czujników rezystancyjnych, dostosowane do **PT100** i **PT1000**.                             |    1    |    -    |    -    |    -    |
-| **`RS`**  | Interfejs komunikacyjny **RS485** z obsługą **Modbus RTU**, **BACnet** lub bare metal.                |    2    |    1    |    1    |    2    |
-| **`I2C`** | Magistra komunikacyjna z buforem **5V** i pull-up **1kΩ**.                                            |    1    |    -    |    -    |    1    |
-| **`POT`** | Potencjometr. Działa jak wewnętrzne `DI`.                                                             |    1    |  **6**  |    3    |    -    |
-| **`BTN`** | Przycisk. Działa jak wewnętrzne `AI`. Umożliwia konfigurację bez użycia komputera.                    |    1    |  **5**  |    -    |    -    |
-| **`LED`** | Dioda informacyjna **RGB**.                                                                           |    1    |    1    |    1    |    1    |
-|  `FLASH`  | Pamięć nieulotna: program, konfiguracja, emulacja EEPROM.                                             | `512kB` | `128kB` | `144kB` | `144kB` |
-|   `RAM`   | Pamięć operacyjna: bufory i obliczenia.                                                               | `144kB` | `36kB`  | `144kB` | `144kB` |
-|   `RTC`   | Zegar czasu rzeczywistego: data i godzina.                                                            |    🕑    |    -    |    🕑    |    🕑    |
+|   Układ   | Opis                                                                                                  |  Uno  |  Eco  |  Dio   |  Aio   |
+| :-------: | :---------------------------------------------------------------------------------------------------- | :---: | :---: | :----: | :----: |
+| **`RO`**  | Wyjścia przekaźnikowe: **5A** 230VAC, 7A 30VDC. Licznik przełączeń.                                   |   4   |   2   |   -    |   -    |
+| **`TO`**  | Wyjścia tranzystorowe: **4A**. Sterowane napięciem zasilania. Wszystkie mogą pracować w trybie PWM.   |   4   |   5   | **12** |   4    |
+| **`XO`**  | Wyjście triakowe: 12-230VAC. Detekcja przejścia przez zero z wykorzystaniem wejścia cyfrowego.        |   2   |   -   |   -    |   -    |
+| **`DI`**  | Wejścia cyfrowe: od **12VDC**  stan wysoki. Obsługa **230VAC**. Większość może działać jako liczniki. |   4   |   4   | **12** |   4    |
+| **`AI`**  | Wejścia analogowe: **0-10V**, **4-20mA**, 0-20mA lub 0-10V z wtórnikiem napięciowym.                  |   2   |   4   |   4    | **10** |
+| **`AO`**  | Wyjście analogowe: **0-10V**, **0-20mA** rail-to-rail.                                                |   -   |   -   |   -    | **4**  |
+| **`RTD`** | Wejście czujników rezystancyjnych, dostosowane do **PT100** i **PT1000**.                             |   1   |   -   |   -    |   -    |
+| **`RS`**  | Interfejs komunikacyjny **RS485** z obsługą **Modbus RTU**, **BACnet** lub bare metal.                |   2   |   1   |   1    |   2    |
+| **`I2C`** | Magistra komunikacyjna z buforem **5V** i pull-up **1kΩ**.                                            |   1   |   -   |   -    |   1    |
+| **`POT`** | Potencjometr. Działa jak wewnętrzne `DI`.                                                             |   1   | **6** |   3    |   -    |
+| **`BTN`** | Przycisk. Działa jak wewnętrzne `AI`. Umożliwia konfigurację bez użycia komputera.                    |   1   | **5** |   -    |   -    |
+| **`LED`** | Dioda informacyjna **RGB**.                                                                           |   1   |   1   |   1    |   1    |
+|  `FLASH`  | Pamięć nieulotna **`kB`**: program, konfiguracja, emulacja EEPROM.                                      | `512` | `128` | `144`  | `144`  |
+|   `RAM`   | Pamięć operacyjna **`kB`**: bufory i obliczenia.                                                        | `144` | `36`  | `144`  | `144`  |
+|   `RTC`   | Zegar czasu rzeczywistego: data i godzina.                                                            |   🕑   |   -   |   🕑    |   🕑    |
 
 ## 🆚 Key Advantages
 
