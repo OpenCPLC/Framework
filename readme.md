@@ -59,7 +59,7 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast GPIO c
 | **`AI`**  | Wejścia analogowe: **0-10V**, **4-20mA**, 0-20mA lub 0-10V z wtórnikiem napięciowym.                  |    2    |    4    |    4    | **10**  |
 | **`AO`**  | Wyjście analogowe: **0-10V**, **0-20mA** rail-to-rail.                                                |    -    |    -    |    -    |  **4**  |
 | **`RTD`** | Wejście czujników rezystancyjnych, dostosowane do **PT100** i **PT1000**.                             |    1    |    -    |    -    |    -    |
-| **`RS`**  | Interfejs komunikacyjny **RS485** z obsługą **Modbus RTU**, **BACnet** lub bare metal.                |    1    |    -    |    -    |    -    |
+| **`RS`**  | Interfejs komunikacyjny **RS485** z obsługą **Modbus RTU**, **BACnet** lub bare metal.                |    2    |    1    |    1    |    2    |
 | **`I2C`** | Magistra komunikacyjna z buforem **5V** i pull-up **1kΩ**.                                            |    1    |    -    |    -    |    1    |
 | **`POT`** | Potencjometr. Działa jak wewnętrzne `DI`.                                                             |    1    |  **6**  |    3    |    -    |
 | **`BTN`** | Przycisk. Działa jak wewnętrzne `AI`. Umożliwia konfigurację bez użycia komputera.                    |    1    |  **5**  |    -    |    -    |
