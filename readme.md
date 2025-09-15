@@ -1,4 +1,4 @@
-# 💡 Open🅲PLC
+# 💡 OpenC𝐏𝐋𝐂
 
 Projekt to warstwa abstrakcji między aplikacją a peryferiami mikrokontrolera. Podobnie jak **Arduino**, ale ukierunkowana na automatykę. Bez własnego IDE i C++. Wielowątkowość zapewnia [**🔀VRTS**](https://github.com/Xaeian/VRTS), eliminując typowe problemy **RTOS**. System ma wbudowaną konsolę CMD jak **🐧Linux**, a [🔮Wizard](https://github.com/OpenCPLC/Wizard) upraszcza programowanie mikrokontrolerów do poziomu znanego z [**🐍Python**'a](https://www.python.org/). Technologicznie najbliżej mu do [**🪁Zephyr**'a](https://www.zephyrproject.org/), ale jest prostszy, bliższy natywnym rozwiązaniom, z działającym debuggerem i skupiony na automatyce zamiast IoT.
 
