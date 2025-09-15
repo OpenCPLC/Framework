@@ -23,7 +23,7 @@ Wszystkie sterowniki bazują na rodzinie [**STM32G0**](https://www.st.com/en/mic
   </tr>
   <tr>
     <td align="center">
-      Pierwszy sterownik z rodziny OpenCPLC. Cechuje się wszechstronnością ze względu na różnorodność peryferii. Choć pełni funkcję konstrukcji demonstracyjnej, z powodzeniem sprawdzi się również w małych projektach.
+      Pierwszy sterownik z rodziny OpenCPLC. Cechuje się wszechstronnością ze względu na różnorodność peryferii. Choć pełni funkcję demonstracyjno-edukacyjną, z powodzeniem sprawdzi się również w małych projektach.
     </td>
     <td align="center">
       Mały i tani sterownik do pracy autonomicznej, szczególnie w maszynach budowlanych. Wyposażony w wiele potencjometrów do ustawień bez komputera oraz napięcie referencyjne <code>10V</code> do obsługi joysticków i bezpośredniego pomiaru na wejściach analogowych.
@@ -69,24 +69,24 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast GPIO c
 
 Sterowniki **OpenCPLC** wyróżniają się możliwością pracy w środowiskach, gdzie typowe PLC zawodzą. Obsługują standardową automatykę **24VDC**, ale także **12VDC**, typowe dla maszyn mobilnych w przemyśle _(np. budowlanym czy rolniczym)_. Zapewniają pomiar napięcia zasilania `VCC`, co ma znaczenie przy zasilaniu sterownika bezpośrednio z akumulatora. Przyjmują bezpośrednie sygnały **230VAC** na wejściach, co eliminuje konieczność stosowania dodatkowych modułów. Wyjścia **4A** pozwalają sterować obciążeniami bezpośrednio, a firmware 🎸 wgrywany bez systemu operacyjnego 🐧 zapewnia szybki start i wysoką stabilność pracy. Każdy sterownik jest fabrycznie skonfigurowany jako moduł rozszerzeń, ale można go łatwo przeprogramować do pracy jako samodzielny PLC.
 
-| Sterownik PLC        |   Zasilanie |    DI1️⃣ | DI 230V | Typ `TO` | Prąd `TO` | Get `VCC` | 🎸/🐧  |
-| :------------------- | ----------: | -----: | :-----: | -------- | :-------: | :-------: | :---: |
-| Siemens S7-1200      | 20.4-28.8V❌ | ≥15V ❌ |    ❌    | Source   |   0.5A    |     ❌     |  🎸  |
-| Siemens S7-1500      | 19.2-28.8V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸  |
-| Mitsubishi iQ-F      |     20-28V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸  |
-| Beckhoff CX7000      | 20.4-28.8V❌ | ≥11V ✅ |    ❌    | Source   |   0.5A    |     ❌     |  🐧  |
-| WAGO PFC200          |   18-31.2V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |  🐧  |
-| Allen-Bradley        |   10-28.8V✅ | ≥11V ✅ |    ❌    | Source   |   0.5A    |     ❌     |  🎸  |
-| Schneider Modicon    | 20.4-28.8V❌ | ≥15V ❌ |    ❌    | Source   |   0.5A    |     ❌     |  🎸  |
-| Phoenix Contact      |   19.2-30V❌ | ≥11V ✅ |    ❌    | Both     |   0.5A    |     ❌     |  🐧  |
-| B&R X20              | 20.4-28.8V❌ | ≥15V ❌ |    ❌    | Sink     |   0.5A    |     ✅     |  🎸  |
-| Delta DVP-SS2        | 20.4-28.8V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |  🎸  |
-| Eaton easyE4         | 12.2-28.8V✅ |  ≥9V ✅ |    ✅    | Both     |   0.5A    |     ❌     |  🎸  |
-| ABB AC500            |     20-30V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸  |
-| Bosch Rexroth        |     18-30V❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |  🎸  |
-| Unitronics UniStream | 10.2-28.8V✅ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |  🎸  |
-| Turck TX500          |     10-32V✅ | ≥12V ✅ |    ❌    | Source   |   0.5A    |     ❌     |  🐧  |
-| **OpenCPLC**         |     11-32V✅ |  ≥9V ✅ |    ✅    | Source   |  **4A**   |     ✅     |  🎸  |
+| Sterownik PLC     |    Zasilanie |    DI1️⃣ | DI 230V | Typ `TO` | Prąd `TO` | Get `VCC` |  🎸/🐧  |
+| :---------------- | -----------: | -----: | :-----: | -------- | :-------: | :-------: | :---: |
+| Siemens S7-1200   | 20.4-28.8V ❌ | ≥15V ❌ |    ❌    | Source   |   0.5A    |     ❌     |   🎸   |
+| Siemens S7-1500   | 19.2-28.8V ❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |   🎸   |
+| Mitsubishi iQ-F   |     20-28V ❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |   🎸   |
+| Beckhoff CX7000   | 20.4-28.8V ❌ | ≥11V ✅ |    ❌    | Source   |   0.5A    |     ❌     |   🐧   |
+| WAGO PFC200       |   18-31.2V ❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |   🐧   |
+| Allen-Bradley     |   10-28.8V ✅ | ≥11V ✅ |    ❌    | Source   |   0.5A    |     ❌     |   🎸   |
+| Schneider Modicon | 20.4-28.8V ❌ | ≥15V ❌ |    ❌    | Source   |   0.5A    |     ❌     |   🎸   |
+| Phoenix Contact   |   19.2-30V ❌ | ≥11V ✅ |    ❌    | Both     |   0.5A    |     ❌     |   🐧   |
+| B&R X20           | 20.4-28.8V ❌ | ≥15V ❌ |    ❌    | Sink 💀   |   0.5A    |     ✅     |   🎸   |
+| Delta DVP-SS2     | 20.4-28.8V ❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |   🎸   |
+| Eaton easyE4      | 12.2-28.8V ✅ |  ≥9V ✅ |    ✅    | Both     |   0.5A    |     ❌     |   🎸   |
+| ABB AC500         |     20-30V ❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |   🎸   |
+| Bosch Rexroth     |     18-30V ❌ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ✅     |   🎸   |
+| Unitronics        | 10.2-28.8V ✅ | ≥15V ❌ |    ❌    | Both     |   0.5A    |     ❌     |   🎸   |
+| Turck TX500       |     10-32V ✅ | ≥12V ✅ |    ❌    | Source   |   0.5A    |     ❌     |   🐧   |
+| **OpenCPLC**      |     11-32V ✅ |  ≥9V ✅ |    ✅    | Source   |  **4A**   |     ✅     |   🎸   |
 
 _Dane w tabeli są poglądowe. Większość sterowników umożliwia rozbudowę o dodatkowe moduły, np. z wyższą wydajnością prądową lub do obsługi sygnałów 230V. Wartości odnoszą się do standardowych wejść cyfrowych i wyjść tranzystorowych._
 
@@ -95,6 +95,6 @@ _Dane w tabeli są poglądowe. Większość sterowników umożliwia rozbudowę o
 Na rynku automatyki coraz więcej firm i inżynierów dostrzega, że własne konstrukcje mogą dać im przewagę rynkową. Takie rozwiązania można skalować wraz z rozwojem biznesu oraz dopasować do specyfiki projektu. Problemem mogą być brak doświadczenia w embedded, długi czas tworzenia rozwiązania od podstaw oraz ryzyko, że pomimo pochłoniętych zasobów projekt po prostu się nie uda. OpenCPLC upraszcza ten proces, oferując otwarty framework i gotową bazę sprzętową. Całość można zrealizować w przejrzystym, dwustopniowym modelu:
 
 - 1️⃣ **Wdrożenie projektu na naszych sterownikach** referencyjnych z otwartym firmware. Pozwala od razu testować pomysły i rozwijać aplikację.
-- 2️⃣ **Projekt dedykowanego hardware**. Można go rozpocząć równolegle, aby szybciej dojść do rozwiązania docelowego, by ograniczyć ryzyko, albo zrealizować dopiero wtedy, gdy wzrośnie zapotrzebowanie i zasadne będzie skalowanie.
+- 2️⃣ **Projekt dedykowanego hardware**. Można go rozpocząć równolegle, aby szybciej dojść do rozwiązania docelowego, później, gdy prototyp zacznie działać i chcemy ograniczyć ryzyko, lub dopiero w momencie zwiększenia nakładów.
 
 W ten sposób powstają rozwiązania szybkie i dopasowane, łatwe do skalowania dzięki własnej produkcji, a stabilny framework zapewnia im wysoką niezawodność.
