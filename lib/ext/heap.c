@@ -92,14 +92,22 @@ void *heap_reloc(void *ptr, size_t size)
 //------------------------------------------------------------------------------------------------- Garbage-collector
 
 // Stacks, one for each thread for multi-threading mode or single stack for single-threaded mode
-heap_new_t *Stacks[HEAP_INCLUDE_VRTS && VRTS_SWITCHING ? VRTS_THREAD_LIMIT: 1]; 
+#if(HEAP_INCLUDE_VRTS)
+  heap_new_t *Stacks[VRTS_SWITCHING ? VRTS_THREAD_LIMIT: 1]; 
+#else
+  heap_new_t *Stacks[1]; 
+#endif
 
 /**
  * @brief Initializes dynamic GC stack for active thread (auto-expanding).
  */
-static heap_new_t *heap_new_stack(void)
+static heap_new_t *heap_get_stack(void)
 {
-  uint8_t active_thread = vrts_active_thread();
+  #if(HEAP_INCLUDE_VRTS)
+    uint8_t active_thread = vrts_active_thread();
+  #else
+    uint8_t active_thread = 0;
+  #endif
   heap_new_t *stack = Stacks[active_thread];
   if(stack) return stack;
   stack = heap_alloc(sizeof(heap_new_t));
@@ -118,9 +126,7 @@ static heap_new_t *heap_new_stack(void)
 void *heap_new(size_t size)
 {
   if(!size) return NULL;
-  uint8_t active_thread = vrts_active_thread();
-  heap_new_t *stack = Stacks[active_thread];
-  if(!stack) stack = heap_new_stack();
+  heap_new_t *stack = heap_get_stack();
   // Expand stack->var if no space left
   if(stack->count >= stack->limit) {
     uint16_t new_limit = stack->limit + HEAP_NEW_BLOCK;
@@ -140,7 +146,11 @@ void *heap_new(size_t size)
  */
 void heap_clear(void)
 {
-  uint8_t active_thread = vrts_active_thread();
+  #if(HEAP_INCLUDE_VRTS)
+    uint8_t active_thread = vrts_active_thread();
+  #else
+    uint8_t active_thread = 0;
+  #endif
   heap_new_t *stack = Stacks[active_thread];
   if(!stack) return;
   for(uint16_t i = 0; i < stack->count; i++) heap_free(stack->var[i]);

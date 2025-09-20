@@ -73,3 +73,9 @@ void *b1 = heap_new(24);
 void *b2 = heap_new(36);
 heap_clear(); // frees b1 and b2
 ```
+
+
+
+```c
+
+```
