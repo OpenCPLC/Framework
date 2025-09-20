@@ -3,7 +3,7 @@
 
 #include "int.h"
 #include "spi.h"
-#include "exdef.h"
+#include "extdef.h"
 #include "main.h"
 
 #ifndef SPI_SOFTWARE_ENABLE

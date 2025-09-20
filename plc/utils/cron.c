@@ -3,7 +3,7 @@
 CRON_t *cron_task[CRON_TASK_LIMIT];
 uint8_t cron_task_count = 0;
 
-bool CRON_Main(void)
+bool CRON_Thread(void)
 {
   RTC_Alarm_t alarm = {
     .day_mask = true,
@@ -38,7 +38,7 @@ bool CRON_Main(void)
 bool CRON_Task(void (*fnc)(void *), void *fnc_struct, uint8_t mo_day, uint8_t w_day, uint8_t h, uint8_t m)
 {
   if(cron_task_count >= CRON_TASK_LIMIT) return false;
-  CRON_t *task = new_static(sizeof(CRON_t));
+  CRON_t *task = heap_alloc(sizeof(CRON_t));
   task->month_day = mo_day;
   task->week_day = w_day;
   task->hour = h;

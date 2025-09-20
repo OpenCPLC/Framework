@@ -4,7 +4,7 @@
 
 #include "int.h"
 #include "gpio.h"
-#include "exdef.h"
+#include "extdef.h"
 #include "vrts.h"
 #include "main.h"
 

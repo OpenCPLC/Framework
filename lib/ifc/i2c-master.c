@@ -42,7 +42,7 @@ static void I2C_Master_InterruptEV(I2C_Master_t *i2c)
     i2c->reg->ICR |= I2C_ICR_STOPCF;
     i2c->reg->CR1 &= ~I2C_CR1_STOPIE;
     i2c->busy = 0;
-    dloc((void **)&i2c->tx_buffer);
+    heap_free((void *)&i2c->tx_buffer);
     i2c->tx_buffer = 0;
   }
   if((i2c->reg->CR1 & I2C_CR1_NACKIE) && (i2c->reg->ISR & I2C_ISR_NACKF)) {
@@ -175,7 +175,7 @@ state_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t 
 state_t I2C_Master_WriteReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
-	i2c->tx_buffer = aloc(n + 1);
+	i2c->tx_buffer = heap_alloc(n + 1);
   i2c->tx_buffer[0] = reg;
   memcpy(&i2c->tx_buffer[1], ary, n);
   return I2C_Master_Read(i2c, addr, i2c->tx_buffer, n + 1);

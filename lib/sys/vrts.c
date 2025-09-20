@@ -276,6 +276,6 @@ void SysTick_Handler(void)
   ticker++;
   #if(VRTS_SWITCHING && VRTS_THREAD_TIMEOUT_MS)
     hold_ticker--;
-    if(!hold_ticker) panic("Thread overran core time limit "LOG_Module("VRTS"));
+    if(!hold_ticker) panic("Thread overran core time limit " LOG_LIB("VRTS"));
   #endif
 }

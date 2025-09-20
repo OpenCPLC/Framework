@@ -96,16 +96,15 @@ void DBG_Echo(void)
 
 void DBG_Loop(void)
 {
-  new_init(NEW_DEFAULT_LIMIT + 32);
   while(1) {
     #if(DBG_ECHO_MODE)
       DBG_Echo();
     #endif
     BASH_Loop(&dbg_stream);
     if(UART_IsFree(DbgUart)) {
-      clear();
+      heap_clear();
       if(DbgFile->size) {
-        uint8_t *buffer = (uint8_t *)new(DbgFile->size);
+        uint8_t *buffer = (uint8_t *)heap_new(DbgFile->size);
         memcpy(buffer, DbgFile->buffer, DbgFile->size);
         UART_Send(DbgUart, buffer, DbgFile->size);
         FILE_Clear(DbgFile);

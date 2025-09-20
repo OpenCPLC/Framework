@@ -3,7 +3,7 @@
 
 #include "gpio.h"
 #include "tim.h"
-#include "exmath.h"
+#include "extmath.h"
 #include "vrts.h"
 #include "main.h"
 

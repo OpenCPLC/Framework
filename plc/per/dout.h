@@ -6,7 +6,7 @@
 #include "eeprom.h"
 #include "pwm.h"
 #include "vrts.h"
-#include "exstring.h"
+#include "extstr.h"
 #include "main.h"
 
 // Obsługa wyjść cyfrowych tranzystorowych i triakowych OpenCPLC

@@ -105,16 +105,14 @@ int32_t FILE_Bool(FILE_t *file, bool value)
 
 //------------------------------------------------------------------------------------------------- Numbers
 
-static char file_cache[33];
-
 int32_t FILE_Int(FILE_t *file, int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space)
 {
   if(file->mutex) return 0;
-  int32_t length = (int32_t)itoa_base(nbr, file_cache, base, sign, fill_zero, fill_space);
+  int32_t length = (int32_t)itoa_encode(nbr, StrTempMem, base, sign, fill_zero, fill_space);
   if(((file->size)+length) >= file->limit) return ERR;
   while(length) {
     length--;
-    file->buffer[file->size] = file_cache[length];
+    file->buffer[file->size] = StrTempMem[length];
     file->size++;
   }
   return length;
@@ -139,7 +137,7 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
   }
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
   if(!fill_space) fill_space = 1;
-  int32_t length = (int32_t)itoa_base((int32_t)nbr, file_cache, 10, true, nbr < 0 ? accuracy + 2 : accuracy + 1, fill_space - 1);
+  int32_t length = (int32_t)itoa_encode((int32_t)nbr, StrTempMem, 10, true, nbr < 0 ? accuracy + 2 : accuracy + 1, fill_space - 1);
   if(accuracy) {
     if(((file->size)+ length + 1) >= file->limit) return 0;
   }
@@ -152,7 +150,7 @@ int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space
       file->size++;
     }
     length--;
-    file->buffer[file->size] = file_cache[length];
+    file->buffer[file->size] = StrTempMem[length];
     file->size++;
   }
   return length;

@@ -2,7 +2,7 @@
 #define UART_H_
 
 #include "int.h"
-#include "exdef.h"
+#include "extdef.h"
 #include "tim.h"
 #include "buff.h"
 #include "main.h"

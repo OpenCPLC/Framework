@@ -27,8 +27,7 @@ void BASH_AddFile(FILE_t *file)
     return;
   }
   bash.files[bash.files_count] = file;
-  char *name = strcopy(file->name);
-  bash.files_hash[bash.files_count] = hash(str2lower_this(name));
+  bash.files_hash[bash.files_count] = hash_djb2_ci(file->name);
   if(!bash.files_count) {
     bash.file_active = file;
   }
@@ -52,8 +51,7 @@ void BASH_AddCallback(void (*callback)(char **, uint16_t), char *argv0)
     return;
   }
   bash.callbacks[bash.callbacks_count] = callback;
-  char *argv = strcopy(argv0);
-  bash.callbacks_hash[bash.callbacks_count] = hash(str2lower_this(argv));
+  bash.callbacks_hash[bash.callbacks_count] = hash_djb2_ci(argv0);
   bash.callbacks_count++;
 }
 
@@ -131,7 +129,7 @@ static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
 
 static FILE_t *BASH_FindFile(char *file_name)
 {
-  uint32_t file_hash = hash(file_name);
+  uint32_t file_hash = hash_djb2(file_name);
   for(uint8_t i = 0; i < bash.files_count; i++) {
     if(file_hash == bash.files_hash[i]) {
       return bash.files[i];
@@ -157,7 +155,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     return;
   }
   BASH_Argc(2, 4);
-  switch(hash(argv[1])) {
+  switch(hash_djb2(argv[1])) {
     case HASH_List: { // FILE list
       BASH_Argc(2);
       const char *file_names[bash.files_count];
@@ -204,11 +202,11 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       else {
         uint16_t packages = 1;
         if(argc == 3) {
-          if(str2uint16_fault(argv[2])) {
-            LOG_ParseFault("str2uint16", argv[2]);
+          if(!str_is_u16(argv[2])) {
+            LOG_ErrorParse(argv[2], "uint16_t");
             BASH_ArgvExit(2);
           }
-          packages = str2nbr(argv[2]);
+          packages = str_to_int(argv[2]);
         }
         STREAM_DataMode(stream);
         stream->packages = packages;
@@ -224,11 +222,11 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     case HASH_Append: { // FILE append <packages:uint16>?
       uint16_t packages = 1;
       if(argc == 3) {
-        if(str2uint16_fault(argv[2])) {
-          LOG_ParseFault("str2uint16", argv[2]);
+        if(!str_is_u16(argv[2])) {
+          LOG_ErrorParse(argv[2], "uint16_t");
           BASH_ArgvExit(2);
         }
-        packages = str2nbr(argv[2]);
+        packages = str_to_int(argv[2]);
       }
       STREAM_DataMode(stream);
       stream->packages = packages;
@@ -246,18 +244,18 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       uint16_t limit = bash.file_active->size;
       uint16_t offset = 0;
       if(argc >= 3) {
-        if(str2uint16_fault(argv[2])) {
-          LOG_ParseFault("str2uint16", argv[2]);
+        if(!str_is_u16(argv[2])) {
+          LOG_ErrorParse(argv[2], "uint16_t");
           BASH_ArgvExit(2);
         }
-        limit = str2nbr(argv[2]);
+        limit = str_to_int(argv[2]);
       }
       if(argc == 4) {
-        if(str2uint16_fault(argv[3])) {
-          LOG_ParseFault("str2uint16", argv[2]);
+        if(!str_is_u16(argv[3])) {
+          LOG_ErrorParse(argv[3], "uint16_t");
           BASH_ArgvExit(2);
         }
-        offset = str2nbr(argv[3]);
+        offset = str_to_int(argv[3]);
       }
       if(offset >= bash.file_active->size) offset = 0;
       if(limit + offset > bash.file_active->size) limit = bash.file_active->size - offset;
@@ -267,7 +265,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     }
     case HASH_Flash: { // FILE flash {save|load}
       BASH_Argc(3);
-      switch(hash(argv[2])) {
+      switch(hash_djb2(argv[2])) {
         case HASH_Save:
           if(FILE_Flash_Save(bash.file_active)) LOG_Error("File %s flash save fault", bash.file_active->name);
           else LOG_Bash("File %s flash save success", bash.file_active->name);
@@ -281,7 +279,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     }
     case HASH_Mutex: { // FILE mutex {set|rst}
       BASH_Argc(3);
-      switch(hash(argv[2])) {
+      switch(hash_djb2(argv[2])) {
         case HASH_Set: bash.file_active->mutex = true; break;
         case HASH_Rst: case HASH_Reset: bash.file_active->mutex = false; break;
         default: BASH_ArgvExit(2);
@@ -292,7 +290,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       BASH_Argc(4);
       FILE_t *file = BASH_FindFile(argv[3]);
       if(!file) return;
-      switch(hash(argv[2])) {
+      switch(hash_djb2(argv[2])) {
         case HASH_To:
           if(FILE_Copy(file, bash.file_active)) LOG_Error("File copy fault");
           else LOG_Bash("File copy %s → %s success", bash.file_active->name, file->name);
@@ -334,7 +332,7 @@ static void BASH_Uid(char **argv, uint16_t argc)
 
 static RTC_Weekday_e RTC_Str2Weekday(const char *str)
 {
-  switch(hash(str)) {
+  switch(hash_djb2(str)) {
     case RTC_Hash_Everyday: case RTC_Hash_Evd: case HASH_Number_0: return RTC_Weekday_Everyday;
     case RTC_Hash_Monday: case RTC_Hash_Mon: case HASH_Number_1: return RTC_Weekday_Monday;
     case RTC_Hash_Tuesday: case RTC_Hash_Tue: case HASH_Number_2: return RTC_Weekday_Tuesday;
@@ -357,47 +355,47 @@ static void BASH_Rtc(char **argv, uint16_t argc)
       break;
     }
     case 2: { // RTC rst|<timestamp:uint32>
-      uint32_t argv1_hash = hash(argv[1]);
+      uint32_t argv1_hash = hash_djb2(argv[1]);
       if(argv1_hash == HASH_Rst || argv1_hash == HASH_Reset) {
         RTC_Reset();
         LOG_Bash("RTC reset");
         return;
       }
-      if(str2uint64_fault(argv[1])) {
-        LOG_ParseFault("str2uint64", argv[1]);
+      if(str_is_u64(argv[1])) {
+        LOG_ErrorParse(argv[1], "uint64_t");
         BASH_ArgvExit(1);
       }
-      uint64_t stamp = str2nbr64(argv[1]);
+      uint64_t stamp = str_to_int64(argv[1]);
       LOG_Bash("RTC preset timestamp");
       RTC_SetTimestamp(stamp);
       break;
     }
     case 3: { // RTC <date:str(YYYY-MM-DD)> <time:str(hh:mm:ss)>
-      char *date = replace_char("\"/,:+-_", ',', argv[1]);
-      char *year_str = extraction(date, ',', 0);
-      char *month_str = extraction(date, ',', 1);
-      char *day_str = extraction(date, ',', 2);
-      if(str2uint16_fault(year_str) || str2uint16_fault(month_str) || str2uint16_fault(day_str)) {
+      char *date = str_replace_chars(argv[1], "\"/,:+-_", ',');
+      char *year_str = str_split(date, ',', 0);
+      char *month_str = str_split(date, ',', 1);
+      char *day_str = str_split(date, ',', 2);
+      if(!str_is_u16(year_str) || !str_is_u16(month_str) || !str_is_u16(day_str)) {
         BASH_ArgvExit(1);
       }
-      uint16_t year_nbr = str2nbr(year_str);
+      uint16_t year_nbr = str_to_int(year_str);
       if(year_nbr >= 2000) year_nbr -= 2000;
-      uint16_t month_nbr = str2nbr(month_str);
-      uint16_t day_nbr = str2nbr(day_str);
+      uint16_t month_nbr = str_to_int(month_str);
+      uint16_t day_nbr = str_to_int(day_str);
       if(year_nbr >= 100 || month_nbr == 0 || month_nbr > 12 || day_nbr == 0 || day_nbr > 31) {
         BASH_ArgvExit(1);
       }
-      char *time = replace_char("\"/,:+-_", ',', argv[2]);
-      char *hour_str = extraction(time, ',', 0);
-      char *minute_str = extraction(time, ',', 1);
-      char *second_str = extraction(time, ',', 2);
-      if(str2uint16_fault(hour_str) || str2uint16_fault(minute_str) || str2uint16_fault(second_str)) {
+      char *time = str_replace_chars(argv[2], "\"/,:+-_", ',');
+      char *hour_str = str_split(time, ',', 0);
+      char *minute_str = str_split(time, ',', 1);
+      char *second_str = str_split(time, ',', 2);
+      if(!str_is_u16(hour_str) || !str_is_u16(minute_str) || !str_is_u16(second_str)) {
         BASH_ArgvExit(2);
       }
-      uint16_t hour_nbr = str2nbr(hour_str);
+      uint16_t hour_nbr = str_to_int(hour_str);
       if(hour_nbr == 24) hour_nbr = 0;
-      uint16_t minute_nbr = str2nbr(minute_str);
-      uint16_t second_nbr = str2nbr(second_str);
+      uint16_t minute_nbr = str_to_int(minute_str);
+      uint16_t second_nbr = str_to_int(second_str);
       if(hour_nbr >= 24 || minute_nbr >= 60 || second_nbr >= 60) {
         BASH_ArgvExit(2);
       }
@@ -421,7 +419,7 @@ static void BASH_Alarm(char **argv, uint16_t argc)
   BASH_Argc(2, 4);
   RTC_ALARM_e alarm_type;
   char alarm_char;
-  uint32_t argv1_hash = hash(argv[1]);
+  uint32_t argv1_hash = hash_djb2(argv[1]);
   switch(argv1_hash) {
     case HASH_A: alarm_type = RTC_ALARM_A; alarm_char = 'A'; break;
     case HASH_B: alarm_type = RTC_ALARM_B; alarm_char = 'B'; break;
@@ -440,17 +438,17 @@ static void BASH_Alarm(char **argv, uint16_t argc)
         BASH_ArgvExit(2);
       }
       bool weekday_mask = weekday ? false : true;
-      char *time = replace_char("\"/,:+-_", ',', argv[3]);
-      char *hour_str = extraction(time, ',', 0);
-      char *minute_str = extraction(time, ',', 1);
-      char *second_str = extraction(time, ',', 2);
-      if(str2uint16_fault(hour_str) || str2uint16_fault(minute_str) || str2uint16_fault(second_str)) {
+      char *time = str_replace_chars(argv[3], "\"/,:+-_", ',');
+      char *hour_str = str_split(time, ',', 0);
+      char *minute_str = str_split(time, ',', 1);
+      char *second_str = str_split(time, ',', 2);
+      if(!str_is_u16(hour_str) || !str_is_u16(minute_str) || !str_is_u16(second_str)) {
         BASH_ArgvExit(3);
       }
-      uint16_t hour_nbr = str2nbr(hour_str);
+      uint16_t hour_nbr = str_to_int(hour_str);
       if(hour_nbr == 24) hour_nbr = 0;
-      uint16_t minute_nbr = str2nbr(minute_str);
-      uint16_t second_nbr = str2nbr(second_str);
+      uint16_t minute_nbr = str_to_int(minute_str);
+      uint16_t second_nbr = str_to_int(second_str);
       if(hour_nbr >= 24 || minute_nbr >= 60 || second_nbr >= 60) {
         BASH_ArgvExit(3);
       }
@@ -478,7 +476,7 @@ static void BASH_Alarm(char **argv, uint16_t argc)
 
 PWR_SleepMode_e PWR_Str2SleepMode(const char *str)
 {
-  switch(hash(str)) {
+  switch(hash_djb2(str)) {
     case PWR_Hash_Stop0: case HASH_Number_0: return PWR_SleepMode_Stop0;
     case PWR_Hash_Stop: case PWR_Hash_Stop1: case HASH_Number_1: return PWR_SleepMode_Stop1;
     case PWR_Hash_StandbySram: case PWR_Hash_Standbysram: case HASH_Number_2: return PWR_SleepMode_StandbySRAM;
@@ -491,7 +489,7 @@ PWR_SleepMode_e PWR_Str2SleepMode(const char *str)
 static void BASH_Power(char **argv, uint16_t argc)
 {
   BASH_Argc(2, 4);
-  switch(hash(argv[1])) {
+  switch(hash_djb2(argv[1])) {
     case HASH_Sleep: {
       BASH_Argc(3, 4);
       PWR_SleepMode_e mode = PWR_Str2SleepMode(argv[2]);
@@ -501,7 +499,7 @@ static void BASH_Power(char **argv, uint16_t argc)
         else PWR_Sleep(mode);
       }
       else if(argc == 4) {
-        if(hash(argv[3]) == HASH_Now) PWR_Sleep(mode);
+        if(hash_djb2(argv[3]) == HASH_Now) PWR_Sleep(mode);
         else BASH_ArgvExit(3);
       }
       break;
@@ -515,7 +513,7 @@ static void BASH_Power(char **argv, uint16_t argc)
         else PWR_Reset();
       }
       else if(argc == 3) {
-        if(hash(argv[2]) == HASH_Now) PWR_Reset();
+        if(hash_djb2(argv[2]) == HASH_Now) PWR_Reset();
         else BASH_ArgvExit(2);
       }
       break;
@@ -561,7 +559,7 @@ bool BASH_Loop(STREAM_t *stream)
   if(argc) {
     if(stream->data_mode) BASH_Data((uint8_t *)argv[0], argc, stream);
     else {
-      uint32_t argv0_hash = hash(argv[0]);
+      uint32_t argv0_hash = hash_djb2(argv[0]);
       switch(argv0_hash) {
         case HASH_Ping: BASH_Ping(argv, argc); break;
         case HASH_File: BASH_File(argv, argc, stream); break;

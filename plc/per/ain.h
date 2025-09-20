@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "exmath.h"
+#include "extmath.h"
 #include "vrts.h"
 #include "adc.h"
 #include "log.h"
@@ -17,6 +17,16 @@
 // Poziom logowania dla błędów (over-value/under-value)
 #ifndef AIN_LOG_LEVEL
   #define AIN_LOG_LEVEL LOG_LEVEL_ERR
+#endif
+
+// Upper (near VCC) resistor in measurement branch (can be adjusted in custom designs)
+#ifndef AIN_RESISTOR_UP
+  #define AIN_RESISTOR_UP 340
+#endif
+
+// Lower (near GND) resistor in measurement branch (can be adjusted in custom designs)
+#ifndef AIN_RESISTOR_DOWN
+  #define AIN_RESISTOR_DOWN 160
 #endif
 
 // Sprawdza, czy wystąpił błąd (wartość ujemna wskazuje na błąd)

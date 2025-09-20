@@ -6,9 +6,8 @@
 #include "vrts.h"
 #include "rtc.h"
 #include "crc.h"
-#include "exstring.h"
-#include "exmath.h"
-#include "exdef.h"
+#include "extstr.h"
+#include "extmath.h"
 #include "main.h"
 
 #ifndef FILE_ENTER_RETURN

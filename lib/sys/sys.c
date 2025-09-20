@@ -50,7 +50,7 @@ void sys_memory_guard(void)
 {
   while(1) {
     if(memory_guard != 0xA5A5DEAD) {
-      panic("Memory corruption "LOG_Module("SYS"));
+      panic("Memory corruption " LOG_LIB("SYS"));
     }
     delay(500);
   }

@@ -194,7 +194,7 @@ char *BUFF_String(BUFF_t *buff)
   char *string = NULL;
   uint16_t size = BUFF_Size(buff);
   if(size) {
-    string = new(size + 1);
+    string = heap_new(size + 1);
     BUFF_Array(buff, (uint8_t *)string);
     string[size] = 0;
   }

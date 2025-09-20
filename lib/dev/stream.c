@@ -22,7 +22,7 @@ uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
     if(stream->data_mode) {
       char **file;
       char *loc;
-      file = new(sizeof(char*) + (length * sizeof(char)));
+      file = heap_new(sizeof(char*) + (length * sizeof(char)));
       loc = (char*)file + sizeof(char*);
       memcpy(loc, buffer, length);
       file[0] = loc;
@@ -30,12 +30,12 @@ uint16_t STREAM_Read(STREAM_t *stream, char ***argv)
       return length;
     }
     else {
-      buffer = trim(buffer);
-      int argc = explode(argv, buffer, ' ');
+      buffer = str_trim(buffer);
+      int argc = str_explode(argv, buffer, ' ');
       if(stream->modify == STREAM_Modify_Lowercase || stream->modify == STREAM_Modify_Uppercase) {
         for(int i = 0; i < argc; i++) {
-          if(stream->modify == STREAM_Modify_Lowercase) str2lower_this((*argv)[i]);
-          else if(stream->modify == STREAM_Modify_Uppercase) str2upper_this((*argv)[i]);
+          if(stream->modify == STREAM_Modify_Lowercase) str_lower_this((*argv)[i]);
+          else if(stream->modify == STREAM_Modify_Uppercase) str_upper_this((*argv)[i]);
         }
       }
       return (uint8_t)argc;

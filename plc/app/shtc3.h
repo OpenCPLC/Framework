@@ -2,7 +2,7 @@
 #define SHTC3_H_
 
 #include <stdint.h>
-#include "exmath.h"
+#include "extmath.h"
 #include "twi.h"
 
 //-------------------------------------------------------------------------------------------------

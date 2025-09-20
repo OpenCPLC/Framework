@@ -5,7 +5,7 @@
 
 #include "spi-master.h"
 #include "log.h"
-#include "exmath.h"
+#include "extmath.h"
 
 #define MAX31865_CFG_BIAS  (1 << 7)
 #define MAX31865_CFG_AUTO  (1 << 6)

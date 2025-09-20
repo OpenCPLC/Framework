@@ -4,7 +4,7 @@
 #include <string.h>
 #include "int.h"
 #include "i2c.h"
-#include "new.h"
+#include "heap.h"
 #include "main.h"
 
 //------------------------------------------------------------------------------------------------

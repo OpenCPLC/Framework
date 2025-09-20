@@ -38,8 +38,8 @@ float AIN_Raw(AIN_t *ain)
 {
   if(tick_over(&ain->tick)) return ain->value;
   uint16_t size = ain->count / 3;
-  sort_asc_uint16(ain->data, ain->count);
-  ain->value = average_uint16(&(ain->data[size]), size);
+  sort_asc_u16(ain->data, ain->count);
+  ain->value = avg_u16(&(ain->data[size]), size);
   ain->tick = tick_keep(AIN_AVERAGE_TIME_MS / 2);
   LOG_Debug("Analog input %s raw-value: %F", ain->name, ain->value);
   return ain->value;
@@ -53,7 +53,7 @@ float AIN_Raw(AIN_t *ain)
 static float AIN_Volts(AIN_t *ain)
 {
   float raw = AIN_Raw(ain);
-  float volts = resistor_divider_factor(3.3, 340, 160, 16) * raw;
+  float volts = resistor_divider_factor(3.3, AIN_RESISTOR_UP, AIN_RESISTOR_DOWN, 16) * raw;
   if(volts > 10.25 || (ain->threshold_up && volts > ain->threshold_up)) return AIN_Error_OverValue;
   if((ain->mode_4_20mA && (volts < 0.1)) || volts < ain->threshold_down) return AIN_Error_UnderValue;
   return volts;
