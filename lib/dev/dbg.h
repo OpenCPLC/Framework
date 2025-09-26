@@ -37,8 +37,8 @@ void DBG_SendFile(FILE_t *file);
 void DBG_DefaultFile(void);
 void DBG_SetFile(FILE_t *file);
 
-uint16_t DBG_GetSize(void);
-uint16_t DBG_ReadArray(uint8_t *array);
+uint16_t DBG_Size(void);
+uint16_t DBG_Read(uint8_t *array);
 char *DBG_ReadString(void);
 
 int32_t DBG_Char(uint8_t data);

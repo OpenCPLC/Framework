@@ -37,7 +37,7 @@ typedef struct {
 	uint64_t interval_tick;
 } SHTC3_t;
 
-state_t SHTC3_Loop(void);
+status_t SHTC3_Loop(void);
 float SHTC3_Temperature_C(void);
 float SHTC3_Humidity_RH(void);
 

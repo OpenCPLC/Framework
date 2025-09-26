@@ -25,8 +25,8 @@ typedef struct {
 
 uint32_t CRC_Run(const CRC_t *crc, void *buffer, uint16_t count);
 uint16_t CRC_Append(const CRC_t *crc, uint8_t *buffer, uint16_t count);
-state_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count);
-state_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count);
+status_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count);
+status_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count);
 
 #if(CRC_STANDARD_USED)
   extern const CRC_t crc32_iso;

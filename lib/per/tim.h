@@ -78,7 +78,7 @@ typedef enum {
 
 typedef struct {
 	TIM_TypeDef *reg;
-	INT_Prioryty_t int_prioryty;
+	IRQ_Priority_t irq_priority;
 	bool one_pulse_mode;
 	uint32_t prescaler;
 	uint32_t auto_reload;

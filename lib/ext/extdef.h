@@ -6,12 +6,12 @@
 //-------------------------------------------------------------------------------------------------
 
 typedef enum {
-  OK = 0,
-  FREE = 0,
-  IDLE = 0,
-  ERR = 1,
-  BUSY = 2,
-} state_t;
+  OK = 0,    // Normal execution
+  FREE = 0,  // Resource free
+  IDLE = 0,  // Nothing active
+  ERR = 1,   // Error occurred
+  BUSY = 2,  // Resource busy
+} status_t;
 
 #define NaN         NAN
 #define Inf         INFINITY

@@ -2,177 +2,432 @@
 
 //-------------------------------------------------------------------------------------------------
 
-EEPROM_Page_Status EEPROM_PageStatus(EEPROM_t *eeprom, uint16_t page)
+/**
+ * @brief Get current status of storage block (A/B) in EEPROM emulation
+ * Function scans flash pages assigned to storage:
+ * `EEPROM_State_EMPTY`: block never written (ready for use)
+ * `EEPROM_State_FILLED`: block partly used, still has free space
+ * `EEPROM_State_FULL`: block completely used, needs erase
+ * @param eeprom Pointer to `EEPROM_t` instance
+ * @param storage Storage block `EEPROM_Storage_A` or `EEPROM_Storage_B`
+ * @return Current storage state
+ */
+static EEPROM_State_t EEPROM_StorageStatus(EEPROM_t *eeprom, EEPROM_Storage_t storage)
 {
-  if(page >= FLASH_PAGES) return EEPROM_NO_PAGE;
   uint32_t i;
-  uint32_t addr = eeprom->_page_address_end[page] - 8;
-  if(*(uint64_t *) (addr) != (uint64_t) 0xFFFFFFFFFFFFFFFF) return EEPROM_FULL_PAGE;
+  uint32_t addr = eeprom->adrr_end[storage] - 8;
+  if(*(uint64_t *)(addr) != (uint64_t)0xFFFFFFFFFFFFFFFF) return EEPROM_State_FULL;
   addr -= 8;
-  for(i = addr; i >= eeprom->_page_address_start[page]; i -= 8) {
-    if(*(uint64_t *) (i) != (uint64_t) 0xFFFFFFFFFFFFFFFF) return EEPROM_FILLEDOUT_PAGE;
+  for(i = addr; i >= eeprom->adrr_start[storage]; i -= 8) {
+    if(*(uint64_t *)(i) != (uint64_t)0xFFFFFFFFFFFFFFFF) return EEPROM_State_FILLED;
   }
-  return EEPROM_EMPTY_PAGE;
+  return EEPROM_State_EMPTY;
 }
 
-static uint32_t _EEPROM_FindPointner(EEPROM_t *eeprom)
+/**
+ * @brief Find write cursor inside active storage block
+ * Scans flash backwards from end of block until last written entry.
+ * @param eeprom Pointer to `EEPROM_t` instance
+ * @return Address of next free entry inside active storage
+ */
+static uint32_t EEPROM_FindCursor(EEPROM_t *eeprom)
 {
   uint32_t i;
-  for(i = eeprom->_page_address_end[eeprom->_page_active] - 8; i >= eeprom->_page_address_start[eeprom->_page_active]; i -= 8) {
+  for(i = eeprom->adrr_end[eeprom->active_storage] - 8; i >= eeprom->adrr_start[eeprom->active_storage]; i -= 8) {
     if(*(uint64_t *) (i) != (uint64_t) 0xFFFFFFFFFFFFFFFF) break;
   }
   return i + 8;
 }
 
-static void _EEPROM_Rewrite(EEPROM_t *eeprom, uint8_t full)
+/**
+ * @brief Erase all flash pages reserved for EEPROM emulation
+ * Clears both storage blocks (A and B).
+ * After clear active storage is set to A, cursor at block start.
+ * @param eeprom Pointer to `EEPROM_t` instance
+ * @return `OK` on success, `ERR` on error
+ */
+status_t EEPROM_Clear(EEPROM_t *eeprom)
 {
-  uint32_t data, cell, tmp, i, j;
-  uint8_t empty = (full) ? 0 : 1;
-  eeprom->_page_active = empty;
-  eeprom->_page_pointner = eeprom->_page_address_start[empty];
-  for(i = eeprom->_page_address_end[full] - 8; i >= eeprom->_page_address_start[full]; i -= 8) {
-    cell = *(uint32_t *) (i);
-    data = *(uint32_t *) (i + 4);
-    if(cell != 0xFFFFFFFF) {
-      for(j = eeprom->_page_address_start[empty]; j < eeprom->_page_address_end[empty]; j += 8) {
-        tmp = *(uint32_t *) (j);
-        if(cell == tmp) break;
+  uint8_t page_count = 2 * eeprom->storage_pages;
+  for(uint8_t i = 0; i < page_count; i++) {
+    if(FLASH_Erase(eeprom->page_start + i)) return ERR;
+  }
+  eeprom->active_storage = EEPROM_Storage_A;
+  eeprom->cursor = eeprom->adrr_start[EEPROM_Storage_A];
+  return OK;
+}
+
+/**
+ * @brief Erase all flash pages of one storage block
+ * Clears either storage A or B depending on `storage`.
+ * @param eeprom Pointer to `EEPROM_t` instance
+ * @param storage Selected storage block (`EEPROM_Storage_A` or `EEPROM_Storage_B`)
+ * @return `OK` on success, `ERR` on error
+ */
+static status_t EEPROM_ClearStorage(EEPROM_t *eeprom, EEPROM_Storage_t storage)
+{
+  uint8_t page_storage_start = eeprom->page_start + (storage == EEPROM_Storage_B ? eeprom->storage_pages : 0);
+  for(uint8_t i = 0; i < eeprom->storage_pages; i++) {
+    if(FLASH_Erase(page_storage_start + i)) return ERR;
+  }
+  return OK;
+}
+
+/**
+ * @brief Rewrite EEPROM when active storage is full
+ * Copies valid key/value pairs from full block into the empty block.
+ * Old block is erased at the end, new block becomes active.
+ * @param eeprom Pointer to `EEPROM_t` instance
+ * @param full_storage Storage block that is full
+ * @return `OK` on success, `ERR` on error
+ */
+static status_t EEPROM_Rewrite(EEPROM_t *eeprom, EEPROM_Storage_t full_storage)
+{
+  EEPROM_Storage_t empty_storage = !full_storage;
+  eeprom->active_storage = empty_storage;
+  eeprom->cursor = eeprom->adrr_start[empty_storage];
+  for(uint32_t i = eeprom->adrr_end[full_storage] - 8; i >= eeprom->adrr_start[full_storage]; i -= 8) {
+    uint32_t key = *(uint32_t *)(i);
+    uint32_t value = *(uint32_t *)(i + 4);
+    if(key != 0xFFFFFFFF) {
+      for(uint32_t j = eeprom->adrr_start[empty_storage]; j < eeprom->adrr_end[empty_storage]; j += 8) {
+        uint32_t tmp = *(uint32_t *)(j);
+        if(key == tmp) break;
         else if(tmp == 0xFFFFFFFF) {
-          FLASH_Write(j, cell, data);
-          eeprom->_page_pointner += 8;
+          if(FLASH_Write(j, key, value)) return ERR;
+          eeprom->cursor += 8;
           break;
         }
       }
     }
   }
-  if(full) FLASH_Erase(eeprom->page_b);
-  else FLASH_Erase(eeprom->page_a);
+  if(EEPROM_ClearStorage(eeprom, full_storage)) return ERR;
+  return OK;
 }
 
 //-------------------------------------------------------------------------------------------------
 
-void EEPROM_Clear(EEPROM_t *eeprom)
+/**
+ * @brief Initialize EEPROM emulation
+ * Sets up flash pages, determines active storage block, finds cursor.
+ * Handles cases: both empty, both full, restart in progress.
+ * @param eeprom Pointer to `EEPROM_t` instance
+ * @return `OK` if initialized, `ERR` if config invalid
+ */
+status_t EEPROM_Init(EEPROM_t *eeprom)
 {
-  FLASH_Erase(eeprom->page_a);
-  FLASH_Erase(eeprom->page_b);
-  eeprom->_page_active = 0;
-  eeprom->_page_pointner = eeprom->_page_address_start[0];
-}
-
-//-------------------------------------------------------------------------------------------------
-
-uint8_t EEPROM_Init(EEPROM_t *eeprom)
-{
-  if(eeprom->_page_address_start[0]) return 0;
+  if(eeprom->adrr_start[EEPROM_Storage_A]) return OK;
+  eeprom->storage_pages = (eeprom->page_count + 1) / 2;
+  if(eeprom->page_start + (2 * eeprom->storage_pages) >= FLASH_PAGES) return ERR;
   FLASH_Init();
-  eeprom->_page_address_start[0] = FLASH_START_ADDR + (FLASH_PAGE_SIZE * (eeprom->page_a));
-  eeprom->_page_address_start[1] = FLASH_START_ADDR + (FLASH_PAGE_SIZE * (eeprom->page_b));
-  eeprom->_page_address_end[0] = FLASH_START_ADDR + (FLASH_PAGE_SIZE * (eeprom->page_a + 1));
-  eeprom->_page_address_end[1] = FLASH_START_ADDR + (FLASH_PAGE_SIZE * (eeprom->page_b + 1));
-  EEPROM_Page_Status s0 = EEPROM_PageStatus(eeprom, 0);
-  EEPROM_Page_Status s1 = EEPROM_PageStatus(eeprom, 1);
-  if(s0 == EEPROM_NO_PAGE || s1 == EEPROM_NO_PAGE) return 1;
-  else if(s0 == EEPROM_FULL_PAGE && s1 == EEPROM_FULL_PAGE) { // Error
-    EEPROM_Clear(eeprom);
+  eeprom->adrr_start[EEPROM_Storage_A] = FLASH_GetAddress(eeprom->page_start, 0);
+  eeprom->adrr_end[EEPROM_Storage_A] = FLASH_GetAddress(eeprom->page_start + eeprom->storage_pages, 0);
+  eeprom->adrr_start[EEPROM_Storage_B] = FLASH_GetAddress(eeprom->page_start + eeprom->storage_pages, 0);
+  eeprom->adrr_end[EEPROM_Storage_B] = FLASH_GetAddress(eeprom->page_start + (2 * eeprom->storage_pages), 0);
+  EEPROM_State_t status_a = EEPROM_StorageStatus(eeprom, EEPROM_Storage_A);
+  EEPROM_State_t status_b = EEPROM_StorageStatus(eeprom, EEPROM_Storage_B);
+  if(status_a == EEPROM_State_FULL && status_b == EEPROM_State_FULL) { // Error
+    if(EEPROM_Clear(eeprom)) return ERR;
   }
-  else if(s0 == EEPROM_EMPTY_PAGE && s1 == EEPROM_EMPTY_PAGE) { // First Use
-    eeprom->_page_active = 0;
-    eeprom->_page_pointner = eeprom->_page_address_start[0];
+  else if(status_a == EEPROM_State_EMPTY && status_b == EEPROM_State_EMPTY) {
+    eeprom->active_storage = EEPROM_Storage_A;
+    eeprom->cursor = eeprom->adrr_start[EEPROM_Storage_A];
   }
-  else if(s0 == EEPROM_FULL_PAGE || s1 == EEPROM_FULL_PAGE) { // Restart in progress
-    if(s1 == EEPROM_FULL_PAGE) {
-      FLASH_Erase(eeprom->page_a);
-      _EEPROM_Rewrite(eeprom, 1);
+  else if(status_a == EEPROM_State_FULL || status_b == EEPROM_State_FULL) { // Restart in progress
+    if(status_b == EEPROM_State_FULL) {
+      if(EEPROM_ClearStorage(eeprom,EEPROM_Storage_A)) return ERR;
+      if(EEPROM_Rewrite(eeprom, EEPROM_Storage_B)) return ERR;
     }
     else {
-      FLASH_Erase(eeprom->page_b);
-      _EEPROM_Rewrite(eeprom, 0);
+      if(EEPROM_ClearStorage(eeprom,EEPROM_Storage_B)) return ERR;
+      if(EEPROM_Rewrite(eeprom, EEPROM_Storage_A)) return ERR;
     }
   }
-  else if(s0 == EEPROM_EMPTY_PAGE || s1 == EEPROM_EMPTY_PAGE) { // Standard Work
-    if(s0 == EEPROM_FILLEDOUT_PAGE) eeprom->_page_active = 0;
-    else eeprom->_page_active = 1;
-    eeprom->_page_pointner = _EEPROM_FindPointner(eeprom);
-  }
-  return 0;
-}
-
-//-------------------------------------------------------------------------------------------------
-
-uint8_t EEPROM_WriteCell(EEPROM_t *eeprom, uint32_t cell, uint32_t *data)
-{
-  if(FLASH_Write(eeprom->_page_pointner, cell, *data)) return 1;
-  eeprom->_page_pointner += 8;
-  if(eeprom->_page_pointner >= eeprom->_page_address_end[eeprom->_page_active]) {
-    _EEPROM_Rewrite(eeprom, eeprom->_page_active);
-  }
-  return 0;
-}
-
-uint8_t EEPROM_Write(EEPROM_t *eeprom, uint32_t *data)
-{
-  if(FLASH_Write(eeprom->_page_pointner, (uint32_t)data, *data)) return ERR;
-  eeprom->_page_pointner += 8;
-  if(eeprom->_page_pointner >= eeprom->_page_address_end[eeprom->_page_active]) {
-    _EEPROM_Rewrite(eeprom, eeprom->_page_active);
+  else if(status_a == EEPROM_State_EMPTY || status_b == EEPROM_State_EMPTY) { // Standard work
+    if(status_a == EEPROM_State_FILLED) eeprom->active_storage = EEPROM_Storage_A;
+    else eeprom->active_storage = EEPROM_Storage_B;
+    eeprom->cursor = EEPROM_FindCursor(eeprom);
   }
   return OK;
 }
 
-uint8_t EEPROM_Read(EEPROM_t *eeprom, uint32_t *data)
+//-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Write key/value to EEPROM
+ * Store entry at cursor and move forward, rewrite if block is full
+ * @param eeprom EEPROM object
+ * @param key Entry key
+ * @param value Entry value
+ * @return `OK` on success, `ERR` on flash error
+ */
+status_t EEPROM_Write(EEPROM_t *eeprom, uint32_t key, uint32_t value)
 {
-  uint32_t i, pointner, temp_data;
-  for(i = eeprom->_page_address_end[eeprom->_page_active] - 8; i >= eeprom->_page_address_start[eeprom->_page_active]; i -= 8) {
-    pointner = *(uint32_t *)(i);
-    temp_data = *(uint32_t *)(i + 4);
-    if((uint32_t)data == pointner) {
-      *data = temp_data;
+  if(FLASH_Write(eeprom->cursor, key, value)) return ERR;
+  eeprom->cursor += 8;
+  if(eeprom->cursor >= eeprom->adrr_end[eeprom->active_storage]) {
+    EEPROM_Rewrite(eeprom, eeprom->active_storage);
+  }
+  return OK;
+}
+
+/**
+ * @brief Read value by key from EEPROM
+ * Scan block backward to find latest entry
+ * @param eeprom EEPROM object
+ * @param key Entry key
+ * @param default_value Returned if key not found
+ * @return Stored value or default
+ */
+uint32_t EEPROM_Read(EEPROM_t *eeprom, uint32_t key, uint32_t default_value)
+{
+  uint32_t i, flash_key, flash_value;
+  for(i = eeprom->adrr_end[eeprom->active_storage] - 8; i >= eeprom->adrr_start[eeprom->active_storage]; i -= 8) {
+    flash_key = *(uint32_t *)(i);
+    flash_value = *(uint32_t *)(i + 4);
+    if(key == flash_key) {
+      return flash_value;
+    }
+  }
+  return default_value;
+}
+
+/**
+ * @brief Save variable into Flash EEPROM
+ * Store address and value at cursor, then move cursor forward.
+ * If page is full, rewrite it.
+ * @param eeprom EEPROM object
+ * @param var Pointer to variable to save
+ * @return `OK` on success, `ERR` on failure
+ */
+status_t EEPROM_Save(EEPROM_t *eeprom, uint32_t *var)
+{
+  if(FLASH_Write(eeprom->cursor, (uint32_t)var, *var)) return ERR;
+  eeprom->cursor += 8;
+  if(eeprom->cursor >= eeprom->adrr_end[eeprom->active_storage]) {
+    EEPROM_Rewrite(eeprom, eeprom->active_storage);
+  }
+  return OK;
+}
+
+/**
+ * @brief Load variable from Flash EEPROM
+ * Search backward for stored address and return the latest value.
+ * @param eeprom EEPROM object
+ * @param var Pointer to variable (updated if found)
+ * @return `OK` if value found, `ERR` otherwise
+ */
+status_t EEPROM_Load(EEPROM_t *eeprom, uint32_t *var)
+{
+  uint32_t i, flash_key, flash_value;
+  for(i = eeprom->adrr_end[eeprom->active_storage] - 8; i >= eeprom->adrr_start[eeprom->active_storage]; i -= 8) {
+    flash_key = *(uint32_t *)(i);
+    flash_value = *(uint32_t *)(i + 4);
+    if((uint32_t)var == flash_key) {
+      *var = flash_value;
       return OK;
     }
   }
   return ERR;
 }
 
+/**
+ * @brief Save multiple variables into Flash EEPROM
+ * Use variable list, end with NULL
+ * @param eeprom EEPROM object
+ * @param var First variable pointer, then more with `...`
+ * @return `OK` if all saved, `ERR` if any failed
+ */
+status_t EEPROM_SaveList(EEPROM_t *eeprom, uint32_t *var, ...)
+{
+  va_list args; va_start(args, var);
+  status_t status = OK;
+  while(var) { 
+    if(EEPROM_Save(eeprom, var)) status = ERR;
+    var = va_arg(args, uint32_t *);
+  }
+  va_end(args);
+  return status;
+}
+
+/**
+ * @brief Load multiple variables from Flash EEPROM
+ * Use variable list, end with NULL
+ * @param eeprom EEPROM object
+ * @param var First variable pointer, then more with `...`
+ * @return `OK` if all found, `ERR` if any missing
+ */
+status_t EEPROM_LoadList(EEPROM_t *eeprom, uint32_t *var, ...)
+{
+  va_list args; va_start(args, var);
+  status_t status = OK;
+  while(var) { 
+    if(EEPROM_Load(eeprom, var)) status = ERR;
+    var = va_arg(args, uint32_t *);
+  }
+  va_end(args);
+  return status;
+}
+
+/**
+ * @brief Save 64-bit variable into Flash EEPROM
+ * Split into two 32-bit parts and store with EEPROM_Save
+ * @param eeprom EEPROM object
+ * @param var Pointer to 64-bit variable to save
+ * @return `OK` on success, `ERR` on error
+ */
+status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var)
+{
+  uint32_t low = (uint32_t)(*var & 0xFFFFFFFFULL);
+  uint32_t high = (uint32_t)(*var >> 32);
+  if(EEPROM_Save(eeprom, &low)) return ERR;
+  if(EEPROM_Save(eeprom, &high)) return ERR;
+  return OK;
+}
+
+/**
+ * @brief Load 64-bit variable from Flash EEPROM
+ * Read two 32-bit parts and merge into 64-bit value
+ * @param eeprom EEPROM object
+ * @param var Pointer to 64-bit variable (updated if found)
+ * @return `OK` on success, `ERR` on error
+ */
+status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var)
+{
+  uint32_t low, high;
+  if(EEPROM_Load(eeprom, &low)) return ERR;
+  if(EEPROM_Load(eeprom, &high)) return ERR;
+  *var = ((uint64_t)high << 32) | low;
+  return OK;
+}
+
 //------------------------------------------------------------------------------------------------- Cache
 
-EEPROM_t *eeprom_cache;
+static EEPROM_t *eeprom_cache;
 
-uint8_t EEPROM_Cache(EEPROM_t *eeprom)
+/**
+ * @brief Clear EEPROM using cache
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Clear(void)
+{
+  if(!eeprom_cache) return ERR;
+  return EEPROM_Clear(eeprom_cache);
+}
+
+/**
+ * @brief Init cache wrapper for EEPROM
+ * @param eeprom EEPROM object
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Init(EEPROM_t *eeprom)
 {
   eeprom_cache = eeprom;
   return EEPROM_Init(eeprom_cache);
 }
 
-uint8_t EEPROM_Save(uint32_t *data)
+/**
+ * @brief Write key/value to EEPROM using cache
+ * @param key Entry key
+ * @param value Entry value
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Write(uint32_t key, uint32_t value)
 {
   if(!eeprom_cache) return ERR;
-  return EEPROM_Write(eeprom_cache, data);
+  return EEPROM_Write(eeprom_cache, key, value);
 }
 
-uint8_t EEPROM_Load(uint32_t *data)
+/**
+ * @brief Read value by key from EEPROM using cache
+ * @param key Entry key
+ * @param default_value Returned if key not found
+ * @return Stored value or default
+ */
+uint32_t CACHE_Read(uint32_t key, uint32_t default_value)
+{
+  if(!eeprom_cache) return default_value;
+  return EEPROM_Read(eeprom_cache, key, default_value);
+}
+
+/**
+ * @brief Save single variable using cache
+ * @param var Pointer to variable
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Save(uint32_t *var)
 {
   if(!eeprom_cache) return ERR;
-  return EEPROM_Read(eeprom_cache, data);
+  return EEPROM_Save(eeprom_cache, var);
 }
 
-void EEPROM_SaveList(uint32_t *data, ...)
+/**
+ * @brief Load single variable using cache
+ * @param var Pointer to variable (updated if found)
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Load(uint32_t *var)
 {
-  va_list args; va_start(args, data);
-  while(data) { EEPROM_Save(data); data = va_arg(args, uint32_t *); }
+  if(!eeprom_cache) return ERR;
+  return EEPROM_Load(eeprom_cache, var);
+}
+
+/**
+ * @brief Save multiple variables using cache
+ * Pass list of variables, end with NULL
+ * @param var First variable pointer
+ * @return `OK` if all saved, `ERR` if any failed
+ */
+status_t CACHE_SaveList(uint32_t *var, ...)
+{
+  va_list args; va_start(args, var);
+  status_t status = OK;
+  while(var) { 
+    if(CACHE_Save(var)) status = ERR;
+    var = va_arg(args, uint32_t *);
+  }
   va_end(args);
+  return status;
 }
 
-void EEPROM_LoadList(uint32_t *data, ...)
+/**
+ * @brief Load multiple variables using cache
+ * Pass list of variables, end with NULL
+ * @param var First variable pointer
+ * @return `OK` if all found, `ERR` if any missing
+ */
+status_t CACHE_LoadList(uint32_t *var, ...)
 {
-  va_list args; va_start(args, data);
-  while(data) { EEPROM_Load(data); data = va_arg(args, uint32_t *); }
+  va_list args; va_start(args, var);
+  status_t status = OK;
+  while(var) { 
+    if(CACHE_Load(var)) status = ERR;
+    var = va_arg(args, uint32_t *);
+  }
   va_end(args);
+  return status;
 }
 
-void EEPROM_Remove(void)
+/**
+ * @brief Save 64-bit variable using cache
+ * @param var Pointer to 64-bit variable
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Save64(uint64_t *var)
 {
-  if(!eeprom_cache) return;
-  EEPROM_Clear(eeprom_cache);
+  if(!eeprom_cache) return ERR;
+  return EEPROM_Save64(eeprom_cache, var);
+}
+
+/**
+ * @brief Load 64-bit variable using cache
+ * @param var Pointer to 64-bit variable (updated if found)
+ * @return `OK` on success, `ERR` on error
+ */
+status_t CACHE_Load64(uint64_t *var)
+{
+  if(!eeprom_cache) return ERR;
+  return EEPROM_Load64(eeprom_cache, var);
 }
 
 //-------------------------------------------------------------------------------------------------

@@ -97,6 +97,16 @@ float step_limiter_f32(float input, float prev, float max_delta);
   (((value) < (min)) ? (min) : ((value) > (max)) ? (max) : (value))
 
 /**
+ * @brief Check if value is inside `[min, max]` range (inclusive).
+ * @param value Value to check.
+ * @param min Minimum allowed value.
+ * @param max Maximum allowed value.
+ * @return `true` if value ∈ [min, max], else `false`.
+ */
+#define in_range(value, min, max) \
+  (((value) >= (min)) && ((value) <= (max)))
+
+/**
  * @brief Swap two variables of the same type.
  * @param a First variable.
  * @param b Second variable.

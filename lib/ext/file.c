@@ -121,20 +121,39 @@ int32_t FILE_Int(FILE_t *file, int64_t nbr, uint8_t base, bool sign, uint8_t fil
 int32_t FILE_Float(FILE_t *file, float nbr, uint8_t accuracy, uint8_t fill_space)
 {
   if(file->mutex) return 0;
-  if(isNaN(nbr)) {
-    // uint8_t len = fill_space > 3 ? fill_space : 3;
-    // char nan[len + 1];
-    // memset(nan, ' ', len - 3);
-    // nan[len - 3] = 'N';
-    // nan[len - 2] = 'a';
-    // nan[len - 1] = 'N';
-    uint8_t len = fill_space > 1 ? fill_space : 1; 
-    char nan[len + 1];
-    memset(nan, ' ', len - 1);
-    nan[len - 1] = '-'; 
-    nan[len] = '\0';
-    return FILE_String(file, nan);
-  }
+  #if(FILE_PRINT_NAN_INF)
+    if(isNaN(nbr)) {
+      const char *txt = "NaN";
+      uint8_t len = strlen(txt);
+      if(fill_space > len) {
+        char buf[fill_space + 1];
+        memset(buf, ' ', fill_space - len);
+        memcpy(buf + fill_space - len, txt, len + 1);
+        return FILE_String(file, buf);
+      }
+      return FILE_String(file, txt);
+    }
+    else if(isInf(nbr)) {
+      const char *txt = signbit(nbr) ? "-Inf" : "Inf";
+      uint8_t len = strlen(txt);
+      if(fill_space > len) {
+        char buf[fill_space + 1];
+        memset(buf, ' ', fill_space - len);
+        memcpy(buf + fill_space - len, txt, len + 1);
+        return FILE_String(file, buf);
+      }
+      return FILE_String(file, txt);
+    }
+  #else
+    if(isNaN(nbr) || isInf(nbr)) {
+      uint8_t len = fill_space > 1 ? fill_space : 1; 
+      char nan[len + 1];
+      memset(nan, ' ', len - 1);
+      nan[len - 1] = '-'; 
+      nan[len] = '\0';
+      return FILE_String(file, nan);
+    }
+  #endif
   for(uint16_t i = 0; i<accuracy; i++) nbr *= 10;
   if(!fill_space) fill_space = 1;
   int32_t length = (int32_t)itoa_encode((int32_t)nbr, StrTempMem, 10, true, nbr < 0 ? accuracy + 2 : accuracy + 1, fill_space - 1);
@@ -261,14 +280,14 @@ int32_t FILE_Alarm(FILE_t *file, RTC_Alarm_t *alarm)
 
 //------------------------------------------------------------------------------------------------- General
 
-state_t FILE_Clear(FILE_t *file)
+status_t FILE_Clear(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->size = 0;
   return OK;
 }
 
-state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
+status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
 {
   if(file_to->mutex) return ERR;
   else if(file_to->size > file_from->limit) return ERR;
@@ -277,7 +296,7 @@ state_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
   return OK;
 }
 
-state_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
+status_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
 {
   if(file->mutex) return ERR;
   else if(size > file->limit) return ERR;
@@ -286,7 +305,7 @@ state_t FILE_Save(FILE_t *file, uint8_t *data, uint16_t size)
   return OK;
 }
 
-state_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
+status_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
 {
   if(file->mutex) return ERR;
   if(size + file->size > file->limit) return ERR;
@@ -297,7 +316,7 @@ state_t FILE_Append(FILE_t *file, uint8_t *data, uint16_t size)
 
 //------------------------------------------------------------------------------------------------- Access
 
-state_t FILE_Access_Get(FILE_t *file)
+status_t FILE_Access_Get(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->mutex = true;
@@ -309,7 +328,7 @@ void FILE_Access_Allow(FILE_t *file)
   if(file) file->mutex = false;
 }
 
-state_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
+status_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
 {
   if(FILE_Access_Get(primary)) return ERR;
   if(secondary && secondary != primary) {
@@ -323,7 +342,7 @@ state_t FILE_Access_Get2(FILE_t *primary, FILE_t *secondary)
 
 //------------------------------------------------------------------------------------------------- Flash
 
-state_t FILE_Flash_Save(FILE_t *file)
+status_t FILE_Flash_Save(FILE_t *file)
 {
   if(!file->flash_page) return ERR;
   if(FLASH_Compare(file->flash_page, file->buffer, file->size)) {
@@ -335,7 +354,7 @@ state_t FILE_Flash_Save(FILE_t *file)
   return OK;
 }
 
-state_t FILE_Flash_Load(FILE_t *file)
+status_t FILE_Flash_Load(FILE_t *file)
 {
   if(file->mutex) return ERR;
   else if(!file->flash_page) return ERR;
@@ -396,7 +415,7 @@ int32_t FILE_Struct_Drop(FILE_t *file, uint16_t count)
 
 //------------------------------------------------------------------------------------------------- Offset
 
-state_t FILE_Offset_Drop(FILE_t *file)
+status_t FILE_Offset_Drop(FILE_t *file)
 {
   if(file->mutex) return ERR;
   file->buffer -= file->offset;
@@ -406,7 +425,7 @@ state_t FILE_Offset_Drop(FILE_t *file)
   return OK;
 }
 
-state_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
+status_t FILE_Offset_Set(FILE_t *file, uint16_t offset)
 {
   if(FILE_Offset_Drop(file)) return ERR;
   if(offset > file->limit) return ERR;

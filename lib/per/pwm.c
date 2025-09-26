@@ -97,8 +97,8 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->CCMR2 = 0;
   for(uint8_t i = 0; i < 4; i++) {
     init = false;
-    if(pwm->channel[i]) { GPIO_AlternateInit(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
-    if(pwm->channel[i + 4]) { GPIO_AlternateInit(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
+    if(pwm->channel[i]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
+    if(pwm->channel[i + 4]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
     if(init) PWM_ChannelInit(pwm, i);
   }
   PWM_SetPrescaler(pwm, pwm->prescaler);

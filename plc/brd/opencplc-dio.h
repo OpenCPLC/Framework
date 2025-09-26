@@ -1,5 +1,3 @@
-#ifdef OPENCPLC_DIO
-
 #ifndef OPENCPLC_DIO_H_
 #define OPENCPLC_DIO_H_
 
@@ -16,7 +14,7 @@
 #define PLC_RS485
 
 #ifndef PLC_GREETING
-  #define PLC_GREETING "OpenCPLC DIO"
+  #define PLC_GREETING "OpenCPLC Dio"
 #endif
 
 #ifndef PLC_BOOTLOADER
@@ -70,5 +68,4 @@ void PLC_Loop(void);
 void PLC_Thread(void);
 
 //-------------------------------------------------------------------------------------------------
-#endif
 #endif

@@ -14,40 +14,51 @@
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Configuration parameters (must be set during initialization):
- * @param memory Pointer to buffer memory
- * @param size Buffer size in bytes
- * @param console_mode Enable console input mode (interprets ESC, Enter, Ctrl+C, etc.)
- * @param Overflow (Optional) Overflow handler function
+ * @brief Buffer configuration and runtime state.
+ * @param memory Pointer to buffer memory (user)
+ * @param size Buffer size in bytes (user)
+ * @param console_mode Enable console input mode (user)
+ * @param Overflow Optional overflow handler (user)
+ * @param esc ESC parser state (internal)
+ * @param end_memory memory + size (internal)
+ * @param head Write pointer (internal)
+ * @param tail Read pointer (internal)
+ * @param echo Echo pointer (internal)
+ * @param msg_counter Bytes in current message (internal)
+ * @param msg_size Size of each message (internal)
+ * @param msg_head Message head index (internal)
+ * @param msg_tail Message tail index (internal)
+ * @param break_allow Allow message break (internal)
  */
 typedef struct {
-  uint8_t *memory;                        // Buffer memory start
-  uint16_t size;                          // Buffer size in bytes
-  bool console_mode;                      // Console mode: enable special key handling
-  uint8_t esc;                            // ESC sequence state (internal)
-  void (*Overflow)(void);                 // Overflow handler, called on overflow (optional)
-  uint8_t *end_memory;                    // Pointer to memory + size (set by init)
-  uint8_t *tail;                          // Read pointer (set by init)
-  uint8_t *head;                          // Write pointer (set by init)
-  uint8_t *echo;                          // Echo pointer (set by init)
-  uint16_t msg_counter;                   // Bytes in current message (internal)
-  uint16_t msg_size[BUFF_MESSAGE_LIMIT];  // Size of each message (internal)
-  uint16_t msg_head;                      // Message head index (set by init)
-  uint16_t msg_tail;                      // Message tail index (set by init)
-  bool break_allow;                       // Allow message break (internal)
+  uint8_t *memory;
+  uint16_t size;
+  bool console_mode;
+  uint8_t esc;
+  void (*Overflow)(void);
+  uint8_t *end_memory;
+  volatile uint8_t *tail;
+  volatile uint8_t *head;
+  volatile uint8_t *echo;
+  volatile uint16_t msg_counter;
+  uint16_t msg_size[BUFF_MESSAGE_LIMIT];
+  volatile uint16_t msg_head;
+  volatile uint16_t msg_tail;
+  bool break_allow;
 } BUFF_t;
 
-void BUFF_Init(BUFF_t *buff);                       // Init buffer
-bool BUFF_Break(BUFF_t *buff);                      // End current message
-uint16_t BUFF_Size(BUFF_t *buff);                   // Current message size
-bool BUFF_Append(BUFF_t *buff, uint8_t value);      // Add byte
-bool BUFF_Echo(BUFF_t *buff, char *value);          // Peek buffer input (no pop)
-bool BUFF_Pop(BUFF_t *buff, uint8_t *value);        // Remove last byte
-bool BUFF_Push(BUFF_t *buff, uint8_t value);        // Add byte + break on '\n'
-uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array);  // Copy message to array
-bool BUFF_Skip(BUFF_t *buff);                       // Skip message
-char *BUFF_String(BUFF_t *buff);                    // Message as string
-void BUFF_Clear(BUFF_t *buff);                      // Clear all messages
+void BUFF_Init(BUFF_t *buff);
+bool BUFF_Break(BUFF_t *buff);
+uint16_t BUFF_Size(BUFF_t *buff);
+bool BUFF_Append(BUFF_t *buff, uint8_t value);
+bool BUFF_Echo(BUFF_t *buff, char *value);
+bool BUFF_Pop(BUFF_t *buff, uint8_t *value);
+bool BUFF_Push(BUFF_t *buff, uint8_t value);
+uint16_t BUFF_Read(BUFF_t *buff, uint8_t *dst);
+uint16_t BUFF_Peek(BUFF_t *buff, uint8_t *dst);
+bool BUFF_Skip(BUFF_t *buff);
+void BUFF_Clear(BUFF_t *buff);
+char *BUFF_ReadString(BUFF_t *buff);
 
 //-------------------------------------------------------------------------------------------------
 #endif

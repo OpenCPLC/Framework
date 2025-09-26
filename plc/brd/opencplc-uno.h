@@ -1,5 +1,3 @@
-#ifdef OPENCPLC_UNO
-
 #ifndef OPENCPLC_UNO_H_
 #define OPENCPLC_UNO_H_
 
@@ -73,7 +71,7 @@ extern UART_t RS1;
 extern UART_t RS2;
 
 // 1WIRE
-void _1WIRE_Active(void);
+// void _1WIRE_Active(void);
 
 // Dioda RGB i przycisk BTN
 extern RGB_t RGB;
@@ -92,5 +90,4 @@ extern MAX31865_t RTD;
 void RTD_Thread(void);
 
 //-------------------------------------------------------------------------------------------------
-#endif
 #endif

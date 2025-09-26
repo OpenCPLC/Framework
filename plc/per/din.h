@@ -1,11 +1,6 @@
 #ifndef DIN_H_
 #define DIN_H_
 
-/**
- * @file din.h
- * @brief Obsługa wejść cyfrowych OpenCPLC
- */
-
 #include <stdint.h>
 #include <stdbool.h>
 #include "eeprom.h"
@@ -15,30 +10,46 @@
 
 //-------------------------------------------------------------------------------------------------
 
-#define DIN_DEFAULT 0xFFFF
+/** Special value to restore default DI time in setters */
+#define DIN_DEFAULT_TIME 0xFFFFFFFF
 
-#ifndef DIN_Signal
-  #define DIN_Signal DIN_Rise
-#endif
-
+/**
+ * @brief Digital input configuration.
+ * @param name Name used in bash queries
+ * @param gpif Input filter instance `GPIF_t` with `gpio.port` and `gpio.pin`
+ * @param eeprom Pointer to `EEPROM_t` for non-volatile storage
+ * @param fast_counter Enable fast counter mode
+ * @param pwmi Pointer to `PWMI_t` controller for fast counter
+ * @param channel Channel of `PWMI_t` controller
+ */
 typedef struct {
-  const char *name;      // Nazwa wyświetlana podczas zapytań `bash`
-  GPIF_t gpif;           // Wskaźnik na wejście GPIF_t. Należy skonfigurować pola `gpio.port` i `gpio.pin`.
-  EEPROM_t *eeprom;      // Wskaźnik na pamięć EEPROM_t do przechowywania wartości nieulotnych.
-  bool fast_counter;     // Aktywacja trybu szybkiego licznika
-  PWMI_t *pwmi;          // Wskaźnik na kontroler PWMI_t.
-  TIM_Channel_t channel; // Kanał kontrolera PWMI_t sterujący
+  const char *name;
+  GPIF_t gpif;
+  EEPROM_t *eeprom;
+  bool fast_counter;
+  PWMI_t *pwmi;
+  TIM_Channel_t channel;
 } DIN_t;
 
+bool DIN_Init(DIN_t *din);
+bool DIN_Loop(DIN_t *din);
+
 bool DIN_State(DIN_t *din);
-bool DIN_RawState(DIN_t *din);
-bool DIN_Toggling(DIN_t *din);
+bool DIN_Raw(DIN_t *din);
+bool DIN_Toggle(DIN_t *din);
 bool DIN_Rise(DIN_t *din);
 bool DIN_Fall(DIN_t *din);
 bool DIN_Edge(DIN_t *din);
-bool DIN_Init(DIN_t *din);
-bool DIN_Loop(DIN_t *din);
-void DIN_Settings(DIN_t *din, uint16_t ton_ms, uint16_t toff_ms, uint16_t toggle_ms);
+bool DIN_RiseLong(DIN_t *din);
+bool DIN_FallLong(DIN_t *din);
+bool DIN_EdgeLong(DIN_t *din);
+
+uint32_t DIN_SetTon(DIN_t *din, uint32_t ton_ms);
+uint32_t DIN_SetToff(DIN_t *din, uint32_t toff_ms);
+uint32_t DIN_SetTonLong(DIN_t *din, uint32_t ton_long_ms);
+uint32_t DIN_SetToffLong(DIN_t *din, uint32_t toff_long_ms);
+uint32_t DIN_SetToggle(DIN_t *din, uint32_t toggle_ms);
+
 float DIN_Duty_Percent(DIN_t *din);
 float DIN_Frequency_Hz(DIN_t *din);
 

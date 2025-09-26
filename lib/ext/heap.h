@@ -36,14 +36,6 @@ void heap_free(void *ptr);
 
 //-------------------------------------------------------------------------------------------------
 
-#ifndef HEAP_INCLUDE_VRTS
-  #define HEAP_INCLUDE_VRTS 1
-#endif
-
-#if(HEAP_INCLUDE_VRTS)
-  #include"vrts.h"
-#endif
-
 #ifndef HEAP_NEW_BLOCK
   #define HEAP_NEW_BLOCK 16
 #endif

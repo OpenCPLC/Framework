@@ -11,7 +11,7 @@ static void PWMI_Interrupt(PWMI_t *pwmi)
   if(pwmi->reg->SR & TIM_SR_TIF) PWMI_Run(pwmi);
 }
 
-static float PWMI_GetTimeoutMaxMs(PWMI_t *pwmi)
+static float PWMI_GetTimeoutMax_ms(PWMI_t *pwmi)
 {
   uint32_t auto_reload = (pwmi->reg == TIM2) ? 0xFFFFFFFF : 0xFFFF;
   return (float)pwmi->prescaler * (1 << pwmi->capture_prescaler) * auto_reload * 1000.0f / (float)SystemCoreClock;
@@ -30,27 +30,27 @@ static void PWMI_Begin(PWMI_t *pwmi)
   if(pwmi->channel[TIM_CH3] && pwmi->trig3) {
     pwmi->trig3->port = TIM_CHx_MAP[pwmi->channel[TIM_CH3]].port;
     pwmi->trig3->pin = TIM_CHx_MAP[pwmi->channel[TIM_CH3]].pin;
-    pwmi->trig3->rise = true;
-    pwmi->trig3->fall = false;
-    pwmi->trig3->int_prioryty = pwmi->int_prioryty;
-    pwmi->trig3->rise_function = (void (*)(void *))&PWMI_Run;
-    pwmi->trig3->rise_struct = pwmi;
+    pwmi->trig3->rise_detect = true;
+    pwmi->trig3->fall_detect = false;
+    pwmi->trig3->irq_priority = pwmi->int_prioryty;
+    pwmi->trig3->RiseHandler = (void (*)(void *))&PWMI_Run;
+    pwmi->trig3->rise_arg = pwmi;
     EXTI_Init(pwmi->trig3);
   }
   if(pwmi->channel[TIM_CH4] && pwmi->trig4) {
     pwmi->trig4->port = TIM_CHx_MAP[pwmi->channel[TIM_CH4]].port;
     pwmi->trig4->pin = TIM_CHx_MAP[pwmi->channel[TIM_CH4]].pin;
-    pwmi->trig4->rise = true;
-    pwmi->trig4->fall = false;
-    pwmi->trig4->int_prioryty = pwmi->int_prioryty;
-    pwmi->trig3->rise_function = (void (*)(void *))&PWMI_Run;
-    pwmi->trig3->rise_struct = pwmi;
+    pwmi->trig4->rise_detect = true;
+    pwmi->trig4->fall_detect = false;
+    pwmi->trig4->irq_priority = pwmi->int_prioryty;
+    pwmi->trig3->RiseHandler = (void (*)(void *))&PWMI_Run;
+    pwmi->trig3->rise_arg = pwmi;
     EXTI_Init(pwmi->trig4);
   }
   for(uint8_t chan = TIM_CH1; chan <= TIM_CH4; chan++) {
-    if(pwmi->channel[chan]) GPIO_AlternateInit(&TIM_CHx_MAP[pwmi->channel[chan]], true);
+    if(pwmi->channel[chan]) GPIO_InitAlternate(&TIM_CHx_MAP[pwmi->channel[chan]], true);
   }
-  INT_EnableTIM(pwmi->reg, pwmi->int_prioryty, (void (*)(void *))&PWMI_Interrupt, pwmi);
+  IRQ_EnableTIM(pwmi->reg, pwmi->int_prioryty, (void (*)(void *))&PWMI_Interrupt, pwmi);
   #if(PWMI_AUTO_OVERSAMPLING)
     if(!pwmi->threshold) {
       if(pwmi->reg == TIM2) pwmi->threshold = 0xFFFFFF;
@@ -59,7 +59,7 @@ static void PWMI_Begin(PWMI_t *pwmi)
   #else
     if(!pwmi->oversampling) pwmi->oversampling = 1;
   #endif
-  if(!pwmi->timeout_ms) pwmi->timeout_ms = PWMI_GetTimeoutMaxMs(pwmi);
+  if(!pwmi->timeout_ms) pwmi->timeout_ms = PWMI_GetTimeoutMax_ms(pwmi);
 }
 
 static void PWMI_Reset(PWMI_t *pwmi)
@@ -191,10 +191,12 @@ void PWMI_Init(PWMI_t *pwmi)
   PWMI_Begin(pwmi);
   PWMI_Reset(pwmi);
   PWMI_Run(pwmi);
+  pwmi->init_flag = true;
 }
 
 bool PWMI_Loop(PWMI_t *pwmi)
 {
+  if(!pwmi->init_flag) return false;
   if(tick_over(&pwmi->timeout_tick)) PWMI_Skip(pwmi);
   if(!PWMI_IsInterrupt(pwmi)) {
     for(uint8_t chan = TIM_CH1; chan <= TIM_CH4; chan++) {

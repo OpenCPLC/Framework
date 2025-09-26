@@ -1,5 +1,3 @@
-#ifdef OPENCPLC_ECO
-
 #ifndef OPENCPLC_ECO_H_
 #define OPENCPLC_ECO_H_
 
@@ -81,5 +79,4 @@ void PLC_Loop(void);
 void PLC_Thread(void);
 
 //-------------------------------------------------------------------------------------------------
-#endif
 #endif

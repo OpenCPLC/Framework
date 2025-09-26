@@ -66,7 +66,7 @@ typedef struct {
 } MAX31865_t;
 
 void MAX31865_Init(MAX31865_t *rtd); // Inicjalizacja modułu MAX31865
-state_t MAX31865_Loop(MAX31865_t *rtd); // Główna pętla obsługi pomiarów
+status_t MAX31865_Loop(MAX31865_t *rtd); // Główna pętla obsługi pomiarów
 float RTD_Resistance_Ohm(MAX31865_t *rtd); // Oblicza rezystancję [Ω] czujnika RTD
 float RTD_Temperature_C(MAX31865_t *rtd); // Oblicza temperaturę [°C] PT100/PT1000
 

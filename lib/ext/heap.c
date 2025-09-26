@@ -1,5 +1,10 @@
 #include "heap.h"
 
+#ifdef OpenCPLC
+  #include "vrts.h"
+  #include "sys.h"
+#endif
+
 //------------------------------------------------------------------------------------------------- malloc/free
 
 static uint8_t Heap[((HEAP_SIZE + (HEAP_ALIGN - 1)) & ~(HEAP_ALIGN - 1))] __attribute__((aligned(HEAP_ALIGN)));  // The heap memory region
@@ -44,7 +49,11 @@ void *heap_alloc(size_t size)
     }
     curr = curr->next;  // Move to the next block if this one isn't suitable
   }
-  // TODO: panic()
+  #ifdef OpenCPLC
+    panic("Heap allocation failed" LOG_LIB("heap")); // Not return
+  #else
+    printf("Heap allocation failed");
+  #endif
   return NULL; // No suitable block found (heap is full or no large enough block)
 }
 
@@ -92,7 +101,7 @@ void *heap_reloc(void *ptr, size_t size)
 //------------------------------------------------------------------------------------------------- Garbage-collector
 
 // Stacks, one for each thread for multi-threading mode or single stack for single-threaded mode
-#if(HEAP_INCLUDE_VRTS)
+#ifdef OpenCPLC
   heap_new_t *Stacks[VRTS_SWITCHING ? VRTS_THREAD_LIMIT: 1]; 
 #else
   heap_new_t *Stacks[1]; 
@@ -103,7 +112,7 @@ void *heap_reloc(void *ptr, size_t size)
  */
 static heap_new_t *heap_get_stack(void)
 {
-  #if(HEAP_INCLUDE_VRTS)
+  #ifdef OpenCPLC
     uint8_t active_thread = vrts_active_thread();
   #else
     uint8_t active_thread = 0;
@@ -146,7 +155,7 @@ void *heap_new(size_t size)
  */
 void heap_clear(void)
 {
-  #if(HEAP_INCLUDE_VRTS)
+  #ifdef OpenCPLC
     uint8_t active_thread = vrts_active_thread();
   #else
     uint8_t active_thread = 0;

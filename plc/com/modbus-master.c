@@ -9,15 +9,15 @@ static MODBUS_Error_e MODBUS_SendRead(UART_t *uart, uint8_t addr, MODBUS_Fnc_e f
   UART_Send(uart, buffer, tx_length);
   uint32_t wait_ms;
   wait_ms = 2 * UART_CalcTime_ms(uart, tx_length) + 10;
-  if(timeout(wait_ms, WAIT_&UART_Idle, uart)) return MODBUS_Error_Sending;
+  if(timeout(wait_ms, WAIT_&UART_SendCompleted, uart)) return MODBUS_Error_Sending;
   wait_ms = 2 * UART_CalcTime_ms(uart, rx_length) + 10 + timeout_ms;
-  if(timeout(wait_ms, WAIT_&UART_GetSize, uart)) return MODBUS_Error_Timeout;
-  uint16_t size = UART_GetSize(uart);
+  if(timeout(wait_ms, WAIT_&UART_Size, uart)) return MODBUS_Error_Timeout;
+  uint16_t size = UART_Size(uart);
   if(size != rx_length) {
     UART_Clear(uart);
     return MODBUS_Error_Length;
   }
-  UART_ReadArray(uart, buffer);
+  UART_Read(uart, buffer);
   if(buffer[0] != addr) return MODBUS_Error_Adrress;
   if(buffer[1] != fnc) return MODBUS_Error_Function;
   if(CRC_Error(&crc16_modbus, buffer, size)) return MODBUS_Error_Crc;

@@ -76,6 +76,3 @@ heap_clear(); // frees b1 and b2
 
 
 
-```c
-
-```

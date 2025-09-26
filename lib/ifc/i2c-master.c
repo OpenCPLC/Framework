@@ -75,9 +75,9 @@ static void I2C_Master_InterruptDMA(I2C_Master_t *i2c)
 void I2C_Master_Init(I2C_Master_t *i2c)
 {
   RCC_EnableI2C(i2c->reg);
-  INT_EnableI2C(i2c->reg, i2c->int_prioryty, (void (*)(void *))&I2C_Master_InterruptEV, i2c);
-  GPIO_AlternateInit(&i2c_scl_map[i2c->scl_pin], i2c->pull_up);
-  GPIO_AlternateInit(&i2c_sdc_map[i2c->sda_pin], i2c->pull_up);
+  IRQ_EnableI2C(i2c->reg, i2c->int_prioryty, (void (*)(void *))&I2C_Master_InterruptEV, i2c);
+  GPIO_InitAlternate(&i2c_scl_map[i2c->scl_pin], i2c->pull_up);
+  GPIO_InitAlternate(&i2c_sdc_map[i2c->sda_pin], i2c->pull_up);
 	i2c->reg->TIMINGR = i2c->timing;
 	i2c->reg->CR1 &= ~I2C_CR1_DNF;
   #if(I2C_DMA_TX || I2C_DMA_RX)
@@ -89,7 +89,7 @@ void I2C_Master_Init(I2C_Master_t *i2c)
 	  i2c->tx_dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE+(4*(i2c->tx_dma_channel-1)));
 	  i2c->tx_dma->CPAR = (uint32_t) &(i2c->reg->TXDR);
 	  i2c->tx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
-	  INT_EnableDMA(i2c->tx_dma_channel, i2c->int_prioryty, (void (*)(void *))&I2C_Master_InterruptDMA, i2c);
+	  IRQ_EnableDMA(i2c->tx_dma_channel, i2c->int_prioryty, (void (*)(void *))&I2C_Master_InterruptDMA, i2c);
 	  switch((uint32_t) i2c->reg) {
 	    case (uint32_t) I2C1: i2c->tx_dmamux->CCR = (i2c->tx_dmamux->CCR & 0xFFFFFFC0) | 11; break;
 	    case (uint32_t) I2C2: i2c->tx_dmamux->CCR = (i2c->tx_dmamux->CCR & 0xFFFFFFC0) | 13; break;
@@ -101,7 +101,7 @@ void I2C_Master_Init(I2C_Master_t *i2c)
 	  i2c->rx_dmamux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE+(4*(i2c->rx_dma_channel-1)));
 	  i2c->rx_dma->CPAR = (uint32_t) &(i2c->reg->RXDR);
 	  i2c->rx_dma->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE;
-	  INT_EnableDMA(i2c->rx_dma_channel, i2c->interrupt_level, (void (*)(void *))&I2C_Master_InterruptDMA, i2c);
+	  IRQ_EnableDMA(i2c->rx_dma_channel, i2c->interrupt_level, (void (*)(void *))&I2C_Master_InterruptDMA, i2c);
 	  switch((uint32_t) i2c->reg) {
 	    case (uint32_t) I2C1: i2c->rx_dmamux->CCR = (i2c->rx_dmamux->CCR & 0xFFFFFFC0) | 10; break;
 	    case (uint32_t) I2C2: i2c->rx_dmamux->CCR = (i2c->rx_dmamux->CCR & 0xFFFFFFC0) | 12; break;
@@ -130,7 +130,7 @@ bool I2C_Master_IsFree(I2C_Master_t *i2c)
   return !(i2c->busy);
 }
 
-state_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
+status_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
   #if(I2C_DMA_TX)
@@ -151,7 +151,7 @@ state_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t
   return FREE;
 }
 
-state_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
+status_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
   #if(I2C_DMA_RX)
@@ -172,7 +172,7 @@ state_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t 
 
 //-------------------------------------------------------------------------------------------------
 
-state_t I2C_Master_WriteReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
+status_t I2C_Master_WriteReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
 {
 	if(i2c->busy) return BUSY;
 	i2c->tx_buffer = heap_alloc(n + 1);
@@ -181,7 +181,7 @@ state_t I2C_Master_WriteReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_
   return I2C_Master_Read(i2c, addr, i2c->tx_buffer, n + 1);
 }
 
-state_t I2C_Master_ReadReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
+status_t I2C_Master_ReadReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n)
 {
   if(i2c->busy) return BUSY;
   i2c->address = addr;
@@ -197,7 +197,7 @@ state_t I2C_Master_ReadReg(I2C_Master_t *i2c, uint8_t addr, uint8_t reg, uint8_t
 
 //-------------------------------------------------------------------------------------------------
 
-state_t I2C_Master_WriteRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *write_ary, uint16_t write_n, uint8_t *read_ary, uint16_t read_n)
+status_t I2C_Master_WriteRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *write_ary, uint16_t write_n, uint8_t *read_ary, uint16_t read_n)
 {
   if(i2c->busy) return BUSY;
   i2c->address = addr;

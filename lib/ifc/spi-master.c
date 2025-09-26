@@ -18,15 +18,15 @@ void SPI_Master_Init(SPI_Master_t *spi)
   DMA_SetRegisters(spi->tx_dma_nbr, &spi->tx_dma);
   RCC_EnableDMA(spi->rx_dma.reg);
   RCC_EnableDMA(spi->tx_dma.reg);
-  GPIO_AlternateInit(&SPI_SCK_MAP[spi->sck_pin], false);
+  GPIO_InitAlternate(&SPI_SCK_MAP[spi->sck_pin], false);
   if(spi->miso_pin) {
     spi->rx_dma.mux->CCR &= 0xFFFFFFC0;
     switch((uint32_t)spi->reg) {
       case (uint32_t)SPI1: spi->rx_dma.mux->CCR |= DMAMUX_REQ_SPI1_RX; break;
       case (uint32_t)SPI2: spi->rx_dma.mux->CCR |= DMAMUX_REQ_SPI2_RX; break;
     }
-    INT_EnableDMA(spi->rx_dma_nbr, spi->int_prioryty, (void (*)(void*))&SPI_Master_InterruptDMA, spi);
-    GPIO_AlternateInit(&SPI_MISO_MAP[spi->miso_pin], false);
+    IRQ_EnableDMA(spi->rx_dma_nbr, spi->int_prioryty, (void (*)(void*))&SPI_Master_InterruptDMA, spi);
+    GPIO_InitAlternate(&SPI_MISO_MAP[spi->miso_pin], false);
     spi->rx_dma.cha->CPAR = (uint32_t)&(spi->reg->DR);
     spi->rx_dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_TCIE;
   }
@@ -36,7 +36,7 @@ void SPI_Master_Init(SPI_Master_t *spi)
       case (uint32_t)SPI1: spi->tx_dma.mux->CCR |= DMAMUX_REQ_SPI1_TX; break;
       case (uint32_t)SPI2: spi->tx_dma.mux->CCR |= DMAMUX_REQ_SPI2_TX; break;
     }
-    GPIO_AlternateInit(&SPI_MOSI_MAP[spi->mosi_pin], false);
+    GPIO_InitAlternate(&SPI_MOSI_MAP[spi->mosi_pin], false);
     spi->tx_dma.cha->CPAR = (uint32_t)&(spi->reg->DR);
     spi->tx_dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_DIR;
   }
@@ -85,7 +85,7 @@ static void SPI_Master_End(SPI_Master_t *spi, uint16_t n)
   spi->busy_flag = true;
 }
 
-state_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, uint16_t n)
+status_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, uint16_t n)
 {
   if(spi->busy_flag) return BUSY;
   SPI_Master_Start(spi);
@@ -107,7 +107,7 @@ void SPI_Master_OnlyRead(SPI_Master_t *spi, uint8_t *rx_buff, uint16_t n)
   spi->reg->CR1 |= SPI_CR1_SPE;
 }
 
-state_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint16_t n)
+status_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint16_t n)
 {
   if(spi->busy_flag) return BUSY;
   spi->const_reg = addr;
@@ -121,7 +121,7 @@ state_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint1
   return FREE;
 }
 
-state_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_buff, uint16_t n)
+status_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_buff, uint16_t n)
 {
   if(spi->busy_flag) return BUSY;
   SPI_Master_Start(spi);

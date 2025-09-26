@@ -67,9 +67,9 @@ void I2C_Slave_Init(I2C_Slave_t *i2c)
   void (*function)(void *);
   if(i2c->sequence) function = (void (*)(void *))&I2C_SlaveSequence_InterruptEV;
   else function = (void (*)(void *))&I2C_SlaveSimple_InterruptEV;
-  INT_EnableI2C(i2c->reg, i2c->interrupt_level, function, i2c);
-  GPIO_AlternateInit(&i2c_scl_map[i2c->scl_pin], i2c->pull_up);
-  GPIO_AlternateInit(&i2c_sdc_map[i2c->sda_pin], i2c->pull_up);
+  IRQ_EnableI2C(i2c->reg, i2c->interrupt_level, function, i2c);
+  GPIO_InitAlternate(&i2c_scl_map[i2c->scl_pin], i2c->pull_up);
+  GPIO_InitAlternate(&i2c_sdc_map[i2c->sda_pin], i2c->pull_up);
 	i2c->reg->TIMINGR = i2c->timing;
 	i2c->reg->CR1 &= ~I2C_CR1_DNF;
   i2c->reg->OAR1 |= (i2c->addr << 1);

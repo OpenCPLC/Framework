@@ -40,7 +40,7 @@ void DBG_SwitchMode(bool data_mode)
 STREAM_t dbg_stream = {
   .name = "debug",
   .modify = STREAM_Modify_Lowercase,
-  .Size = DBG_GetSize,
+  .Size = DBG_Size,
   .Read = DBG_ReadString,
   .SwitchMode = DBG_SwitchMode
 };
@@ -150,14 +150,14 @@ void DBG_SetFile(FILE_t *file)
 
 //------------------------------------------------------------------------------------------------- Read
 
-uint16_t DBG_GetSize(void)
+uint16_t DBG_Size(void)
 {
-  return UART_GetSize(DbgUart);
+  return UART_Size(DbgUart);
 }
 
-uint16_t DBG_ReadArray(uint8_t *array)
+uint16_t DBG_Read(uint8_t *array)
 {
-  return UART_ReadArray(DbgUart, array);
+  return UART_Read(DbgUart, array);
 }
 
 char *DBG_ReadString(void)

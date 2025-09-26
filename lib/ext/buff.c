@@ -76,8 +76,8 @@ bool BUFF_Append(BUFF_t *buff, uint8_t value)
  */
 bool BUFF_Echo(BUFF_t *buff, char *value)
 {
-  if(value) *value = *buff->echo;
   if(buff->echo == buff->head) return false;
+  if(value) *value = *buff->echo;
   buff->echo++;
   if(buff->echo >= buff->end_memory) buff->echo = buff->memory;
   return true;
@@ -94,10 +94,10 @@ bool BUFF_Pop(BUFF_t *buff, uint8_t *value)
   if(buff->msg_counter) {
     buff->msg_counter--;
     if(!buff->msg_counter) buff->break_allow = false;
+    bool move_echo = buff->head == buff->echo;
     if(buff->head == buff->memory) buff->head = buff->end_memory;
     buff->head--;
-    if(buff->echo == buff->memory) buff->echo = buff->end_memory;
-    buff->echo--;
+    if(move_echo) buff->echo = buff->head;
     if(value) *value = *buff->head;
     return true;
   }
@@ -147,21 +147,19 @@ bool BUFF_Push(BUFF_t *buff, uint8_t value)
 }
 
 /**
- * @brief Copies the content of the current message to an external array.
- * @param buff Pointer to the buffer structure.
- * @param array Pointer to the destination array.
- * @return Size of the copied message.
+ * @brief Read current message and copy to `dst`.
+ * Advances buffer to next message.
+ * @param buff Pointer to buffer control.
+ * @param dst Destination buffer or NULL.
+ * @return Size of copied message.
  */
-uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array)
+uint16_t BUFF_Read(BUFF_t *buff, uint8_t *dst)
 {
   uint16_t size = BUFF_Size(buff);
   if(!size) return 0;
   uint16_t n = size;
   while(n) {
-    if(array) {
-      *array = *buff->tail;
-      array++;
-    }
+    if(dst) *dst++ = *buff->tail;
     buff->tail++;
     if(buff->tail >= buff->end_memory) buff->tail = buff->memory;
     n--;
@@ -173,39 +171,61 @@ uint16_t BUFF_Array(BUFF_t *buff, uint8_t *array)
 }
 
 /**
- * @brief Skips the current message in the buffer.
- * @param buff Pointer to the buffer structure.
- * @return Returns `true` if the message was skipped, `false` otherwise.
+ * @brief Peek current message without advancing buffer.
+ * @param buff Pointer to buffer control.
+ * @param dst Destination buffer or NULL.
+ * @return Size of message.
+ */
+uint16_t BUFF_Peek(BUFF_t *buff, uint8_t *dst)
+{
+  uint16_t size = BUFF_Size(buff);
+  if(!size) return 0;
+  uint16_t n = size;
+  volatile uint8_t *ptr = buff->tail;
+  while(n) {
+    if(dst) *dst++ = *ptr;
+    ptr++;
+    if(ptr >= buff->end_memory) ptr = buff->memory;
+    n--;
+  }
+  return size;
+}
+
+/**
+ * @brief Skip current message in buffer using BUFF_Read.
+ * @param buff Pointer to buffer control structure.
+ * @return `true` if message skipped, `false` if buffer empty.
  */
 bool BUFF_Skip(BUFF_t *buff)
 {
-  return BUFF_Array(buff, NULL) ? true : false;
+  return BUFF_Read(buff, NULL) ? true : false;
 }
 
 /**
- * @brief Creates a dynamically allocated string from the current message in the buffer.
- * @param buff Pointer to the buffer structure.
- * @return Pointer to the dynamically allocated string.
- */
-char *BUFF_String(BUFF_t *buff)
-{
-  char *string = NULL;
-  uint16_t size = BUFF_Size(buff);
-  if(size) {
-    string = heap_new(size + 1);
-    BUFF_Array(buff, (uint8_t *)string);
-    string[size] = 0;
-  }
-  return string;
-}
-
-/**
- * @brief Clears the entire buffer by skipping messages until none remain.
- * @param buff Pointer to the buffer structure.
+ * @brief Clear buffer by skipping all messages.
+ * @param buff Pointer to buffer control.
  */
 void BUFF_Clear(BUFF_t *buff)
 {
   while(BUFF_Skip(buff));
 }
+
+/**
+ * @brief Read current message from buffer and return as allocated string.
+ * Memory is allocated dynamically and must be freed by caller.
+ * @param buff Pointer to buffer control structure.
+ * @return Pointer to allocated null-terminated string, or NULL if buffer empty or alloc failed.
+ */
+char *BUFF_ReadString(BUFF_t *buff)
+{
+  uint16_t size = BUFF_Size(buff);
+  if(!size) return NULL;
+  char *str = heap_new(size + 1);
+  if(!str) return NULL;
+  BUFF_Read(buff, (uint8_t*)str);
+  str[size] = '\0';
+  return str;
+}
+
 
 //-------------------------------------------------------------------------------------------------

@@ -1,31 +1,24 @@
-#ifdef OPENCPLC_UNO
-#include "opencplc-uno.h"
+#include "opencplc.h"
 
 //------------------------------------------------------------------------------------------------- EEPROM
 
 #ifdef STM32G081xx
-  EEPROM_t io_eeprom[] = {
-    { .page_a = 60, .page_b = 61 },
-    { .page_a = 58, .page_b = 59 },
-    { .page_a = 56, .page_b = 57 },
-    { .page_a = 54, .page_b = 55 },
-  };
+  EEPROM_t eeprom_plc = { .page_start = 62, .page_count = 2 };
+  EEPROM_t eeprom_relay = { .page_start = 58, .page_count = 4 };
+  EEPROM_t eeprom_io = { .page_start = 54, .page_count = 4 };
 #endif
 #ifdef STM32G0C1xx
-  EEPROM_t io_eeprom[] = {
-    { .page_a = 252, .page_b = 253 },
-    { .page_a = 250, .page_b = 251 },
-    { .page_a = 248, .page_b = 249 },
-    { .page_a = 246, .page_b = 247 }
-  };
+  EEPROM_t eeprom_plc = { .page_start = 254, .page_count = 2 };
+  EEPROM_t eeprom_relay = { .page_start = 250, .page_count = 4 };
+  EEPROM_t eeprom_io = { .page_start = 246, .page_count = 4 };
 #endif
 
 //------------------------------------------------------------------------------------------------- DOUT-RO
 
-DOUT_t RO1 = { .name = "RO1", .relay = true, .gpio = { .port = GPIOB, .pin = 7 }, .eeprom = &io_eeprom[0], .save = true };
-DOUT_t RO2 = { .name = "RO2", .relay = true, .gpio = { .port = GPIOB, .pin = 6 }, .eeprom = &io_eeprom[0], .save = true };
-DOUT_t RO3 = { .name = "RO3", .relay = true, .gpio = { .port = GPIOB, .pin = 5 }, .eeprom = &io_eeprom[1], .save = true };
-DOUT_t RO4 = { .name = "RO4", .relay = true, .gpio = { .port = GPIOB, .pin = 4 }, .eeprom = &io_eeprom[1], .save = true };
+DOUT_t RO1 = { .name = "RO1", .relay = true, .gpio = { .port = GPIOB, .pin = 7 }, .eeprom = &eeprom_relay, .save = true };
+DOUT_t RO2 = { .name = "RO2", .relay = true, .gpio = { .port = GPIOB, .pin = 6 }, .eeprom = &eeprom_relay, .save = true };
+DOUT_t RO3 = { .name = "RO3", .relay = true, .gpio = { .port = GPIOB, .pin = 5 }, .eeprom = &eeprom_relay, .save = true };
+DOUT_t RO4 = { .name = "RO4", .relay = true, .gpio = { .port = GPIOB, .pin = 4 }, .eeprom = &eeprom_relay, .save = true };
 
 //------------------------------------------------------------------------------------------------- DOUT-TO
 
@@ -39,10 +32,10 @@ PWM_t to_pwm = {
   .center_aligned = true
 };
 
-DOUT_t TO1 = { .name = "TO1", .pwm = &to_pwm, .channel = TIM_CH4, .eeprom = &io_eeprom[2], .save = false };
-DOUT_t TO2 = { .name = "TO2", .pwm = &to_pwm, .channel = TIM_CH3, .eeprom = &io_eeprom[2], .save = false };
-DOUT_t TO3 = { .name = "TO3", .pwm = &to_pwm, .channel = TIM_CH2, .eeprom = &io_eeprom[2], .save = false };
-DOUT_t TO4 = { .name = "TO4", .pwm = &to_pwm, .channel = TIM_CH1, .eeprom = &io_eeprom[2], .save = false };
+DOUT_t TO1 = { .name = "TO1", .pwm = &to_pwm, .channel = TIM_CH4, .eeprom = &eeprom_io, .save = false };
+DOUT_t TO2 = { .name = "TO2", .pwm = &to_pwm, .channel = TIM_CH3, .eeprom = &eeprom_io, .save = false };
+DOUT_t TO3 = { .name = "TO3", .pwm = &to_pwm, .channel = TIM_CH2, .eeprom = &eeprom_io, .save = false };
+DOUT_t TO4 = { .name = "TO4", .pwm = &to_pwm, .channel = TIM_CH1, .eeprom = &eeprom_io, .save = false };
 
 void TO_Frequency(float frequency)
 {
@@ -60,8 +53,8 @@ PWM_t xo_pwm = {
   .center_aligned = true
 };
 
-DOUT_t XO1 = { .name = "XO1", .pwm = &xo_pwm, .channel = TIM_CH2, .eeprom = &io_eeprom[3], .save = false };
-DOUT_t XO2 = { .name = "XO2", .pwm = &xo_pwm, .channel = TIM_CH1, .eeprom = &io_eeprom[3], .save = false };
+DOUT_t XO1 = { .name = "XO1", .pwm = &xo_pwm, .channel = TIM_CH2, .eeprom = &eeprom_io, .save = false };
+DOUT_t XO2 = { .name = "XO2", .pwm = &xo_pwm, .channel = TIM_CH1, .eeprom = &eeprom_io, .save = false };
 
 void XO_Frequency(float frequency)
 {
@@ -77,7 +70,7 @@ PWMI_t din_pwmi = {
   .prescaler = 64,
   .capture_prescaler = PWMI_CapturePrescaler_1,
   .filter = TIM_Filter_FCLK_N2,
-  .int_prioryty = INT_Prioryty_VeryHigh,
+  .int_prioryty = IRQ_Priority_High,
   #if(!PWMI_AUTO_OVERSAMPLING)
     .oversampling = 16,
   #endif
@@ -85,10 +78,10 @@ PWMI_t din_pwmi = {
   .trig4 = &din_trig4
 };
 
-DIN_t DI1 = { .name = "DI1", .pwmi = &din_pwmi, .channel = TIM_CH1, .gpif = { .gpio = { .port = GPIOA, .pin = 6, .reverse = true } }, .eeprom = &io_eeprom[3] };
-DIN_t DI2 = { .name = "DI2", .pwmi = &din_pwmi, .channel = TIM_CH2, .gpif = { .gpio = { .port = GPIOA, .pin = 7, .reverse = true } }, .eeprom = &io_eeprom[3] };
-DIN_t DI3 = { .name = "DI3", .pwmi = &din_pwmi, .channel = TIM_CH3, .gpif = { .gpio = { .port = GPIOB, .pin = 0, .reverse = true } }, .eeprom = &io_eeprom[3] };
-DIN_t DI4 = { .name = "DI4", .pwmi = &din_pwmi, .channel = TIM_CH4, .gpif = { .gpio = { .port = GPIOB, .pin = 1, .reverse = true } }, .eeprom = &io_eeprom[3] };
+DIN_t DI1 = { .name = "DI1", .pwmi = &din_pwmi, .channel = TIM_CH1, .gpif = { .gpio = { .port = GPIOA, .pin = 6, .reverse = true } }, .eeprom = &eeprom_io };
+DIN_t DI2 = { .name = "DI2", .pwmi = &din_pwmi, .channel = TIM_CH2, .gpif = { .gpio = { .port = GPIOA, .pin = 7, .reverse = true } }, .eeprom = &eeprom_io };
+DIN_t DI3 = { .name = "DI3", .pwmi = &din_pwmi, .channel = TIM_CH3, .gpif = { .gpio = { .port = GPIOB, .pin = 0, .reverse = true } }, .eeprom = &eeprom_io };
+DIN_t DI4 = { .name = "DI4", .pwmi = &din_pwmi, .channel = TIM_CH4, .gpif = { .gpio = { .port = GPIOB, .pin = 1, .reverse = true } }, .eeprom = &eeprom_io };
 
 bool din_pwmi_init = false;
 
@@ -105,16 +98,17 @@ uint16_t ain_buffer[AIN_BUFFER_SIZE];
 uint16_t ain_data[sizeof(ain_channels)][AIN_SAMPLES];
 
 ADC_t ain_adc = {
-  .frequency = ADC_Frequency_16MHz,
-  .int_prioryty = INT_Prioryty_Low,
+  .int_prioryty = IRQ_Priority_Low,
+  .freq_16Mhz = false,
+  .prescaler = ADC_Prescaler_4,
   .record = {
     .channels = ain_channels,
     .count = sizeof(ain_channels),
     .dma_nbr = DMA_Nbr_1,
-    .sampling_time = ADC_SamplingTime_160,
-    .oversampling_enable = true,
-    .oversampling_ratio = ADC_OversamplingRatio_64,
-    .oversampling_shift = 2,
+    .sampling_time = ADC_SamplingTime_173,
+    .oversampling.enable = true,
+    .oversampling.ratio = ADC_OversamplingRatio_64,
+    .oversampling.shift = 2,
     .buffer = ain_buffer,
     .buffer_length = AIN_BUFFER_SIZE
   }
@@ -135,7 +129,7 @@ float VCC_Voltage_V(void)
 //------------------------------------------------------------------------------------------------- RS485
 
 uint8_t rs1_buff_buffer[RS_BUFFER_SIZE];
-BUFF_t rs1_buff = { .mem = rs1_buff_buffer, .size = RS_BUFFER_SIZE };
+BUFF_t rs1_buff = { .memory = rs1_buff_buffer, .size = RS_BUFFER_SIZE };
 GPIO_t rs1_gpio_direction = { .port = GPIOA, .pin = 4, .speed = GPIO_Speed_VeryHigh };
 UART_t RS1 = {
   .reg = USART2,
@@ -149,7 +143,7 @@ UART_t RS1 = {
 };
 
 uint8_t rs2_buff_buffer[RS_BUFFER_SIZE];
-BUFF_t rs2_buff = { .mem = rs2_buff_buffer, .size = RS_BUFFER_SIZE };
+BUFF_t rs2_buff = { .memory = rs2_buff_buffer, .size = RS_BUFFER_SIZE };
 GPIO_t rs2_gpio_direction = { .port = GPIOB, .pin = 2, .speed = GPIO_Speed_VeryHigh };
 UART_t RS2 = {
   .reg = USART1,
@@ -191,7 +185,7 @@ GPIO_t rgb_gpio_green = { .port = GPIOA, .pin = 11 };
 GPIO_t rgb_gpio_blue = { .port = GPIOA, .pin = 12 };
 
 RGB_t RGB = { .red = &rgb_gpio_red, .green = &rgb_gpio_green, .blue = &rgb_gpio_blue };
-DIN_t BTN = { .gpif = { .gpio = { .port = GPIOC, .pin = 12 } } };
+DIN_t BTN = { .gpif = { .gpio = { .port = GPIOC, .pin = 12, .reverse = true } } };
 
 //------------------------------------------------------------------------------------------------- DBG+Bash
 
@@ -203,18 +197,12 @@ UART_t dbg_uart = {
   .tx_pin = UART3_TX_PB8,
   .rx_pin = UART3_RX_PB9,
   .dma_nbr = DMA_Nbr_4,
-  .int_prioryty = INT_Prioryty_Low,
+  .int_prioryty = IRQ_Priority_Low,
   .UART_115200,
   #ifdef STM32G081xx
     .tim = &dbg_tim
   #endif
 };
-#ifdef STM32G081xx
-  EEPROM_t cache_eeprom = { .page_a = 62, .page_b = 63 };
-#endif
-#ifdef STM32G0C1xx
-  EEPROM_t cache_eeprom = { .page_a = 254, .page_b = 255 };
-#endif
 uint8_t cache_file_buffer[2048];
 FILE_t cache_file = { .name = "cache", .buffer = cache_file_buffer, .limit = sizeof(cache_file_buffer) };
 
@@ -228,8 +216,9 @@ void PLC_Init(void)
   // Konfiguracja systemowa
   sys_clock_init();
   systick_init(PLC_BASETIME);
+  heap_init();
   RTC_Init();
-  EEPROM_Cache(&cache_eeprom);
+  CACHE_Init(&eeprom_plc);
   RGB_Init(&RGB);
   DIN_Init(&BTN);
   DBG_Init(&dbg_uart);
@@ -254,19 +243,19 @@ void PLC_Init(void)
   DOUT_Init(&XO2); DOUT_Add2Bash(&XO2);
   PWM_Init(&xo_pwm);
   // Wejścia cyfrowe (DI)
-  if(DIN_Init(&DI1)) {
+  if(!DIN_Init(&DI1)) {
     din_pwmi.channel[TIM_CH1] = TIM3_CH1_PA6;
     din_pwmi_init = true;
   }
-  if(DIN_Init(&DI2)) {
+  if(!DIN_Init(&DI2)) {
     din_pwmi.channel[TIM_CH2] = TIM3_CH2_PA7;
     din_pwmi_init = true;
   }
-  if(DIN_Init(&DI3)) {
+  if(!DIN_Init(&DI3)) {
     din_pwmi.channel[TIM_CH3] = TIM3_CH3_PB0;
     din_pwmi_init = true;
   }
-  if(DIN_Init(&DI4)) {
+  if(!DIN_Init(&DI4)) {
     din_pwmi.channel[TIM_CH4] = TIM3_CH4_PB1;
     din_pwmi_init = true;
   }
@@ -336,7 +325,7 @@ SPI_Master_t rtd_spi = {
   .reg = SPI2,
   .tx_dma_nbr = DMA_Nbr_2,
   .rx_dma_nbr = DMA_Nbr_3,
-  .int_prioryty = INT_Prioryty_Medium,
+  .int_prioryty = IRQ_Priority_Medium,
   .miso_pin = SPI2_MISO_PB14,
   .mosi_pin = SPI2_MOSI_PB15,
   .sck_pin = SPI2_SCK_PB13,
@@ -367,4 +356,3 @@ void RTD_Thread(void)
 }
 
 //-------------------------------------------------------------------------------------------------
-#endif

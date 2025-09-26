@@ -184,6 +184,7 @@ static void ADC_InitGPIO(uint32_t *chselr, uint8_t *cha, uint8_t count)
 
 void ADC_Init(ADC_t *adc)
 {
+  ADC_Disable();
   RCC->CCIPR &= ~RCC_CCIPR_ADCSEL_Msk;
   if(adc->freq_16Mhz) {
     RCC->CCIPR |= RCC_CCIPR_ADCSEL_1; // HSI16
@@ -192,7 +193,6 @@ void ADC_Init(ADC_t *adc)
   ADC->CCR = (ADC->CCR & ~ADC_CCR_PRESC_Msk) | (adc->prescaler << ADC_CCR_PRESC_Pos);
   ADC1->CR |= ADC_CR_ADVREGEN;
   for(uint32_t i = 0; i < SystemCoreClock / 500000; i++) let();
-  ADC1->CR &= ~ADC_CR_ADEN;
   ADC1->CR |= ADC_CR_ADCAL;
   while(!(ADC1->ISR & ADC_ISR_EOCAL)) let();
   ADC1->ISR |= ADC_ISR_EOCAL;
@@ -205,7 +205,7 @@ void ADC_Init(ADC_t *adc)
     adc->record.dma.cha->CPAR = (uint32_t)(&(ADC1->DR));
     adc->record.dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_MSIZE_0 | DMA_CCR_PSIZE_0 | DMA_CCR_TCIE;
     ADC1->CFGR1 |= ADC_CFGR1_DMAEN | ADC_CFGR1_DMACFG;
-    INT_EnableDMA(adc->record.dma_nbr, adc->int_prioryty, (void (*)(void *))&ADC_InterruptDMA, adc);
+    IRQ_EnableDMA(adc->record.dma_nbr, adc->int_prioryty, (void (*)(void *))&ADC_InterruptDMA, adc);
   #endif
   uint32_t chselr = 0;
   ADC_InitGPIO(&chselr, adc->measure.channels, adc->measure.count);
@@ -214,7 +214,7 @@ void ADC_Init(ADC_t *adc)
   #endif
   ADC1->CHSELR = chselr;
   ADC1->IER |= ADC_IER_OVRIE;
-  INT_EnableADC(adc->int_prioryty, (void (*)(void *))&ADC_InterruptEV, adc);
+  IRQ_EnableADC(adc->int_prioryty, (void (*)(void *))&ADC_InterruptEV, adc);
   #if(ADC_RECORD)
     if(adc->record.tim) {
       switch((uint32_t)adc->record.tim->reg) {
@@ -223,7 +223,7 @@ void ADC_Init(ADC_t *adc)
         case (uint32_t)TIM6: ADC1->CFGR1 |= (5 << ADC_CFGR1_EXTSEL_Pos); break;
         case (uint32_t)TIM15: ADC1->CFGR1 |= (4 << ADC_CFGR1_EXTSEL_Pos); break;
       }
-      adc->record.tim->int_prioryty = adc->int_prioryty;
+      adc->record.tim->irq_priority = adc->int_prioryty;
       adc->record.tim->one_pulse_mode = false;
       adc->record.tim->enable = false;
       adc->record.tim->enable_interrupt = false;

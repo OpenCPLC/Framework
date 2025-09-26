@@ -81,7 +81,7 @@ float DOUT_Duty(DOUT_t *dout, float duty)
   PWM_SetValue(dout->pwm, dout->channel, duty * dout->pwm->auto_reload / 100);
   dout->value = dout->pwm->value[dout->channel];
   duty = (float)dout->value * 100 / dout->pwm->auto_reload;
-  if(dout->eeprom && (old_value != dout->value) && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+  if(dout->eeprom && (old_value != dout->value) && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   return duty;
 }
 
@@ -101,12 +101,12 @@ void DOUT_Set(DOUT_t *dout)
     if(dout->value == dout->pwm->auto_reload) return;
     dout->value = dout->pwm->auto_reload;
     PWM_SetValue(dout->pwm, dout->channel, dout->value);
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
   else {
     if(dout->value) return;
     dout->value = true;
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
 }
 
@@ -124,12 +124,12 @@ void DOUT_Rst(DOUT_t *dout)
     if(dout->value == 0) return;
     dout->value = 0;
     PWM_SetValue(dout->pwm, dout->channel, dout->value);
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
   else {
     if(!dout->value) return;
     dout->value = false;
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
     if(dout->relay) dout->_stun = tick_keep(DOUT_RELAY_DELAY);
   }
 }
@@ -147,7 +147,7 @@ void DOUT_Tgl(DOUT_t *dout)
   }
   else {
     dout->value = !dout->value;
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
 }
 
@@ -224,9 +224,9 @@ void DOUT_Init(DOUT_t *dout)
   if(dout->eeprom)
   {
     EEPROM_Init(dout->eeprom);
-    if(!dout->save) EEPROM_Read(dout->eeprom, &dout->save);
-    if(dout->save) EEPROM_Read(dout->eeprom, &dout->value);
-    if(dout->relay) EEPROM_Read(dout->eeprom, &dout->cycles);
+    if(!dout->save) EEPROM_Load(dout->eeprom, &dout->save);
+    if(dout->save) EEPROM_Load(dout->eeprom, &dout->value);
+    if(dout->relay) EEPROM_Load(dout->eeprom, &dout->cycles);
   }
   if(!dout->pwm) {
     dout->gpio.mode = GPIO_Mode_Output;
@@ -237,7 +237,7 @@ void DOUT_Init(DOUT_t *dout)
 static inline void DOUT_RelayCyclesInc(DOUT_t *dout)
 {
   dout->cycles++;
-  if(dout->eeprom) EEPROM_Write(dout->eeprom, &dout->cycles);
+  if(dout->eeprom) EEPROM_Save(dout->eeprom, &dout->cycles);
 }
 
 /**
@@ -288,7 +288,7 @@ void DOUT_Loop(DOUT_t *dout)
 void DOUT_Settings(DOUT_t *dout, bool save)
 {
   if(dout->eeprom && save != dout->save) {
-    EEPROM_Write(dout->eeprom, &dout->save);
+    EEPROM_Save(dout->eeprom, &dout->save);
   }
 }
 

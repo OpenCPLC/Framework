@@ -23,11 +23,12 @@ typedef enum {
 typedef struct {
   UART_t *uart;
   uint8_t address;
-  uint16_t *regmap;
+  uint16_t *reg_read;
+  uint16_t *reg_write;
+  uint16_t reg_count;
   const bool *write_mask; // Ustaw 1 jeżeli pozwala na wpisywanie do danego rejestru
   bool *update_flag; // Ustawia 1, gdy wartość została odświerzona
   bool update_any;
-  uint16_t regmap_count;
   uint8_t *buffer_tx;
   uint8_t *buffer_rx;
 } MODBUS_Slave_t;

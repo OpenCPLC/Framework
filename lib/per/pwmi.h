@@ -33,9 +33,10 @@ typedef struct {
   uint32_t prescaler;
   uint32_t timeout_ms;
   PWMI_CapturePrescaler_t capture_prescaler;
-  INT_Prioryty_t int_prioryty;
+  IRQ_Priority_t int_prioryty;
   TIM_Filter_t filter;
   TIM_CHx_t channel[4];
+  bool init_flag;
   #if(PWMI_USED_TIM2)
     uint64_t reload[4];
     uint64_t value[4];

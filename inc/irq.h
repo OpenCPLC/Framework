@@ -1,5 +1,5 @@
-#ifndef INT_H_
-#define INT_H_
+#ifndef IRQ_H_
+#define IRQ_H_
 
 #include <stdint.h>
 #include "stm32g0xx.h"
@@ -8,51 +8,51 @@
 //-------------------------------------------------------------------------------------------------
 
 typedef enum {
-  INT_NonMaskableInt = -14,
-  INT_HardFault = -13,
-  INT_SVCall = -5,
-  INT_PendSV = -2,
-  INT_SysTick = -1,
-  INT_Watchdog = 0,
-  INT_PVD = 1,
-  INT_RTC = 2,
-  INT_FLASH = 3,
-  INT_RCC = 4,
-  INT_EXTI01 = 5,
-  INT_EXTI23 = 6,
-  INT_EXTI4F = 7,
-  INT_USB = 8,
-  INT_DMA1_CH1 = 9,
-  INT_DMA1_CH23 = 10,
-  INT_DMA1_CH47_DMA2 = 11, 
-  INT_ADC = 12,
-  INT_TIM1 = 13, 
-  INT_TIM1_CC = 14,
-  INT_TIM2 = 15,
-  INT_TIM3_TIM4 = 16,  
-  INT_TIM6_DAC_LPTIM1 = 17,  
-  INT_TIM7_LPTIM2 = 18,
-  INT_TIM14 = 19,   
-  INT_TIM15 = 20,   
-  INT_TIM16 = 21, 
-  INT_TIM17 = 22,
-  INT_I2C1 = 23,   
-  INT_I2C23 = 24,
-  INT_SPI1 = 25,
-  INT_SPI23 = 26,
-  INT_UART1 = 27,  
-  INT_UART2_LPUART2 = 28,
-  INT_UART3456_LPUART1 = 29,
-  INT_CEC = 30,
-  INT_RNG = 31
-} INT_t;
+  IRQ_NonMaskableInt = -14,
+  IRQ_HardFault = -13,
+  IRQ_SVCall = -5,
+  IRQ_PendSV = -2,
+  IRQ_SysTick = -1,
+  IRQ_Watchdog = 0,
+  IRQ_PVD = 1,
+  IRQ_RTC = 2,
+  IRQ_FLASH = 3,
+  IRQ_RCC = 4,
+  IRQ_EXTI01 = 5,
+  IRQ_EXTI23 = 6,
+  IRQ_EXTI4F = 7,
+  IRQ_USB = 8,
+  IRQ_DMA1_CH1 = 9,
+  IRQ_DMA1_CH23 = 10,
+  IRQ_DMA1_CH47_DMA2 = 11, 
+  IRQ_ADC = 12,
+  IRQ_TIM1 = 13, 
+  IRQ_TIM1_CC = 14,
+  IRQ_TIM2 = 15,
+  IRQ_TIM3_TIM4 = 16,  
+  IRQ_TIM6_DAC_LPTIM1 = 17,  
+  IRQ_TIM7_LPTIM2 = 18,
+  IRQ_TIM14 = 19,   
+  IRQ_TIM15 = 20,   
+  IRQ_TIM16 = 21, 
+  IRQ_TIM17 = 22,
+  IRQ_I2C1 = 23,   
+  IRQ_I2C23 = 24,
+  IRQ_SPI1 = 25,
+  IRQ_SPI23 = 26,
+  IRQ_UART1 = 27,  
+  IRQ_UART2_LPUART2 = 28,
+  IRQ_UART3456_LPUART1 = 29,
+  IRQ_CEC = 30,
+  IRQ_RNG = 31
+} IRQ_t;
 
 typedef enum {
-  INT_Prioryty_VeryHigh = 0,
-  INT_Prioryty_High = 1,
-  INT_Prioryty_Medium = 2,
-  INT_Prioryty_Low = 3
-} INT_Prioryty_t;
+  IRQ_Priority_VeryHigh = 0,
+  IRQ_Priority_High = 1,
+  IRQ_Priority_Medium = 2,
+  IRQ_Priority_Low = 3
+} IRQ_Priority_t;
 
 typedef enum {
   DMA_Nbr_1 = 1,
@@ -165,12 +165,12 @@ typedef enum {
 
 //-------------------------------------------------------------------------------------------------
 
-void INT_EnableTIM(TIM_TypeDef *tim_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);
-void INT_EnableUART(USART_TypeDef *uart_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);
-void INT_EnableI2C(I2C_TypeDef *i2c_typedef, INT_Prioryty_t priority, void (*handler)(void *), void *object);
-void INT_EnableADC(INT_Prioryty_t priority, void (*handler)(void *), void *object);
-void INT_EnableDMA(DMA_Nbr_t dma_nbr, INT_Prioryty_t priority, void (*handler)(void *), void *object);
-void INT_EnableEXTI(uint8_t exti_nbr, INT_Prioryty_t priority, void (*handler)(void *), void *object);
+void IRQ_EnableTIM(TIM_TypeDef *tim_typedef, IRQ_Priority_t priority, void (*handler)(void *), void *object);
+void IRQ_EnableUART(USART_TypeDef *uart_typedef, IRQ_Priority_t priority, void (*handler)(void *), void *object);
+void IRQ_EnableI2C(I2C_TypeDef *i2c_typedef, IRQ_Priority_t priority, void (*handler)(void *), void *object);
+void IRQ_EnableADC(IRQ_Priority_t priority, void (*handler)(void *), void *object);
+void IRQ_EnableDMA(DMA_Nbr_t dma_nbr, IRQ_Priority_t priority, void (*handler)(void *), void *object);
+void IRQ_EnableEXTI(uint8_t exti_nbr, IRQ_Priority_t priority, void (*handler)(void *), void *object);
 void DMA_SetRegisters(DMA_Nbr_t dma_nbr, DMA_t *dma);
 
 //-------------------------------------------------------------------------------------------------
