@@ -114,14 +114,14 @@ static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
   #elif
     LOG_Bash("File %s data pack:%d", bash.file_active->name, stream->packages);
   #endif
-  bash.file_active->mutex = false;
+  bash.file_active->lock = false;
   FILE_Append(bash.file_active, data, size);
   if(!stream->packages) {
     STREAM_ArgsMode(stream);
     if(bash.flash_autosave) FILE_Flash_Save(bash.file_active);
   }
   else {
-    bash.file_active->mutex = true;
+    bash.file_active->lock = true;
   }
 }
 
@@ -210,7 +210,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
         }
         STREAM_DataMode(stream);
         stream->packages = packages;
-        bash.file_active->mutex = true;
+        bash.file_active->lock = true;
         #if(LOG_COLORS)
           LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " save pack:" ANSI_LIME "%d" ANSI_END, bash.file_active->name, stream->packages);
         #elif
@@ -230,7 +230,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
       }
       STREAM_DataMode(stream);
       stream->packages = packages;
-      bash.file_active->mutex = true;
+      bash.file_active->lock = true;
       #if(LOG_COLORS)
         LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " append pack:" ANSI_LIME "%d" ANSI_END, bash.file_active->name, stream->packages);
       #elif
@@ -240,7 +240,7 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     }
     case HASH_Load: { // FILE load <limit:uint16>? <offset:uint16>?
       BASH_Argc(2, 4);
-      if(bash.file_active->mutex) BASH_AccessDenied(bash.file_active);
+      if(bash.file_active->lock) BASH_AccessDenied(bash.file_active);
       uint16_t limit = bash.file_active->size;
       uint16_t offset = 0;
       if(argc >= 3) {
@@ -280,8 +280,8 @@ static void BASH_File(char **argv, uint16_t argc, STREAM_t *stream)
     case HASH_Mutex: { // FILE mutex {set|rst}
       BASH_Argc(3);
       switch(hash_djb2(argv[2])) {
-        case HASH_Set: bash.file_active->mutex = true; break;
-        case HASH_Rst: case HASH_Reset: bash.file_active->mutex = false; break;
+        case HASH_Set: bash.file_active->lock = true; break;
+        case HASH_Rst: case HASH_Reset: bash.file_active->lock = false; break;
         default: BASH_ArgvExit(2);
       }
       break;

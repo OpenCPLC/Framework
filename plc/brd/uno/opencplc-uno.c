@@ -91,7 +91,7 @@ uint8_t ain_channels[] = {
   ADC_IN_PA0, ADC_IN_PA1, ADC_IN_PA5, ADC_IN_PB10
 };
 
-#define AIN_BUFFER_SIZE adc_record_buffer_size(AIN_AVERAGE_TIME_MS, 160, 64, sizeof(ain_channels))
+#define AIN_BUFFER_SIZE adc_record_buffer_size(AIN_AVERAGE_TIME_ms, 160, 64, sizeof(ain_channels))
 #define AIN_SAMPLES (AIN_BUFFER_SIZE / sizeof(ain_channels))
 
 uint16_t ain_buffer[AIN_BUFFER_SIZE];
@@ -197,7 +197,7 @@ UART_t dbg_uart = {
   .tx_pin = UART3_TX_PB8,
   .rx_pin = UART3_RX_PB9,
   .dma_nbr = DMA_Nbr_4,
-  .int_prioryty = IRQ_Priority_Low,
+  .irq_priority = IRQ_Priority_Low,
   .UART_115200,
   #ifdef STM32G081xx
     .tim = &dbg_tim
@@ -307,7 +307,7 @@ void PLC_Loop(void)
   }
 }
 
-void PLC_Thread(void)
+void PLC_Main(void)
 {
   PLC_Init();
   while(1) {
@@ -345,7 +345,7 @@ MAX31865_t RTD = {
   .reject = RTD_Reject_60Hz
 };
 
-void RTD_Thread(void)
+void RTD_Main(void)
 {
   SPI_Master_Init(&rtd_spi);
   MAX31865_Init(&RTD);
