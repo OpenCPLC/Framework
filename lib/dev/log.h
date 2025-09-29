@@ -2,7 +2,7 @@
 #define LOG_H_
 
 #include "dbg.h"
-#include "exdef.h"
+#include "extdef.h"
 #include "vrts.h"
 #include "main.h"
 
@@ -28,9 +28,9 @@
 #endif
 
 #if(LOG_COLORS)
-  #define LOG_Module(name) ANSI_GREY"<"ANSI_ORANGE name ANSI_GREY">"ANSI_END
+  #define LOG_LIB(name) ANSI_GREY " <" ANSI_ORANGE name ANSI_GREY ">" ANSI_END
 #else
-  #define LOG_Module(name) "<" name ">"
+  #define LOG_LIB(name) " <" name ">"
 #endif
 
 #define LOG_LEVEL_DBG 0
@@ -81,7 +81,7 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...);
 #define LOG_PAC LOG_Panic
 #define LOG_MSG LOG_Message
 
-void LOG_ParseFault(const char *function_name, char *value);
+void LOG_ErrorParse(const char *value, const char *type);
 
 //-------------------------------------------------------------------------------------------------
 #endif

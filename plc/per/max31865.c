@@ -19,7 +19,7 @@ void MAX31865_Init(MAX31865_t *rtd)
   rtd->raw_float = NaN;
 }
 
-static state_t MAX31865_GetData(MAX31865_t *rtd)
+static status_t MAX31865_GetData(MAX31865_t *rtd)
 {
   if(timeout(100, WAIT_&GPIO_In, rtd->ready)) return ERR;
   SPI_Master_Read(rtd->spi, MAX31865_Reg_Read_RTD_MSB, rtd->buff, 3);
@@ -28,7 +28,7 @@ static state_t MAX31865_GetData(MAX31865_t *rtd)
   return OK;
 }
 
-static state_t MAX31865_SetConfig(MAX31865_t *rtd, uint8_t config)
+static status_t MAX31865_SetConfig(MAX31865_t *rtd, uint8_t config)
 {
   rtd->buff[0] = MAX31865_Reg_Write_Configuration;
   rtd->buff[1] = config;
@@ -43,7 +43,7 @@ static state_t MAX31865_SetConfig(MAX31865_t *rtd, uint8_t config)
  * @param rtd Wskaźnik do struktury reprezentującej układ MAX31865.
  * @return Status wykonanej operacji {OK/ERR/BUSY}
 */
-state_t MAX31865_Loop(MAX31865_t *rtd)
+status_t MAX31865_Loop(MAX31865_t *rtd)
 {
   if(tick_away(&rtd->interval_tick)) return OK;
   if(tick_over(&rtd->expiry_tick)) {

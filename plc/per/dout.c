@@ -81,7 +81,7 @@ float DOUT_Duty(DOUT_t *dout, float duty)
   PWM_SetValue(dout->pwm, dout->channel, duty * dout->pwm->auto_reload / 100);
   dout->value = dout->pwm->value[dout->channel];
   duty = (float)dout->value * 100 / dout->pwm->auto_reload;
-  if(dout->eeprom && (old_value != dout->value) && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+  if(dout->eeprom && (old_value != dout->value) && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   return duty;
 }
 
@@ -101,12 +101,12 @@ void DOUT_Set(DOUT_t *dout)
     if(dout->value == dout->pwm->auto_reload) return;
     dout->value = dout->pwm->auto_reload;
     PWM_SetValue(dout->pwm, dout->channel, dout->value);
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
   else {
     if(dout->value) return;
     dout->value = true;
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
 }
 
@@ -124,12 +124,12 @@ void DOUT_Rst(DOUT_t *dout)
     if(dout->value == 0) return;
     dout->value = 0;
     PWM_SetValue(dout->pwm, dout->channel, dout->value);
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
   else {
     if(!dout->value) return;
     dout->value = false;
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
     if(dout->relay) dout->_stun = tick_keep(DOUT_RELAY_DELAY);
   }
 }
@@ -147,7 +147,7 @@ void DOUT_Tgl(DOUT_t *dout)
   }
   else {
     dout->value = !dout->value;
-    if(dout->eeprom && dout->save) EEPROM_Write(dout->eeprom, &dout->value);
+    if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
   }
 }
 
@@ -224,9 +224,9 @@ void DOUT_Init(DOUT_t *dout)
   if(dout->eeprom)
   {
     EEPROM_Init(dout->eeprom);
-    if(!dout->save) EEPROM_Read(dout->eeprom, &dout->save);
-    if(dout->save) EEPROM_Read(dout->eeprom, &dout->value);
-    if(dout->relay) EEPROM_Read(dout->eeprom, &dout->cycles);
+    if(!dout->save) EEPROM_Load(dout->eeprom, &dout->save);
+    if(dout->save) EEPROM_Load(dout->eeprom, &dout->value);
+    if(dout->relay) EEPROM_Load(dout->eeprom, &dout->cycles);
   }
   if(!dout->pwm) {
     dout->gpio.mode = GPIO_Mode_Output;
@@ -237,7 +237,7 @@ void DOUT_Init(DOUT_t *dout)
 static inline void DOUT_RelayCyclesInc(DOUT_t *dout)
 {
   dout->cycles++;
-  if(dout->eeprom) EEPROM_Write(dout->eeprom, &dout->cycles);
+  if(dout->eeprom) EEPROM_Save(dout->eeprom, &dout->cycles);
 }
 
 /**
@@ -288,7 +288,7 @@ void DOUT_Loop(DOUT_t *dout)
 void DOUT_Settings(DOUT_t *dout, bool save)
 {
   if(dout->eeprom && save != dout->save) {
-    EEPROM_Write(dout->eeprom, &dout->save);
+    EEPROM_Save(dout->eeprom, &dout->save);
   }
 }
 
@@ -362,16 +362,15 @@ void DOUT_Add2Bash(DOUT_t *dout)
     #endif
     return;
   }
-  char *argv = strcopy(dout->name);
   bash.dout[bash.count] = dout;
-  bash.hash[bash.count] = hash(str2lower_this(argv));
+  bash.hash[bash.count] = hash_djb2_ci(dout->name);
   bash.count++;
 }
 
 void DOUT_Bash(char **argv, uint16_t argc)
 {
   BASH_Argc(2, 4);
-  uint32_t argv1_hash = hash(argv[1]);
+  uint32_t argv1_hash = hash_djb2(argv[1]);
   if(argv1_hash == HASH_List) {
     const char *names[bash.count];
     for(uint16_t i = 0; i < bash.count; i++) {
@@ -401,18 +400,18 @@ void DOUT_Bash(char **argv, uint16_t argc)
   }
   bool pulse_todo = false;
   if(argc >= 3) {
-    switch(hash(argv[2])) {
+    switch(hash_djb2(argv[2])) {
       case HASH_Set: case HASH_On: case HASH_Enable: DOUT_Set(dout); break;
       case HASH_Rst: case HASH_Reset: case HASH_Off: case HASH_Disable: DOUT_Rst(dout); break;
       case HASH_Tgl: case HASH_Toggle: case HASH_Sw: case HASH_Switch: DOUT_Tgl(dout); break;
       case HASH_Pulse: case HASH_Impulse: case HASH_Burst: pulse_todo = true;
       case HASH_Duty: case HASH_Fill: {
         BASH_Argc(4);
-        if(str2uint16_fault(argv[3])) {
-          LOG_ParseFault("str2uint16", argv[3]);
+        if(!str_is_u16(argv[3])) {
+          LOG_ErrorParse(argv[3], "uint16_t");
           BASH_ArgvExit(3);
         }
-        uint16_t value = str2nbr(argv[3]);
+        uint16_t value = str_to_int(argv[3]);
         if(pulse_todo) DOUT_Pulse(dout, value);
         else DOUT_Duty(dout, value);
         break;

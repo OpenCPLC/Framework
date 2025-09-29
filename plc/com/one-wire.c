@@ -15,16 +15,16 @@ bool WIRE_Init(WIRE_t *onewire)
 
 bool WIRE_Reset(WIRE_t *onewire)
 {
-  GPIO_ModeInput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Input);
   GPIO_Init(onewire->gpio);
   if(timeout(250, WAIT_&GPIO_In, (void *)onewire->gpio)) {
     return false;
   }
   GPIO_Rst(onewire->gpio);
-  GPIO_ModeOutput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Output);
   sleep_us(480);
   GPIO_Set(onewire->gpio);
-  GPIO_ModeInput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Input);
   sleep_us(70);
   bool value = !GPIO_In(onewire->gpio);
   sleep_us(470);
@@ -34,7 +34,7 @@ bool WIRE_Reset(WIRE_t *onewire)
 static void WIRE_WriteBit(WIRE_t *onewire, bool value)
 {
   GPIO_Rst(onewire->gpio);
-  GPIO_ModeOutput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Output);
   if(value) {
     sleep_us(10);
     GPIO_Set(onewire->gpio);
@@ -50,9 +50,9 @@ static void WIRE_WriteBit(WIRE_t *onewire, bool value)
 static bool WIRE_ReadBit(WIRE_t *onewire)
 {
   GPIO_Rst(onewire->gpio);
-  GPIO_ModeOutput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Output);
   sleep_us(3);
-  GPIO_ModeInput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Input);
   sleep_us(10);
   bool value = GPIO_In(onewire->gpio);
   sleep_us(53);
@@ -64,7 +64,7 @@ void WIRE_Write(WIRE_t *onewire, uint8_t value)
   for(uint8_t mask = 0x01; mask; mask <<= 1) {
     WIRE_WriteBit(onewire, mask & value ? true: false);
   }
-  GPIO_ModeInput(onewire->gpio);
+  GPIO_Mode(onewire->gpio, GPIO_Mode_Input);
   GPIO_Rst(onewire->gpio);
 }
 

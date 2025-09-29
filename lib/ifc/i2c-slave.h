@@ -2,7 +2,7 @@
 #define I2C_SLAVE_H_
 
 #include <string.h>
-#include "int.h"
+#include "irq.h"
 #include "i2c.h"
 #include "main.h"
 

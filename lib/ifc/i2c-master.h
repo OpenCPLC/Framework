@@ -2,9 +2,9 @@
 #define I2C_MASTER_H_
 
 #include <string.h>
-#include "int.h"
+#include "irq.h"
 #include "i2c.h"
-#include "new.h"
+#include "heap.h"
 #include "main.h"
 
 //------------------------------------------------------------------------------------------------
@@ -24,7 +24,7 @@ typedef struct {
   I2C_SCL_e scl_pin;
   I2C_SDA_e sda_pin;
   bool pull_up;
-  INT_Prioryty_t int_prioryty;
+  IRQ_Priority_t int_prioryty;
   uint32_t timing;
   uint8_t filter; // Digital noise filter (0..15)
   #if(I2C_DMA_TX)
@@ -53,11 +53,11 @@ void I2C_Master_Init(I2C_Master_t *i2c);
 void I2C_Master_Disable(I2C_Master_t *i2c);
 bool I2C_Master_IsBusy(I2C_Master_t *i2c);
 bool I2C_Master_IsFree(I2C_Master_t *i2c);
-state_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n);
-state_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n);
-state_t I2C_Master_WriteReg(I2C_Master_t * i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n);
-state_t I2C_Master_ReadReg(I2C_Master_t * i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n);
-state_t I2C_Master_WriteRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *write_ary, uint16_t write_n, uint8_t *read_ary, uint16_t read_n);
+status_t I2C_Master_Write(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n);
+status_t I2C_Master_Read(I2C_Master_t *i2c, uint8_t addr, uint8_t *ary, uint16_t n);
+status_t I2C_Master_WriteReg(I2C_Master_t * i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n);
+status_t I2C_Master_ReadReg(I2C_Master_t * i2c, uint8_t addr, uint8_t reg, uint8_t *ary, uint16_t n);
+status_t I2C_Master_WriteRead(I2C_Master_t *i2c, uint8_t addr, uint8_t *write_ary, uint16_t write_n, uint8_t *read_ary, uint16_t read_n);
 
 //------------------------------------------------------------------------------------------------
 

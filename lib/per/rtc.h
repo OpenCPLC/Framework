@@ -5,13 +5,13 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "stm32g0xx.h"
-#include "int.h"
+#include "irq.h"
 #include "main.h"
 
 //-------------------------------------------------------------------------------------------------
 
-#ifndef RTC_INT_PRIORYTY
-  #define RTC_INT_PRIORYTY INT_Prioryty_Low
+#ifndef RTC_IQR_PRIORYTY
+  #define RTC_IQR_PRIORYTY IRQ_Priority_Low
 #endif
 
 typedef enum {

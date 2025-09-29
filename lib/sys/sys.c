@@ -1,5 +1,18 @@
 #include "sys.h"
 
+#if(SYS_PANIC_RESET)
+  #include "pwr.h"
+#endif
+
+/**
+ * @brief Initialize system clock according to `SYS_CLOCK_FREQ`.
+ * Supported values:
+ * `16000000`: internal HSI 16MHz,
+ * `48000000`: internal HSI 48MHz,
+ * `64000000`: internal HSI 64MHz,
+ * `18432000`: external HSE 18.432MHz,
+ * `59904000`: PLL (18.432MHz * 13 / 4).
+ */
 void sys_clock_init(void)
 {
   #if(SYS_CLOCK_FREQ == 16000000)
@@ -13,45 +26,75 @@ void sys_clock_init(void)
   #elif(SYS_CLOCK_FREQ == 59904000)
     RCC_PLL(18432000, 2, 13, 2);
   #else
-    #error "System clock frequency SYS_CLOCK_FREQ isn't supported!"
+    #error "System clock frequency SYS_CLOCK_FREQ \
+    is not defined or not supported!"
   #endif
 }
 
+static void (*panic_handler)(void);
+
+/**
+ * @brief Set custom panic handler.
+ * @param handler Function called before system halt or reset.
+ */
+void panic_hook(void (*handler)(void))
+{
+  panic_handler = handler;
+}
+
+/**
+ * @brief Trigger system panic.
+ * @param message Panic message for log.
+ * @note Function never returns. System is halted or reset if `SYS_PANIC_RESET` is enabled.
+ */
 void panic(const char *message)
 {
-  #if(SYS_PANIC_HANDLER)
-    SYS_PANIC_HANDLER()
-  #endif
+  if(panic_handler) panic_handler();
   LOG_Panic(message);
   __disable_irq(); // Disable interrupts
   #if(SYS_PANIC_RESET)
     PWR_Reset();
   #endif
-  volatile uint32_t i = 0;
-  while(1) i++; // Infinite loop to halt system
-}
-
-static TIM_t *SystemSleepTimer;
-
-void sleep_us_init(TIM_t *tim)
-{
-  SystemSleepTimer = tim;
-  DELAY_Init(tim, TIM_BaseTime_1us);
-}
-
-void sleep_us(uint32_t us)
-{
-  DELAY_Wait(SystemSleepTimer, us);
+  volatile uint64_t i = 0;
+  while(1) {
+    i++; // Infinite loop to halt system
+  }
 }
 
 volatile static uint32_t memory_guard = 0xA5A5DEAD;
 
+/**
+ * @brief Memory guard thread.
+ * Periodically checks guard word and triggers `panic`
+ * if memory corruption is detected.
+ */
 void sys_memory_guard(void)
 {
   while(1) {
     if(memory_guard != 0xA5A5DEAD) {
-      panic("Memory corruption "LOG_Module("SYS"));
+      panic("Memory corruption" LOG_LIB("SYS"));
     }
     delay(500);
   }
+}
+
+static TIM_t *sys_sleep_tim;
+
+/**
+ * @brief Initialize microsecond sleep using timer.
+ * @param tim Pointer to timer instance used for delay.
+ */
+void sleep_us_init(TIM_t *tim)
+{
+  sys_sleep_tim = tim;
+  DELAY_Init(tim, TIM_BaseTime_1us);
+}
+
+/**
+ * @brief Busy-wait delay in microseconds.
+ * @param us Delay time in microseconds.
+ */
+void sleep_us(uint32_t us)
+{
+  DELAY_Wait(sys_sleep_tim, us);
 }

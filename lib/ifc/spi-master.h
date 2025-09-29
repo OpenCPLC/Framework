@@ -1,9 +1,9 @@
 #ifndef SPI_MASTER_H_
 #define SPI_MASTER_H_
 
-#include "int.h"
+#include "irq.h"
 #include "spi.h"
-#include "exdef.h"
+#include "extdef.h"
 #include "main.h"
 
 #ifndef SPI_SOFTWARE_ENABLE
@@ -20,7 +20,7 @@ typedef struct {
   SPI_TypeDef *reg;
   DMA_Nbr_t tx_dma_nbr;
   DMA_Nbr_t rx_dma_nbr;
-  INT_Prioryty_t int_prioryty;
+  IRQ_Priority_t int_prioryty;
   SPI_SCK_t sck_pin;
   SPI_MISO_t miso_pin;
   SPI_MOSI_t mosi_pin;
@@ -41,9 +41,9 @@ bool SPI_Master_IsBusy(SPI_Master_t *spi);
 bool SPI_Master_IsFree(SPI_Master_t *spi);
 
 void SPI_Master_OnlyRead(SPI_Master_t *spi, uint8_t *rx_buff, uint16_t n);
-state_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, uint16_t n);
-state_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint16_t n);
-state_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_buff, uint16_t n);
+status_t SPI_Master_Run(SPI_Master_t *spi, uint8_t *rx_buff, uint8_t *tx_buff, uint16_t n);
+status_t SPI_Master_Read(SPI_Master_t *spi, uint8_t addr, uint8_t *rx_buff, uint16_t n);
+status_t SPI_Master_Write(SPI_Master_t *spi, uint8_t *tx_buff, uint16_t n);
 
 //-------------------------------------------------------------------------------------------------
 #if(SPI_SOFTWARE_ENABLE)

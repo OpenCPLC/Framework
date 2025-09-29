@@ -71,7 +71,7 @@ SHTC3_t SHTC3 = {
   .temperature = NaN
 };
 
-state_t SHTC3_Loop(void)
+status_t SHTC3_Loop(void)
 {
   if(tick_away(&SHTC3.interval_tick)) return OK;
   if(tick_over(&SHTC3.expiry_tick)) {

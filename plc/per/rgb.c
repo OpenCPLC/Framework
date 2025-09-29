@@ -1,4 +1,5 @@
 #include "rgb.h"
+#include "bash.h"
 #include "dbg.h"
 
 const char *rgb_color_name[] = { "off", "red", "green", "blue", "yellow", "cyan", "magenta", "white" };
@@ -124,18 +125,20 @@ void LED_OneShoot(RGB_e color, uint16_t ms)
 // TODO...
 void LED_Bash(char **argv, uint16_t argc)
 {
-  RGB_Hash_e sw = hash(argv[0]);
+  RGB_Hash_e sw = hash_djb2(argv[0]);
   if(sw != RGB_Hash_Rgb && sw != RGB_Hash_Led) return;
   if(!rgb_focus) return;
   if(argc > 1) {
-    switch(hash(argv[1])) {
+    switch(hash_djb2(argv[1])) {
       case RGB_Hash_Blink:
         if(argc < 3) return;
-        sw = hash(argv[2]);
+        sw = hash_djb2(argv[2]);
         if(sw == RGB_Hash_On && argc == 4) {
-          char *str = argv[3];
-          if(str2uint16_fault(str)) return;
-          uint16_t blink_ms = str2nbr(str);
+          if(!str_is_u16(argv[3])) {
+            LOG_ErrorParse(argv[3], "uint16_t");
+            BASH_ArgvExit(3);
+          }
+          uint16_t blink_ms = str_to_int(argv[3]);
           LED_Blink_ON(blink_ms);
         }
         else if(sw == RGB_Hash_Off && argc == 3) {
@@ -146,13 +149,15 @@ void LED_Bash(char **argv, uint16_t argc)
         if(argc < 3) return;
         uint16_t shot_ms;
         if(argc >= 4) {
-          char *str = argv[3];
-          if(str2uint16_fault(str)) return;
-          shot_ms = str2nbr(str);
+          if(!str_is_u16(argv[3])) {
+            LOG_ErrorParse(argv[3], "uint16_t");
+            BASH_ArgvExit(3);
+          }
+          shot_ms = str_to_int(argv[3]);
         }
         else shot_ms = 200;
         RGB_e color;
-        switch(hash(argv[2])) {
+        switch(hash_djb2(argv[2])) {
           case RGB_Hash_Red: color = RGB_Red; break;
           case RGB_Hash_Green: color = RGB_Green; break;
           case RGB_Hash_Blue: color = RGB_Blue; break;

@@ -55,7 +55,7 @@ void RTC_Init(void)
 	RTC->WPR = 0xFF;
 	NVIC_ClearPendingIRQ(RTC_TAMP_IRQn);
 	NVIC_EnableIRQ(RTC_TAMP_IRQn);
-	NVIC_SetPriority(RTC_TAMP_IRQn, RTC_INT_PRIORYTY);
+	NVIC_SetPriority(RTC_TAMP_IRQn, RTC_IQR_PRIORYTY);
   rtc_init = true;
 }
 

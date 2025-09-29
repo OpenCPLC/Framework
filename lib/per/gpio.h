@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "stm32g0xx.h"
-#include "int.h"
+#include "irq.h"
 #include "pwr.h"
 #include "vrts.h"
 #include "main.h"
@@ -21,47 +21,60 @@ typedef enum {
   GPIO_Mode_Output = 0x01,
   GPIO_Mode_Alternate = 0x02,
   GPIO_Mode_Analog = 0x03
-} GPIO_Mode_e;
+} GPIO_Mode_t;
 
 typedef enum {
   GPIO_Pull_Floating = 0x00,
   GPIO_Pull_Up = 0x01,
   GPIO_Pull_Down = 0x02,
-} GPIO_Pull_e;
+} GPIO_Pull_t;
 
 typedef enum {
   GPIO_OutType_PushPull = 0x00,
   GPIO_OutType_OpenDrain = 0x01
-} GPIO_OutType_e;
+} GPIO_OutType_t;
 
 typedef enum {
   GPIO_Speed_VeryLow = 0x00,
   GPIO_Speed_Low = 0x01,
   GPIO_Speed_High = 0x02,
-  GPIO_Speed_VeryHigh = 0x03
-} GPIO_Speed_e;
+  GPIO_Speed_VeryHigh = 0x03 // for power-supply
+} GPIO_Speed_t;
 
 #if(GPIO_INCLUDE_WAKEUP)
 typedef enum {
   GPIO_WakeupPull_Floating = 0x00,
   GPIO_WakeupPull_Up = 0x01,
   GPIO_WakeupPull_Down = 0x02
-} GPIO_WakeupPull_e;
+} GPIO_WakeupPull_t;
 #endif
 
 #define GPIO_DEFAULT { NULL, 0, 0, 0, 0, 0, 0, 0, 0 }
 #define GPIO_ALTERNATE { NULL, 0, 0, GPIO_Mode_Alternate, 0, 0, GPIO_Speed_VeryHigh, 0, 0 }
 
+/**
+ * @brief GPIO configuration and state.
+ * @param port GPIO port `GPIO_TypeDef` pointer
+ * @param pin GPIO pin index
+ * @param reverse Invert logic level
+ * @param mode GPIO mode
+ * @param pull GPIO pull mode
+ * @param out_type GPIO output type
+ * @param speed GPIO speed
+ * @param wakeup_pull Wakeup pull mode (only if `GPIO_INCLUDE_WAKEUP`)
+ * @param alternate Alternate function index
+ * @param set Current output state
+ */
 typedef struct {
   GPIO_TypeDef *port;
   uint8_t pin;
   bool reverse;
-  GPIO_Mode_e mode;
-  GPIO_Pull_e pull;
-  GPIO_OutType_e out_type;
-  GPIO_Speed_e speed;
+  GPIO_Mode_t mode;
+  GPIO_Pull_t pull;
+  GPIO_OutType_t out_type;
+  GPIO_Speed_t speed;
   #if(GPIO_INCLUDE_WAKEUP)
-    GPIO_WakeupPull_e wakeup_pull;
+    GPIO_WakeupPull_t wakeup_pull;
   #endif
   uint8_t alternate;
   bool set;
@@ -77,71 +90,114 @@ typedef struct {
 
 void GPIO_Init(GPIO_t *gpio);
 void GPIO_InitList(GPIO_t *gpio, ...);
-void GPIO_AlternateInit(const GPIO_Map_t *gpio_map, bool open_drain_pull_up);
-void GPIO_SupplyInit(GPIO_t *gpio);
+void GPIO_InitAlternate(const GPIO_Map_t *gpio_map, bool open_drain_pull_up);
 void GPIO_Set(GPIO_t *gpio);
 void GPIO_Rst(GPIO_t *gpio);
 void GPIO_Tgl(GPIO_t *gpio);
 bool GPIO_In(GPIO_t *gpio);
-bool GPIO_NotIn(GPIO_t *gpio);
-void GPIO_ModeInput(GPIO_t *gpio);
-void GPIO_ModeOutput(GPIO_t *gpio);
-
-//------------------------------------------------------------------------------------------------- GPIF
-
-#define GPIF_TON_DELAULT 100
-#define GPIF_TOFF_DELAULT 100
-#define GPIF_TOGGLE_DELAULT 500
-#define GPIF_TRESET 5000
-
-typedef struct {
-  GPIO_t gpio;
-  bool value;
-  bool rise;
-  bool fall;
-  uint32_t ton_ms;
-  uint32_t toff_ms;
-  uint32_t toggle_ms;
-  uint64_t _tio_tick;
-  uint64_t _res_rise_tick;
-  uint64_t _res_fall_tick;
-  uint64_t _toggle_tick;
-} GPIF_t;
-
-bool GPIF_Input(GPIF_t *gpif);
-bool GPIF_Toggling(GPIF_t *gpif);
-bool GPIF_Rise(GPIF_t *gpif);
-bool GPIF_Fall(GPIF_t *gpif);
-bool GPIF_Edge(GPIF_t *gpif);
-void GPIF_Init(GPIF_t *gpif);
-bool GPIF_Loop(GPIF_t *gpif);
+void GPIO_Mode(GPIO_t *gpio, GPIO_Mode_t mode);
 
 //------------------------------------------------------------------------------------------------- EXTI
 
+/**
+ * @brief External interrupt line configuration.
+ * @param port GPIO port `GPIO_TypeDef` pointer
+ * @param pin GPIO pin index
+ * @param mode GPIO mode
+ * @param pull GPIO pull mode
+ * @param rise_detect Enable rising edge detection
+ * @param fall_detect Enable falling edge detection
+ * @param irq_enable Enable interrupt request
+ * @param irq_priority Interrupt priority
+ * @param oneshot Trigger only once until cleared
+ * @param RiseHandler Function called on rising edge
+ * @param rise_arg Argument passed to `RiseHandler`
+ * @param rise_events Counter of rising edge events
+ * @param FallHandler Function called on falling edge
+ * @param fall_arg Argument passed to `FallHandler`
+ * @param fall_events Counter of falling edge events
+ */
 typedef struct {
   GPIO_TypeDef *port;
   uint8_t pin;
-  GPIO_Mode_e mode;
-  GPIO_Pull_e pull;
-  bool rise;
-  bool fall;
-  INT_Prioryty_t int_prioryty;
-  bool one_shot;
-  bool enable;
-  void (*rise_function)(void*);
-  void *rise_struct;
-  uint16_t rise_cnt;
-  void (*fall_function)(void*);
-  void *fall_struct;
-  uint16_t fall_cnt;
+  GPIO_Mode_t mode;
+  GPIO_Pull_t pull;
+  bool rise_detect;
+  bool fall_detect;
+  bool irq_enable;
+  IRQ_Priority_t irq_priority;
+  bool oneshot;
+  void (*RiseHandler)(void*);
+  void *rise_arg;
+  uint16_t rise_events;
+  void (*FallHandler)(void*);
+  void *fall_arg;
+  uint16_t fall_events;
 } EXTI_t;
 
 void EXTI_Init(EXTI_t *exti);
 void EXTI_On(EXTI_t *exti);
 void EXTI_Off(EXTI_t *exti);
-uint16_t EXTI_In(EXTI_t *exti);
+uint16_t EXTI_Events(EXTI_t *exti);
 uint16_t EXTI_Rise(EXTI_t *exti);
 uint16_t EXTI_Fall(EXTI_t *exti);
+bool EXTI_In(EXTI_t *exti);
+
+//------------------------------------------------------------------------------------------------- GPIF
+
+#define GPIF_DEFAULT_TON_ms 50
+#define GPIF_DEFAULT_TOFF_ms 50
+#define GPIF_DEFAULT_TON_LONG_ms 2000
+#define GPIF_DEFAULT_TOFF_LONG_ms 2000
+#define GPIF_DEFAULT_TOGGLE_ms 400
+
+/**
+ * @brief Filtered input.
+ * @param ton_ms Minimum high time [ms] to accept ON
+ * @param toff_ms Minimum low time [ms] to accept OFF
+ * @param ton_long_ms Long press threshold [ms] when ON
+ * @param toff_long_ms Long release threshold [ms] when OFF
+ * @param toggle_ms Toggle period [ms]
+ * @param rise Flag for rising edge (0→1)
+ * @param fall Flag for falling edge (1→0)
+ * @param rise_long Flag for long rising edge
+ * @param fall_long Flag for long falling edge
+ * @param input_state Debounced input state
+ * @param toggle_state Toggle output state
+ * @param tick_debounce Internal timer for debounce
+ * @param tick_long Internal timer for long threshold
+ * @param tick_toggle Internal timer for toggle
+ */
+typedef struct {
+  GPIO_t gpio;
+  uint32_t ton_ms;
+  uint32_t toff_ms;
+  uint32_t ton_long_ms;
+  uint32_t toff_long_ms;
+  uint32_t toggle_ms;
+  bool rise;
+  bool fall;
+  bool rise_long;
+  bool fall_long;
+  bool input_state;
+  bool toggle_state;
+  bool toggle_change;
+  uint64_t tick_debounce;
+  uint64_t tick_long;
+  uint64_t tick_toggle;
+  uint64_t tick_reset;
+} GPIF_t;
+
+void GPIF_Init(GPIF_t *gpif);
+void GPIF_Loop(GPIF_t *gpif);
+bool GPIF_Input(GPIF_t *gpif);
+bool GPIF_Toggle(GPIF_t *gpif);
+bool GPIF_Rise(GPIF_t *gpif);
+bool GPIF_Fall(GPIF_t *gpif);
+bool GPIF_Edge(GPIF_t *gpif);
+bool GPIF_RiseLong(GPIF_t *gpif);
+bool GPIF_FallLong(GPIF_t *gpif);
+bool GPIF_EdgeLong(GPIF_t *gpif);
 
 //-------------------------------------------------------------------------------------------------
 #endif

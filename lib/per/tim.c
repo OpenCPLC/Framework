@@ -176,7 +176,7 @@ void TIM_Init(TIM_t *tim)
   tim->reg->DIER |= tim->dma_trig ? TIM_DIER_UDE : 0;
 	if(tim->enable) TIM_Enable(tim);
 	if(tim->enable_interrupt) {
-	  INT_EnableTIM(tim->reg, tim->int_prioryty, (void (*)(void *))&TIM_Interrupt, tim);
+	  IRQ_EnableTIM(tim->reg, tim->irq_priority, (void (*)(void *))&TIM_Interrupt, tim);
 	  TIM_InterruptEnable(tim);
 	}
 }

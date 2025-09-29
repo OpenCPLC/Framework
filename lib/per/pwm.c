@@ -61,6 +61,16 @@ void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime)
   pwm->reg->BDTR = (pwm->reg->BDTR & ~TIM_BDTR_DTG_Msk) | dtg;
 }
 
+void PWM_CenterAlign(PWM_t *pwm, bool enable)
+{
+  if(enable == pwm->center_aligned) return;
+  PWM_Off(pwm);
+  pwm->center_aligned = enable;
+  uint8_t center_aligned = enable ? 0x03 << TIM_CR1_CMS_Pos : 0;
+  pwm->reg->CR1 = (pwm->reg->CR1 & ~TIM_CR1_CMS_Msk) | center_aligned;
+  PWM_On(pwm);
+}
+
 static void PWM_ChannelInit(PWM_t *pwm, TIM_Channel_t channel)
 {
   bool invert_pos = pwm->invert[channel];
@@ -87,13 +97,14 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->CCMR2 = 0;
   for(uint8_t i = 0; i < 4; i++) {
     init = false;
-    if(pwm->channel[i]) { GPIO_AlternateInit(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
-    if(pwm->channel[i + 4]) { GPIO_AlternateInit(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
+    if(pwm->channel[i]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
+    if(pwm->channel[i + 4]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
     if(init) PWM_ChannelInit(pwm, i);
   }
   PWM_SetPrescaler(pwm, pwm->prescaler);
   pwm->reg->ARR = pwm->auto_reload;
-  pwm->reg->CR1 = TIM_CR1_ARPE | (pwm->center_aligned << 6) | (pwm->center_aligned << 5);
+  uint8_t center_aligned = pwm->center_aligned ? 0x03 << TIM_CR1_CMS_Pos : 0;
+  pwm->reg->CR1 = TIM_CR1_ARPE | center_aligned;
   PWM_SetDeadtime(pwm, pwm->deadtime);
   pwm->reg->DIER = (pwm->reg->DIER & ~TIM_DIER_UIE) | (pwm->dma_trig << TIM_DIER_UDE_Pos);
   pwm->reg->BDTR |= TIM_BDTR_MOE;

@@ -37,8 +37,8 @@ void DBG_SendFile(FILE_t *file);
 void DBG_DefaultFile(void);
 void DBG_SetFile(FILE_t *file);
 
-uint16_t DBG_GetSize(void);
-uint16_t DBG_ReadArray(uint8_t *array);
+uint16_t DBG_Size(void);
+uint16_t DBG_Read(uint8_t *array);
 char *DBG_ReadString(void);
 
 int32_t DBG_Char(uint8_t data);
@@ -48,7 +48,7 @@ int32_t DBG_Char64(uint64_t data);
 int32_t DBG_Data(uint8_t *array, uint16_t length);
 int32_t DBG_String(char *string);
 int32_t DBG_Enter(void);
-int32_t DBG_ClearLastLine(void);
+int32_t DBG_DropLastLine(void);
 int32_t DBG_Bool(bool value);
 
 int32_t DBG_Int(int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space);

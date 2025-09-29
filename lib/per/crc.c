@@ -65,7 +65,7 @@ uint16_t CRC_Append(const CRC_t *crc, uint8_t *buffer, uint16_t count)
  * @param count: Długość wiadomości w bajtach z crc.
  * @retval OK: Suma kontrolna CRC się zgadza, ERR: Suma kontrolna CRC się NIE zgadza.
  */
-state_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count)
+status_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count)
 {
   count -= crc->width / 8;
   uint32_t code = CRC_Run(crc, (void *)buffer, count);
@@ -82,7 +82,7 @@ state_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count)
   return OK;
 }
 
-state_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count)
+status_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count)
 {
   return !CRC_Error(crc, buffer, count);
 }

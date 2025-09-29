@@ -118,7 +118,8 @@ uint32_t RCC_HSE(uint32_t xtal_value)
   while(!(RCC->CR & RCC_CR_HSERDY)) __NOP();
   RCC->CFGR = (RCC->CFGR & ~RCC_CFGR_SW) | RCC_CFGR_SW_0;
   while((RCC->CFGR & RCC_CFGR_SWS) != RCC_CFGR_SWS_HSE) __NOP();
-  RCC->CR &= ~(RCC_CR_HSION | RCC_CR_PLLON);
+  RCC->CR &= ~RCC_CR_PLLON;
+  // RCC->CR &= ~(RCC_CR_HSION | RCC_CR_PLLON);
   SystemCoreClock = xtal_value;
   return xtal_value;
 }

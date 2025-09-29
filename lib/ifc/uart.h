@@ -1,8 +1,8 @@
 #ifndef UART_H_
 #define UART_H_
 
-#include "int.h"
-#include "exdef.h"
+#include "irq.h"
+#include "extdef.h"
 #include "tim.h"
 #include "buff.h"
 #include "main.h"
@@ -49,12 +49,32 @@ typedef enum {
 
 //---------------------------------------------------------------------------------------------------------------------
 
+/**
+ * @brief UART control structure with DMA, buffer and optional timeout.
+ * @param reg Pointer to UART register base. [user]
+ * @param tx_pin TX pin mapping. [user]
+ * @param rx_pin RX pin mapping. [user]
+ * @param dma_nbr DMA channel number for TX. [user]
+ * @param irq_priority Priority for UART and DMA IRQ. [user]
+ * @param baud UART baudrate. [user]
+ * @param parity UART parity configuration. [user]
+ * @param stop_bits UART stop bits configuration. [user]
+ * @param timeout Timeout value in symbols. [user]
+ * @param gpio_direction Optional GPIO used for direction control (e.g. RS485). [user]
+ * @param tim Optional timer pointer if UART has no RTOR register. [user]
+ * @param buff Pointer to receive buffer structure. Must remain valid. [user]
+ * @param prefix Optional address prefix for message filtering and TX. [user]
+ * @param dma DMA control structure used internally. [internal]
+ * @param tx_flag Transmit active flag. [internal]
+ * @param tc_flag Transfer complete flag. [internal]
+ * @param init_flag Initialization done flag. [internal]
+ */
 typedef struct {
   USART_TypeDef *reg;
   UART_TX_t tx_pin;
   UART_RX_t rx_pin;
   DMA_Nbr_t dma_nbr;
-  INT_Prioryty_t int_prioryty;
+  IRQ_Priority_t irq_priority;
   uint32_t baud;
   UART_Parity_t parity;
   UART_StopBits_t stop_bits;
@@ -64,8 +84,9 @@ typedef struct {
   BUFF_t *buff;
   uint8_t prefix;
   DMA_t dma;
-  volatile bool busy_tx;
-  volatile bool busy_tc;
+  volatile bool tx_flag;
+  volatile bool tc_flag;
+  bool init_flag;
 } UART_t;
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -73,19 +94,19 @@ typedef struct {
 void UART_Init(UART_t *uart);
 void UART_ReInit(UART_t *uart);
 void UART_SetTimeout(UART_t *uart, uint16_t timeout);
-bool UART_During(UART_t *uart);
-bool UART_Idle(UART_t *uart);
+bool UART_SendCompleted(UART_t *uart);
+bool UART_IsSending(UART_t *uart);
 bool UART_IsBusy(UART_t *uart);
 bool UART_IsFree(UART_t *uart);
 
-state_t UART_Send(UART_t *uart, uint8_t *array, uint16_t length);
-uint16_t UART_GetSize(UART_t *uart);
-uint16_t UART_ReadArray(UART_t *uart, uint8_t *array);
+status_t UART_Send(UART_t *uart, uint8_t *data, uint16_t len);
+uint16_t UART_Size(UART_t *uart);
+uint16_t UART_Read(UART_t *uart, uint8_t *array);
 char *UART_ReadString(UART_t *uart);
 bool UART_Skip(UART_t *uart);
 void UART_Clear(UART_t *uart);
 
-uint32_t UART_CalcTime_ms(UART_t *uart, uint16_t length);
+uint32_t UART_CalcTime_ms(UART_t *uart, uint16_t len);
 
 //--------------------------------------------------------------------------------------------------------------------------------
 #endif

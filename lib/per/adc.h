@@ -2,9 +2,9 @@
 #define ADC_H_
 //-------------------------------------------------------------------------------------------------
 
-#include "int.h"
+#include "irq.h"
 #include "gpio.h"
-#include "exdef.h"
+#include "extdef.h"
 #include "vrts.h"
 #include "main.h"
 
@@ -126,7 +126,7 @@ typedef struct {
 #endif
 
 typedef struct {
-  INT_Prioryty_t int_prioryty;
+  IRQ_Priority_t int_prioryty;
   bool freq_16Mhz;
   ADC_Prescaler_t prescaler;
   ADC_Measurements_t measure;
