@@ -13,7 +13,7 @@
  * `18432000`: external HSE 18.432MHz,
  * `59904000`: PLL (18.432MHz * 13 / 4).
  */
-void sys_clock_init(void)
+void clock_init(void)
 {
   #if(SYS_CLOCK_FREQ == 16000000)
     RCC_16MHz();
@@ -61,17 +61,17 @@ void panic(const char *message)
   }
 }
 
-volatile static uint32_t memory_guard = 0xA5A5DEAD;
+volatile static uint32_t memory_guard_code = 0xA5A5DEAD;
 
 /**
  * @brief Memory guard thread.
  * Periodically checks guard word and triggers `panic`
  * if memory corruption is detected.
  */
-void sys_memory_guard(void)
+void memory_guard(void)
 {
   while(1) {
-    if(memory_guard != 0xA5A5DEAD) {
+    if(memory_guard_code != 0xA5A5DEAD) {
       panic("Memory corruption" LOG_LIB("SYS"));
     }
     delay(500);

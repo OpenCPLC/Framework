@@ -13,8 +13,8 @@
   #define SYS_PANIC_RESET 0
 #endif
 
-void sys_clock_init(void);
-void sys_memory_guard(void);
+void clock_init(void);
+void memory_guard(void);
 void panic(const char *message);
 void panic_hook(void (*handler)(void));
 void sleep_us_init(TIM_t *tim);

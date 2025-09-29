@@ -210,11 +210,12 @@ FILE_t cache_file = { .name = "cache", .buffer = cache_file_buffer, .limit = siz
 
 void PLC_Init(void)
 {
+  vrts_lock();
   #if PLC_BOOTLOADER
     // SCB->VTOR = FLASH_BASE | 0x00000000U;
   #endif
   // Konfiguracja systemowa
-  sys_clock_init();
+  clock_init();
   systick_init(PLC_BASETIME);
   heap_init();
   RTC_Init();
@@ -268,52 +269,50 @@ void PLC_Init(void)
   UART_Init(&RS1);
   UART_Init(&RS2);
   LOG_Init(PLC_GREETING, PRO_VERSION);
+  vrts_unlock();
 }
 
 void PLC_Loop(void)
 {
-  // Dioda LED i przycisk (BTN)
-  RGB_Loop(&RGB);
-  DIN_Loop(&BTN);
-  // Wyjścia przekaźnikowe (RO)
-  DOUT_Loop(&RO1);
-  DOUT_Loop(&RO2);
-  DOUT_Loop(&RO3);
-  DOUT_Loop(&RO4);
-  // Wyjścia cyfrowe tranzystorowe (TO)
-  DOUT_Loop(&TO1);
-  DOUT_Loop(&TO2);
-  DOUT_Loop(&TO3);
-  DOUT_Loop(&TO4);
-  // Wyjścia cyfrowe triakowe (XO)
-  DOUT_Loop(&XO1);
-  DOUT_Loop(&XO2);
-  // Wejścia cyfrowe (DI)
-  DIN_Loop(&DI1);
-  DIN_Loop(&DI2);
-  DIN_Loop(&DI3);
-  DIN_Loop(&DI4);
-  if(din_pwmi_init && PWMI_Loop(&din_pwmi)) {
-    // PWMI_Print(&din_pwmi);
-  }
-  // Wejścia analogowe (AI)
-  if(ADC_IsFree(&ain_adc)) {
-    AIN_Sort(ain_buffer, sizeof(ain_channels), AIN_SAMPLES, ain_data);
-    ADC_Record(&ain_adc);
-  }
-  if(ain_adc.overrun) {
-    LOG_Warning("ADC over-run %d", ain_adc.overrun);
-    ain_adc.overrun = 0;
+  while(1) {
+    // Dioda LED i przycisk (BTN)
+    RGB_Loop(&RGB);
+    DIN_Loop(&BTN);
+    // Wyjścia przekaźnikowe (RO)
+    DOUT_Loop(&RO1);
+    DOUT_Loop(&RO2);
+    DOUT_Loop(&RO3);
+    DOUT_Loop(&RO4);
+    // Wyjścia cyfrowe tranzystorowe (TO)
+    DOUT_Loop(&TO1);
+    DOUT_Loop(&TO2);
+    DOUT_Loop(&TO3);
+    DOUT_Loop(&TO4);
+    // Wyjścia cyfrowe triakowe (XO)
+    DOUT_Loop(&XO1);
+    DOUT_Loop(&XO2);
+    // Wejścia cyfrowe (DI)
+    DIN_Loop(&DI1);
+    DIN_Loop(&DI2);
+    DIN_Loop(&DI3);
+    DIN_Loop(&DI4);
+    if(din_pwmi_init && PWMI_Loop(&din_pwmi)) {
+      // PWMI_Print(&din_pwmi);
+    }
+    // Wejścia analogowe (AI)
+    if(ADC_IsFree(&ain_adc)) {
+      if(ain_adc.overrun) LOG_Debug("ADC overrun"), ain_adc.overrun = 0;
+      else AIN_Sort(ain_buffer, sizeof(ain_channels), AIN_SAMPLES, ain_data);
+      ADC_Record(&ain_adc);
+    }
+    let();
   }
 }
 
 void PLC_Main(void)
 {
   PLC_Init();
-  while(1) {
-    PLC_Loop();
-    let();
-  }
+  PLC_Loop();
 }
 
 //------------------------------------------------------------------------------------------------- RTD

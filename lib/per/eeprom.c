@@ -77,8 +77,8 @@ static status_t EEPROM_ClearStorage(EEPROM_t *eeprom, EEPROM_Storage_t storage)
  * @brief Rewrite EEPROM when active storage is full
  * Copies valid key/value pairs from full block into the empty block.
  * Old block is erased at the end, new block becomes active.
- * @param eeprom Pointer to `EEPROM_t` instance
- * @param full_storage Storage block that is full
+ * @param[in,out] eeprom Pointer to `EEPROM_t` instance
+ * @param[in] full_storage Storage block that is full
  * @return `OK` on success, `ERR` on error
  */
 static status_t EEPROM_Rewrite(EEPROM_t *eeprom, EEPROM_Storage_t full_storage)
@@ -86,24 +86,65 @@ static status_t EEPROM_Rewrite(EEPROM_t *eeprom, EEPROM_Storage_t full_storage)
   EEPROM_Storage_t empty_storage = !full_storage;
   eeprom->active_storage = empty_storage;
   eeprom->cursor = eeprom->adrr_start[empty_storage];
+  // Max records in one block
+  uint32_t max_records = (eeprom->adrr_end[full_storage] - eeprom->adrr_start[full_storage]) / 8;
+  // Temporary RAM buffer
+  typedef struct { uint32_t key; uint32_t value; } Record_t;
+  Record_t records[max_records];
+  uint32_t count = 0;
+  // Scan full block from end → take last entries
   for(uint32_t i = eeprom->adrr_end[full_storage] - 8; i >= eeprom->adrr_start[full_storage]; i -= 8) {
-    uint32_t key = *(uint32_t *)(i);
+    uint32_t key   = *(uint32_t *)(i);
     uint32_t value = *(uint32_t *)(i + 4);
     if(key != 0xFFFFFFFF) {
-      for(uint32_t j = eeprom->adrr_start[empty_storage]; j < eeprom->adrr_end[empty_storage]; j += 8) {
-        uint32_t tmp = *(uint32_t *)(j);
-        if(key == tmp) break;
-        else if(tmp == 0xFFFFFFFF) {
-          if(FLASH_Write(j, key, value)) return ERR;
-          eeprom->cursor += 8;
+      // Check if key already in buffer
+      bool exists = false;
+      for(uint32_t k = 0; k < count; k++) {
+        if(records[k].key == key) {
+          exists = true;
           break;
         }
       }
+      // Add new record
+      if(!exists && count < max_records) {
+        records[count].key   = key;
+        records[count].value = value;
+        count++;
+      }
     }
+  }
+  // Write collected records to empty block
+  for(uint32_t k = 0; k < count; k++) {
+    if(FLASH_Write(eeprom->cursor, records[k].key, records[k].value)) return ERR;
+    eeprom->cursor += 8;
   }
   if(EEPROM_ClearStorage(eeprom, full_storage)) return ERR;
   return OK;
 }
+
+// static status_t EEPROM_Rewrite(EEPROM_t *eeprom, EEPROM_Storage_t full_storage)
+// {
+//   EEPROM_Storage_t empty_storage = !full_storage;
+//   eeprom->active_storage = empty_storage;
+//   eeprom->cursor = eeprom->adrr_start[empty_storage];
+//   for(uint32_t i = eeprom->adrr_end[full_storage] - 8; i >= eeprom->adrr_start[full_storage]; i -= 8) {
+//     uint32_t key = *(uint32_t *)(i);
+//     uint32_t value = *(uint32_t *)(i + 4);
+//     if(key != 0xFFFFFFFF) {
+//       for(uint32_t j = eeprom->adrr_start[empty_storage]; j < eeprom->adrr_end[empty_storage]; j += 8) {
+//         uint32_t tmp = *(uint32_t *)(j);
+//         if(key == tmp) break;
+//         else if(tmp == 0xFFFFFFFF) {
+//           if(FLASH_Write(j, key, value)) return ERR;
+//           eeprom->cursor += 8;
+//           break;
+//         }
+//       }
+//     }
+//   }
+//   if(EEPROM_ClearStorage(eeprom, full_storage)) return ERR;
+//   return OK;
+// }
 
 //-------------------------------------------------------------------------------------------------
 
@@ -118,7 +159,7 @@ status_t EEPROM_Init(EEPROM_t *eeprom)
 {
   if(eeprom->adrr_start[EEPROM_Storage_A]) return OK;
   eeprom->storage_pages = (eeprom->page_count + 1) / 2;
-  if(eeprom->page_start + (2 * eeprom->storage_pages) >= FLASH_PAGES) return ERR;
+  if(eeprom->page_start + (2 * eeprom->storage_pages) > FLASH_PAGES) return ERR;
   FLASH_Init();
   eeprom->adrr_start[EEPROM_Storage_A] = FLASH_GetAddress(eeprom->page_start, 0);
   eeprom->adrr_end[EEPROM_Storage_A] = FLASH_GetAddress(eeprom->page_start + eeprom->storage_pages, 0);
@@ -166,7 +207,7 @@ status_t EEPROM_Write(EEPROM_t *eeprom, uint32_t key, uint32_t value)
   if(FLASH_Write(eeprom->cursor, key, value)) return ERR;
   eeprom->cursor += 8;
   if(eeprom->cursor >= eeprom->adrr_end[eeprom->active_storage]) {
-    EEPROM_Rewrite(eeprom, eeprom->active_storage);
+    if(EEPROM_Rewrite(eeprom, eeprom->active_storage)) return ERR;
   }
   return OK;
 }
@@ -205,7 +246,7 @@ status_t EEPROM_Save(EEPROM_t *eeprom, uint32_t *var)
   if(FLASH_Write(eeprom->cursor, (uint32_t)var, *var)) return ERR;
   eeprom->cursor += 8;
   if(eeprom->cursor >= eeprom->adrr_end[eeprom->active_storage]) {
-    EEPROM_Rewrite(eeprom, eeprom->active_storage);
+    if(EEPROM_Rewrite(eeprom, eeprom->active_storage)) return ERR;
   }
   return OK;
 }
@@ -278,10 +319,9 @@ status_t EEPROM_LoadList(EEPROM_t *eeprom, uint32_t *var, ...)
  */
 status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var)
 {
-  uint32_t low = (uint32_t)(*var & 0xFFFFFFFFULL);
-  uint32_t high = (uint32_t)(*var >> 32);
-  if(EEPROM_Save(eeprom, &low)) return ERR;
-  if(EEPROM_Save(eeprom, &high)) return ERR;
+  uint32_t *p32 = (uint32_t *)(void *)var;  // low = p32[0], high = p32[1]
+  if(EEPROM_Save(eeprom, &p32[0]) != OK) return ERR;
+  if(EEPROM_Save(eeprom, &p32[1]) != OK) return ERR;
   return OK;
 }
 
@@ -294,10 +334,9 @@ status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var)
  */
 status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var)
 {
-  uint32_t low, high;
-  if(EEPROM_Load(eeprom, &low)) return ERR;
-  if(EEPROM_Load(eeprom, &high)) return ERR;
-  *var = ((uint64_t)high << 32) | low;
+  uint32_t *p32 = (uint32_t *)(void *)var;
+  if(EEPROM_Load(eeprom, &p32[0]) != OK) return ERR;
+  if(EEPROM_Load(eeprom, &p32[1]) != OK) return ERR;
   return OK;
 }
 

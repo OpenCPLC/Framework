@@ -23,8 +23,8 @@ typedef enum {
 
 /**
  * @brief EEPROM emulation descriptor
- * @param page_start First flash page reserved for EEPROM (config)
- * @param page_count Number of flash pages reserved for EEPROM (must be even, config)
+ * @param[in] page_start First flash page reserved for EEPROM 
+ * @param[in] page_count Number of flash pages reserved for EEPROM (must be even)
  * @param storage_pages Number of pages per storage block (`page_count` / `2`)
  * @param adrr_start Start addresses for each storage block [A,B]
  * @param adrr_end  End addresses for each storage block [A,B]
