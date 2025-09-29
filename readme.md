@@ -6,7 +6,7 @@ W świecie technologii, programowanie staje się coraz bardziej złożone _(czę
 
 Zapotrzebowanie na automatyków było, jest i będzie bardzo duże. W przeszłości, kiedy programistów było niewielu, a za automatykę brali się głównie elektrycy, zaprojektowanie języka drabinkowego ladder logic **🪜LAD** było strzałem w dziesiątkę! Opierał się bowiem na logice znanej z układów elektrycznych. Dziś sytuacja się odwróciła: kod w języku **C** jest często bardziej czytelny dla absolwentów kierunków technicznych niż drzewo logiczne ze styków i cewek. Nie zapominajmy, że język [**C**](<https://pl.wikipedia.org/wiki/C_(j%C4%99zyk_programowania)>) powstał jako język ogólnego przeznaczenia, dlatego charakteryzuje się dużą uniwersalnością, szczególnie w porównaniu do sandbox'ów dostarczanych przez producentów sterowników PLC.
 
-_Praktyczne porównanie języków LAD, ST i ANSI C można zobaczyć na przykładzie systemu [**🟢start🔴stop**](res/manuals/ext-code.md)._
+_Praktyczne porównanie języków LAD, ST i ANSI C można zobaczyć na przykładzie systemu [**🟢start🔴stop**](https://github.com/OpenCPLC/Framework/wiki/Start-Stop-Lang-Comparison)._   
 
 ## 🖥️ Our Controllers
 
@@ -62,9 +62,9 @@ Framework udostępnia warstwę abstrakcji typową dla automatyki. Zamiast znanyc
 | **`RS`**  | Interfejs komunikacyjny **RS485** z obsługą **Modbus RTU**, **BACnet** lub bare metal.                |   2   |   1   |   1    |   2    |
 | **`I2C`** | Magistra komunikacyjna z buforem **5V** i pull-up **1kΩ**.                                            |   1   |   -   |   -    |   1    |
 | **`POT`** | Potencjometr.  Działa jak wewnętrzne `AI`. Umożliwia konfigurację bez użycia komputera.               |   1   | **6** |   3    |   -    |
-| **`BTN`** | Przycisk. Działa jak wewnętrzne `DI`.                                                                 |   1   | **5** |   -    |   -    |
+| **`BTN`** | Przycisk lub przełącznik. Działa jak wewnętrzne `DI`.                                                 |   1   | **5** |   -    |   -    |
 | **`LED`** | Dioda informacyjna **RGB**.                                                                           |   1   |   1   |   1    |   1    |
-|  `FLASH`  | Pamięć nieulotna **`kB`**: program, konfiguracja, emulacja EEPROM.                                    | `512` | `128` | `144`  | `144`  |
+|  `FLASH`  | Pamięć nieulotna **`kB`**: program, konfiguracja, emulacja EEPROM.                                    | `512` | `128` | `512`  | `512`  |
 |   `RAM`   | Pamięć operacyjna **`kB`**: bufory i obliczenia.                                                      | `144` | `36`  | `144`  | `144`  |
 |   `RTC`   | Zegar czasu rzeczywistego: data i godzina.                                                            |   🕑   |   -   |   🕑    |   🕑    |
 
