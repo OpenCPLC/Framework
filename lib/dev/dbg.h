@@ -48,7 +48,7 @@ int32_t DBG_Char64(uint64_t data);
 int32_t DBG_Data(uint8_t *array, uint16_t length);
 int32_t DBG_String(char *string);
 int32_t DBG_Enter(void);
-int32_t DBG_ClearLastLine(void);
+int32_t DBG_DropLastLine(void);
 int32_t DBG_Bool(bool value);
 
 int32_t DBG_Int(int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space);

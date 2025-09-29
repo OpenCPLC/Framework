@@ -10,10 +10,10 @@
 
 /**
  * @brief Queue control structure (ring buffer with optional unique filter).
- * @param buffer Pointer to buffer memory. Size = `capacity * elem_size` bytes. [user]
- * @param elem_size Element size in bytes. [user]
- * @param capacity Max number of elements (not bytes). [user]
- * @param unique When `true`, duplicates are rejected. [user]
+ * @param[in] buffer Pointer to buffer memory. Size = `capacity * elem_size` bytes.
+ * @param[in] elem_size Element size in bytes.
+ * @param[in] capacity Max number of elements (not bytes).
+ * @param[in] unique When `true`, duplicates are rejected.
  * @param head Index of oldest element. [internal]
  * @param tail Index of next free slot. [internal]
  * @param count Current number of elements. [internal]

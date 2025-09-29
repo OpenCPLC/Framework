@@ -65,7 +65,7 @@ extern RGB_t RGB;
 // Functions
 void PLC_Init(void);
 void PLC_Loop(void);
-void PLC_Thread(void);
+void PLC_Main(void);
 
 //-------------------------------------------------------------------------------------------------
 #endif

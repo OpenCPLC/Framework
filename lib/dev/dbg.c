@@ -174,7 +174,7 @@ int32_t DBG_Char64(uint64_t data) { return FILE_Char64(DbgFile, data); }
 int32_t DBG_Data(uint8_t *array, uint16_t length) { return FILE_Data(DbgFile, array, length); }
 int32_t DBG_String(char *string) { return FILE_String(DbgFile, string); }
 int32_t DBG_Enter(void) { return FILE_Enter(DbgFile); }
-int32_t DBG_ClearLastLine(void) { return FILE_ClearLastLine(DbgFile); }
+int32_t DBG_DropLastLine(void) { return FILE_DropLastLine(DbgFile); }
 int32_t DBG_Bool(bool value) { return FILE_Bool(DbgFile, value); }
 int32_t DBG_Int(int64_t nbr, uint8_t base, bool sign, uint8_t fill_zero, uint8_t fill_space) { return FILE_Int(DbgFile, nbr, base, sign, fill_zero, fill_space); }
 int32_t DBG_Float(float nbr, uint8_t accuracy) { return FILE_Float(DbgFile, nbr, accuracy, 1); }
@@ -212,7 +212,7 @@ int32_t DBG_File(FILE_t *file)
     size += DBG_Char('/');
   #endif
   size += DBG_uDec(file->limit);
-  if(file->mutex) size += DBG_String(" mutex");
+  if(file->lock) size += DBG_String(" mutex");
   if(file->flash_page) {
     #if(LOG_COLORS)
       size += DBG_String(ANSI_GREY" flash:"ANSI_END);

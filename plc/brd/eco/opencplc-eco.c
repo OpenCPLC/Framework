@@ -316,7 +316,7 @@ void PLC_Loop(void)
   }
 }
 
-void PLC_Thread(void)
+void PLC_Main(void)
 {
   PLC_Init();
   while(1) {
