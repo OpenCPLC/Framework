@@ -42,6 +42,7 @@
 #define WAIT_ (bool (*)(void *)) // Type cast for timeout function
 #define seconds(ms)  (1000 * ms) // Convert seconds to milliseconds
 #define minutes(min) (60 * 1000 * min) // Convert minutes to milliseconds
+#define wait_for(flag) while(!(flag)) let() // Wait until `flag` is `true`
 
 // Struct to represent a thread in VRTS
 typedef struct {
@@ -63,7 +64,6 @@ int32_t watch(uint64_t tick); // Measure time since a specific tick
 bool vrts_thread(void (*handler)(void), uint32_t *stack, uint16_t size);
 #define stack(name, size) static uint32_t name[8 * ((size + 7) / 8)] __attribute__((aligned(8)))
 #define thread(fnc, stack_name) vrts_thread(&fnc, (uint32_t *)stack_name, sizeof(stack_name) / sizeof(uint32_t));
-#define thread_fnc(name, init, loop) void name(void) { init(); while(1) { loop(); let(); } }
 
 void vrts_init(void); // Initialize VRTS system
 void vrts_lock(void); // Disable thread switching

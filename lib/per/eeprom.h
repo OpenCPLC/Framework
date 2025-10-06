@@ -51,6 +51,8 @@ status_t EEPROM_SaveList(EEPROM_t *eeprom, uint32_t *var, ...);
 status_t EEPROM_LoadList(EEPROM_t *eeprom, uint32_t *var, ...);
 status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var);
 status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var);
+status_t EEPROM_WriteFloat(EEPROM_t *eeprom, uint32_t key, float value);
+float EEPROM_ReadFloat(EEPROM_t *eeprom, uint32_t key, float value);
 
 status_t CACHE_Init(EEPROM_t *eeprom);
 status_t CACHE_Clear(void);
@@ -62,6 +64,8 @@ status_t CACHE_SaveList(uint32_t *var, ...);
 status_t CACHE_LoadList(uint32_t *var, ...);
 status_t CACHE_Save64(uint64_t *var);
 status_t CACHE_Load64(uint64_t *var);
+status_t CACHE_WriteFloat(uint32_t key, float value);
+float CACHE_ReadFloat(uint32_t key, float value);
 
 //-------------------------------------------------------------------------------------------------
 #endif

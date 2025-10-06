@@ -340,6 +340,17 @@ status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var)
   return OK;
 }
 
+inline status_t EEPROM_WriteFloat(EEPROM_t *eeprom, uint32_t key, float value)
+{
+  return EEPROM_Write(eeprom, key, *(uint32_t *)&value);
+}
+
+inline float EEPROM_ReadFloat(EEPROM_t *eeprom, uint32_t key, float value)
+{
+  uint32_t raw = EEPROM_Read(eeprom, key, *(uint32_t *)&value);
+  return *(float *)&raw;
+}
+
 //------------------------------------------------------------------------------------------------- Cache
 
 static EEPROM_t *eeprom_cache;
@@ -467,6 +478,17 @@ status_t CACHE_Load64(uint64_t *var)
 {
   if(!eeprom_cache) return ERR;
   return EEPROM_Load64(eeprom_cache, var);
+}
+
+inline status_t CACHE_WriteFloat(uint32_t key, float value)
+{
+  return CACHE_Write(key, *(uint32_t *)&value);
+}
+
+inline float CACHE_ReadFloat(uint32_t key, float value)
+{
+  uint32_t raw = CACHE_Read(key, *(uint32_t *)&value);
+  return *(float *)&raw;
 }
 
 //-------------------------------------------------------------------------------------------------
