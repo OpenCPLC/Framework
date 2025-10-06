@@ -463,9 +463,9 @@ void LOG_Panic(const char *message)
     #endif
     DBG_String((char *)message);
     DBG_Enter();
-    DBG_WaitForFreeBlock();
+    DBG_WaitBlock();
     UART_Send(DbgUart, DbgFile->buffer, DbgFile->size);
-    DBG_WaitForFreeBlock();
+    DBG_WaitBlock();
     FILE_Clear(DbgFile);
   #endif
 }

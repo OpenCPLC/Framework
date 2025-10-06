@@ -23,6 +23,7 @@
 
 typedef enum {
   HASH_Ping = 2090616627,
+  HASH_Trig = 2090770011,
   HASH_File = 2090257189,
   HASH_Uid = 193507975,
   HASH_Rtc = 193505070,
@@ -107,6 +108,10 @@ void BASH_FlashAutosave(bool autosave);
 void BASH_WrongArgc(char *cmd, uint16_t argc);
 void BASH_WrongArgv(char *cmd, char *argv, uint16_t pos);
 bool BASH_Loop(STREAM_t *stream);
+
+uint16_t TRIG_Event(void);
+uint16_t TRIG_Wait(void);
+void TRIG_WaitFor(uint16_t code);
 
 //-------------------------------------------------------------------------------------------------
 #endif

@@ -27,11 +27,12 @@
 
 extern UART_t *DbgUart;
 extern FILE_t *DbgFile;
+extern volatile bool DbgReset;
 
 void DBG_Init(UART_t *uart);
 void DBG_Loop(void);
-void DBG_WaitForFree(void);
-void DBG_WaitForFreeBlock(void);
+void DBG_Wait(void);
+void DBG_WaitBlock(void);
 void DBG_Send(uint8_t *array, uint16_t length);
 void DBG_SendFile(FILE_t *file);
 void DBG_DefaultFile(void);

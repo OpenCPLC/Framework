@@ -23,8 +23,8 @@ typedef enum {
 
 /**
  * @brief EEPROM emulation descriptor
- * @param page_start First flash page reserved for EEPROM (config)
- * @param page_count Number of flash pages reserved for EEPROM (must be even, config)
+ * @param[in] page_start First flash page reserved for EEPROM 
+ * @param[in] page_count Number of flash pages reserved for EEPROM (must be even)
  * @param storage_pages Number of pages per storage block (`page_count` / `2`)
  * @param adrr_start Start addresses for each storage block [A,B]
  * @param adrr_end  End addresses for each storage block [A,B]
@@ -51,6 +51,8 @@ status_t EEPROM_SaveList(EEPROM_t *eeprom, uint32_t *var, ...);
 status_t EEPROM_LoadList(EEPROM_t *eeprom, uint32_t *var, ...);
 status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var);
 status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var);
+status_t EEPROM_WriteFloat(EEPROM_t *eeprom, uint32_t key, float value);
+float EEPROM_ReadFloat(EEPROM_t *eeprom, uint32_t key, float value);
 
 status_t CACHE_Init(EEPROM_t *eeprom);
 status_t CACHE_Clear(void);
@@ -62,6 +64,8 @@ status_t CACHE_SaveList(uint32_t *var, ...);
 status_t CACHE_LoadList(uint32_t *var, ...);
 status_t CACHE_Save64(uint64_t *var);
 status_t CACHE_Load64(uint64_t *var);
+status_t CACHE_WriteFloat(uint32_t key, float value);
+float CACHE_ReadFloat(uint32_t key, float value);
 
 //-------------------------------------------------------------------------------------------------
 #endif

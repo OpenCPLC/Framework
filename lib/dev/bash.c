@@ -14,6 +14,7 @@ static struct {
   FILE_t *file_active;
   void (*Sleep)(PWR_SleepMode_e);
   void (*Reset)(void);
+  uint16_t trig;
 } bash;
 
 /**
@@ -67,7 +68,7 @@ void BASH_FlashAutosave(bool autosave)
 static inline void BASH_WrongCommand(char *cmd)
 {
   #if(LOG_COLORS)
-    LOG_Warning("Wrong "ANSI_TEAL"%s"ANSI_END" command usage", cmd);
+    LOG_Warning("Wrong "ANSI_ORANGE"%s"ANSI_END" command usage", cmd);
   #else
     LOG_Warning("Wrong '%s' command usage", cmd);
   #endif
@@ -98,7 +99,8 @@ void BASH_WrongArgv(char *cmd, char *argv, uint16_t pos)
 {
   BASH_WrongCommand(cmd);
   #if(LOG_COLORS)
-    LOG_Warning("Invalid argument "ANSI_ORANGE"%s"ANSI_END" on "ANSI_LIME"%u"ANSI_END" position", cmd, pos);
+    LOG_Warning("Invalid argument " ANSI_ORANGE "%s" ANSI_END \
+      " on " ANSI_LIME "%u" ANSI_END " position", cmd, pos);
   #else
     LOG_Warning("Invalid argument '%s' on %u position", cmd, pos);
   #endif
@@ -110,7 +112,8 @@ static void BASH_Data(uint8_t *data, uint16_t size, STREAM_t *stream)
 {
   stream->packages--;
   #if(LOG_COLORS)
-    LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " data pack:" ANSI_LIME "%d" ANSI_END, bash.file_active->name, stream->packages);
+    LOG_Bash("File " ANSI_CREAM "%s" ANSI_END " data pack:" ANSI_LIME "%d" ANSI_END,
+      bash.file_active->name, stream->packages);
   #elif
     LOG_Bash("File %s data pack:%d", bash.file_active->name, stream->packages);
   #endif
@@ -474,7 +477,7 @@ static void BASH_Alarm(char **argv, uint16_t argc)
 #endif
 //------------------------------------------------------------------------------------------------- PWR
 
-PWR_SleepMode_e PWR_Str2SleepMode(const char *str)
+PWR_SleepMode_e PWR_StrSleepMode(const char *str)
 {
   switch(hash_djb2(str)) {
     case PWR_Hash_Stop0: case HASH_Number_0: return PWR_SleepMode_Stop0;
@@ -492,7 +495,7 @@ static void BASH_Power(char **argv, uint16_t argc)
   switch(hash_djb2(argv[1])) {
     case HASH_Sleep: {
       BASH_Argc(3, 4);
-      PWR_SleepMode_e mode = PWR_Str2SleepMode(argv[2]);
+      PWR_SleepMode_e mode = PWR_StrSleepMode(argv[2]);
       if(mode == PWR_SleepMode_Error) BASH_ArgvExit(2);
       if(argc == 3) {
         if(bash.Sleep) bash.Sleep(mode);
@@ -510,7 +513,7 @@ static void BASH_Power(char **argv, uint16_t argc)
       BASH_Argc(2, 3);
       if(argc == 2) {
         if(bash.Reset) bash.Reset();
-        else PWR_Reset();
+        else DbgReset = true;
       }
       else if(argc == 3) {
         if(hash_djb2(argv[2]) == HASH_Now) PWR_Reset();
@@ -544,7 +547,63 @@ static void BASH_Ping(char **argv, uint16_t argc)
   LOG_Bash("PING pong");
 }
 
-//------------------------------------------------------------------------------------------------- LOOP
+//------------------------------------------------------------------------------------------------- Trig
+
+/**
+ * @brief Get and clear current trigger code.
+ * Returns `0` if no trigger is pending.
+ * @return Trigger code or `0` if none.
+ */
+uint16_t TRIG_Event(void)
+{
+  if(bash.trig) {
+    uint16_t trig = bash.trig;
+    bash.trig = 0;
+    return trig;
+  }
+  return 0;
+}
+
+/**
+ * @brief Wait until any trigger occurs.
+ * Function blocks until trigger is set, then clears it.
+ * @return Trigger code that was received.
+ */
+uint16_t TRIG_Wait(void)
+{
+  while(!bash.trig) let();
+  uint16_t trig = bash.trig;
+  bash.trig = 0;
+  return trig;
+}
+
+/**
+ * @brief Wait until specific trigger code occurs.
+ * Function blocks until `code` is received, then clears it.
+ * @param[in] code Expected trigger code.
+ */
+void TRIG_WaitFor(uint16_t code)
+{
+  while(bash.trig != code) let();
+  bash.trig = 0;
+}
+
+static void BASH_Trig(char **argv, uint16_t argc)
+{
+  BASH_Argc(1, 2);
+  if(argc == 1) {
+    bash.trig = 1;
+  }
+  else if(str_is_u16(argv[1])) {
+    bash.trig = str_to_int(argv[1]);
+  }
+  else {
+    LOG_ErrorParse(argv[1], "uint16_t");
+    BASH_ArgvExit(1);
+  }
+}
+
+//------------------------------------------------------------------------------------------------- Loop
 
 /**
  * @brief Obsługuje komendy odczytane ze strumienia w systemie BASH.
@@ -562,6 +621,7 @@ bool BASH_Loop(STREAM_t *stream)
       uint32_t argv0_hash = hash_djb2(argv[0]);
       switch(argv0_hash) {
         case HASH_Ping: BASH_Ping(argv, argc); break;
+        case HASH_Trig: BASH_Trig(argv, argc); break;
         case HASH_File: BASH_File(argv, argc, stream); break;
         case HASH_Uid: BASH_Uid(argv, argc); break;
         case HASH_Power: case HASH_Pwr: BASH_Power(argv, argc); break;
@@ -585,7 +645,7 @@ bool BASH_Loop(STREAM_t *stream)
           }
           else {
             #if(LOG_COLORS)
-              LOG_Warning("Command " ANSI_TEAL "%s" ANSI_END " not found", argv[0]);
+              LOG_Warning("Command " ANSI_ORANGE "%s" ANSI_END " not found", argv[0]);
             #else
               LOG_Warning("Command '%s' not found", argv[0]);
             #endif

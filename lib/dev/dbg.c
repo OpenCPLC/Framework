@@ -52,6 +52,8 @@ void DBG_Init(UART_t *uart)
   UART_Init(DbgUart);
 }
 
+volatile bool DbgReset;
+
 #if(DBG_ECHO_MODE)
 char EchoValue;
 bool EchoEnter = false;
@@ -109,6 +111,7 @@ void DBG_Loop(void)
         UART_Send(DbgUart, buffer, DbgFile->size);
         FILE_Clear(DbgFile);
       }
+      else if(DbgReset && UART_SendCompleted(DbgUart)) PWR_Reset();
     }
     let();
   }
@@ -116,21 +119,22 @@ void DBG_Loop(void)
 
 //-------------------------------------------------------------------------------------------------
 
-void DBG_WaitForFree(void)
+void DBG_Wait(void)
 {
   while(UART_IsBusy(DbgUart)) let();
 }
 
-void DBG_WaitForFreeBlock(void)
+void DBG_WaitBlock(void)
 {
   while(UART_IsBusy(DbgUart)) __NOP();
 }
 
+
 void DBG_Send(uint8_t *array, uint16_t length)
 {
-  DBG_WaitForFree();
+  DBG_Wait();
   UART_Send(DbgUart, array, length);
-  DBG_WaitForFree();
+  DBG_Wait();
 }
 
 void DBG_SendFile(FILE_t *file)
