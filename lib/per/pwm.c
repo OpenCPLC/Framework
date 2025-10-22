@@ -75,32 +75,58 @@ static void PWM_ChannelInit(PWM_t *pwm, TIM_Channel_t channel)
 {
   bool invert_pos = pwm->invert[channel];
   bool invert_neg = pwm->invert[channel + 4];
-  RCC_EnableTIM(pwm->reg);
-  pwm->reg->CCER |= ((invert_neg << TIM_CCER_CC1NP_Pos) | TIM_CCER_CC1NE | (invert_pos << TIM_CCER_CC1P_Pos) | TIM_CCER_CC1E) << (4 * channel);
-  PWM_SetValue(pwm, channel, pwm->value[channel]);
-  switch(channel) {
-    case TIM_CH1: pwm->reg->CCMR1 |= TIM_CCMR1_OC1PE | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1; break;
-    case TIM_CH2: pwm->reg->CCMR1 |= TIM_CCMR1_OC2PE | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1; break;
-    case TIM_CH3: pwm->reg->CCMR2 |= TIM_CCMR2_OC3PE | TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1; break;
-    case TIM_CH4: pwm->reg->CCMR2 |= TIM_CCMR2_OC4PE | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1; break;
+  switch (channel) {
+    case TIM_CH1: pwm->reg->CCMR1 = (pwm->reg->CCMR1 & ~(TIM_CCMR1_OC1M_Msk|TIM_CCMR1_OC1PE))
+      | (TIM_CCMR1_OC1PE | TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1); break;
+    case TIM_CH2: pwm->reg->CCMR1 = (pwm->reg->CCMR1 & ~(TIM_CCMR1_OC2M_Msk|TIM_CCMR1_OC2PE))
+      | (TIM_CCMR1_OC2PE | TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1); break;
+    case TIM_CH3: pwm->reg->CCMR2 = (pwm->reg->CCMR2 & ~(TIM_CCMR2_OC3M_Msk|TIM_CCMR2_OC3PE))
+      | (TIM_CCMR2_OC3PE | TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1); break;
+    case TIM_CH4: pwm->reg->CCMR2 = (pwm->reg->CCMR2 & ~(TIM_CCMR2_OC4M_Msk|TIM_CCMR2_OC4PE))
+      | (TIM_CCMR2_OC4PE | TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1); break;
     default: break;
+  }
+  PWM_SetValue(pwm, channel, pwm->value[channel]);
+  uint32_t sh = 4u * channel;
+  uint32_t set = ((invert_pos ? TIM_CCER_CC1P : 0) | TIM_CCER_CC1E) << sh;
+  uint32_t mask = (TIM_CCER_CC1E | TIM_CCER_CC1P | TIM_CCER_CC1NE | TIM_CCER_CC1NP) << sh;
+  bool has_neg = (pwm->channel[channel + 4] != 0);
+  if(has_neg) set |= (TIM_CCER_CC1NE | (invert_neg ? TIM_CCER_CC1NP : 0)) << sh;
+  pwm->ccer_mask |= (TIM_CCER_CC1E << sh) | (has_neg ? (TIM_CCER_CC1NE << sh) : 0);
+  pwm->reg->CCER  = (pwm->reg->CCER & ~mask) | set;
+}
+
+static void PWM_ChannelsInit(PWM_t *pwm)
+{
+  pwm->ccer_mask = 0;
+  for(uint8_t i = 0; i < 4; i++) {
+    bool init = false;
+    if(pwm->channel[i]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
+    if(pwm->channel[i + 4]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
+    if(init) PWM_ChannelInit(pwm, i);
+  }
+}
+
+void PWM_OutputEnable(PWM_t *pwm, bool enable)
+{
+  if(pwm->reg == TIM1) {
+    if(enable) { pwm->reg->BDTR |= TIM_BDTR_MOE; }
+    else { pwm->reg->BDTR &= ~TIM_BDTR_MOE; }
+  }
+  else {
+    if(enable) { pwm->reg->CCER |=  pwm->ccer_mask; }
+    else { pwm->reg->CCER &= ~pwm->ccer_mask; }
   }
 }
 
 void PWM_Init(PWM_t *pwm)
 {
-  bool init;
   pwm->reg->EGR &= ~TIM_EGR_UG;
   pwm->reg->CR1 &= ~TIM_CR1_CEN;
   pwm->reg->CCER = 0;
   pwm->reg->CCMR1 = 0;
   pwm->reg->CCMR2 = 0;
-  for(uint8_t i = 0; i < 4; i++) {
-    init = false;
-    if(pwm->channel[i]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i]], false); init = true; }
-    if(pwm->channel[i + 4]) { GPIO_InitAlternate(&TIM_CHx_MAP[pwm->channel[i + 4]], false); init = true; }
-    if(init) PWM_ChannelInit(pwm, i);
-  }
+  PWM_ChannelsInit(pwm);
   PWM_SetPrescaler(pwm, pwm->prescaler);
   pwm->reg->ARR = pwm->auto_reload;
   uint8_t center_aligned = pwm->center_aligned ? 0x03 << TIM_CR1_CMS_Pos : 0;

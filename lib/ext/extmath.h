@@ -56,21 +56,30 @@ float step_limiter_f32(float input, float prev, float max_delta);
 
 //-------------------------------------------------------------------------------------------------
 
+#define ext_min2(a,b) ((a) < (b) ? (a) : (b))
+#define ext_min3(a,b,c) ext_min2(ext_min2(a,b), (c))
+#define ext_min4(a,b,c,d) ext_min2(ext_min3(a,b,c), (d))
+#define ext_min5(a,b,c,d,e) ext_min2(ext_min4(a,b,c,d), (e))
+#define GET_EXT_MIN(_1,_2,_3,_4,_5,NAME,...) NAME
 /**
- * @brief Return minimum of two values.
- * @param a First value.
- * @param b Second value.
- * @return Smaller of `a` and `b`.
+ * @brief Return minimum of provided values.
+ * @note Supports 2–5 arguments.
+ * @return Smallest of given arguments.
  */
-#define ext_min(a, b) (((a) < (b)) ? (a) : (b))
+#define ext_min(...) GET_EXT_MIN(__VA_ARGS__, ext_min5, ext_min4, ext_min3, ext_min2)(__VA_ARGS__)
 
+
+#define ext_max2(a,b) ((a) > (b) ? (a) : (b))
+#define ext_max3(a,b,c) ext_max2(ext_max2(a,b), (c))
+#define ext_max4(a,b,c,d) ext_max2(ext_max3(a,b,c), (d))
+#define ext_max5(a,b,c,d,e) ext_max2(ext_max4(a,b,c,d), (e))
+#define GET_EXT_MAX(_1,_2,_3,_4,_5,NAME,...) NAME
 /**
- * @brief Return maximum of two values.
- * @param a First value.
- * @param b Second value.
- * @return Greater of `a` and `b`.
+ * @brief Return maximum of provided values.
+ * @note Supports 2–5 arguments.
+ * @return Greatest of given arguments.
  */
-#define ext_max(a, b) (((a) > (b)) ? (a) : (b))
+#define ext_max(...) GET_EXT_MAX(__VA_ARGS__, ext_max5, ext_max4, ext_max3, ext_max2)(__VA_ARGS__)
 
 /**
  * @brief Return absolute value of number.

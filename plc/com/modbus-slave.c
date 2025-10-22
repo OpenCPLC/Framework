@@ -2,7 +2,7 @@
 
 MODBUS_Status_e MODBUS_Loop(MODBUS_Slave_t *modbus)
 {
-  if(UART_IsSending(modbus->uart)) return MODBUS_Status_UartBusy;
+  if(UART_SendActive(modbus->uart)) return MODBUS_Status_UartBusy;
   uint16_t size_rx = UART_Size(modbus->uart);
   if(!size_rx) return MODBUS_Status_None;
   heap_free((void **)&modbus->buffer_rx);

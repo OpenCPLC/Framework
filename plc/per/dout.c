@@ -1,25 +1,27 @@
 #include "dout.h"
+#include "vrts.h"
+#include "extstr.h"
 #include "log.h"
 
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Odczytuje aktualną częstotliwość sygnału PWM.
- * @param pwm Wskaźnik do struktury reprezentującej sygnał PWM.
- * @return Aktualna częstotliwość sygnału PWM [Hz].
+ * @brief Get current PWM signal frequency.
+ * @param[in] pwm Pointer to `PWM_t` descriptor.
+ * @return Current PWM frequency [Hz].
  */
-float PWM_GetFrequency(PWM_t *pwm)
+float PWM_GetFrequency(const PWM_t *pwm)
 {
   return (float)SystemCoreClock / pwm->prescaler  / pwm->auto_reload / (pwm->center_aligned + 1);
 }
 
 /**
- * @brief Ustawia częstotliwość dla sygnału PWM.
- * Kontroler PWM_t może być powiązany z kilkoma wyjściami cyfrowymi.
- * Zatem częstotliwość zostanie zmieniona na wszystkich powiązanych wyjściach cyfrowych.
- * @param pwm Wskaźnik do struktury reprezentującej sygnał PWM.
- * @param frequency Docelowa częstotliwość sygnału PWM.
- * @return Rzeczywista ustawiona częstotliwość sygnału PWM.
+ * @brief Set PWM signal frequency.
+ * A single `PWM_t` controller may drive multiple digital outputs,
+ * so the change affects all linked channels.
+ * @param[in,out] pwm Pointer to `PWM_t` descriptor.
+ * @param[in] frequency Target frequency [Hz].
+ * @return Actual applied frequency [Hz].
  */
 float PWM_Frequency(PWM_t *pwm, float frequency)
 {
@@ -40,24 +42,24 @@ float PWM_Frequency(PWM_t *pwm, float frequency)
   return PWM_GetFrequency(pwm);
 }
 
-/**  
- * @brief Odczytuje aktualną częstotliwość sygnału PWM powiązanego z wyjściem cyfrowym.
- * @param dout Wskaźnik do struktury reprezentującej wyjście tranzystorowe (TO) lub triakowe (XO).
- * @return Aktualna częstotliwość sygnału PWM [Hz]. Wartość 0 dla wyjść bez licznika, np. przekaźnikowych (RO).
+/**
+ * @brief Get current PWM frequency linked to digital output.
+ * @param[in] dout Pointer to `DOUT_t` descriptor for transistor (TO) or triac (XO) output.
+ * @return Current PWM frequency [Hz], or 0 for non-PWM outputs (e.g. relay RO).
  */
-float DOUT_GetFrequency(DOUT_t *dout)
+float DOUT_GetFrequency(const DOUT_t *dout)
 {
   if(!dout->pwm) return 0;
   return PWM_GetFrequency(dout->pwm);
 }
 
 /**
- * @brief Ustawia częstotliwość sygnału PWM powiązanego z wyjściem cyfrowym.
- * Kontroler PWM_t może być powiązany z kilkoma wyjściami cyfrowymi.
- * Zatem częstotliwość zostanie zmieniona na wszystkich powiązanych wyjściach cyfrowych.
- * @param dout Wskaźnik do struktury reprezentującej wyjście tranzystorowe (TO) lub triakowe (XO).
- * @param frequency Docelowa częstotliwość sygnału PWM.
- * @return Aktualna częstotliwość sygnału PWM [Hz]. Wartość 0 dla wyjść bez licznika, np. przekaźnikowych (RO).
+ * @brief Set PWM frequency for digital output.
+ * A single `PWM_t` controller may drive multiple outputs,  
+ * so the frequency change affects all linked channels.
+ * @param[in,out] dout Pointer to `DOUT_t` descriptor for transistor (TO) or triac (XO) output.
+ * @param[in] frequency Target PWM frequency [Hz].
+ * @return Current PWM frequency [Hz], or 0 for non-PWM outputs (e.g. relay RO).
  */
 float DOUT_Frequency(DOUT_t *dout, float frequency)
 {
@@ -66,34 +68,49 @@ float DOUT_Frequency(DOUT_t *dout, float frequency)
 }
 
 /**
- * @brief Ustawia wartość wypełnienia `duty` sygnału PWM na wyjściu cyfrowym.
- * Jeśli opcja `save` jest włączona, aktualna wartość jest zapisywana do EEPROM.
- * @param dout Wskaźnik do struktury reprezentującej wyjście tranzystorowe (TO) lub triakowe (XO).
- * @param duty Wartość wypełnienia [%] sygnału PWM (0% - 100%).
- * @return Rzeczywista ustawiona wartość wypełnienia `duty` na wyjściu cyfrowym.
+ * @brief Get current PWM duty cycle [%] for digital output.
+ * Valid only for outputs with PWM channel assigned.
+ * @param[in] dout Pointer to `DOUT_t` output descriptor.
+ * @return Duty cycle in percent, or `NaN` if not PWM type.
+ */
+float DOUT_GetDuty(const DOUT_t *dout)
+{
+  if(!dout->pwm) return NaN;
+  return (float)dout->value * 100.0f / dout->pwm->auto_reload;
+}
+
+/**
+ * @brief Set PWM duty cycle on digital output.
+ * If `save` is enabled, the value is stored in EEPROM.
+ * @param[in,out] dout Pointer to `DOUT_t` descriptor for transistor (TO) or triac (XO) output.
+ * @param[in] duty PWM duty cycle [%] (0–100).
+ * @return Actual applied duty cycle [%], or `NaN` if not PWM type.
  */
 float DOUT_Duty(DOUT_t *dout, float duty)
 {
   if(!dout->pwm) {
-    return 0;
+    return NaN;
   }
+  duty = ext_clamp(duty, 0.0f, 100.0f);
   uint32_t old_value = dout->pwm->value[dout->channel];
-  PWM_SetValue(dout->pwm, dout->channel, duty * dout->pwm->auto_reload / 100);
+  PWM_SetValue(dout->pwm, dout->channel, duty * dout->pwm->auto_reload / 100.0f);
   dout->value = dout->pwm->value[dout->channel];
-  duty = (float)dout->value * 100 / dout->pwm->auto_reload;
-  if(dout->eeprom && (old_value != dout->value) && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
+  duty = ((float)dout->value * 100.0f) / dout->pwm->auto_reload;
+  if(dout->eeprom && (old_value != dout->value) && dout->save) {
+    EEPROM_Save(dout->eeprom, &dout->value);
+  }
   return duty;
 }
 
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Ustawia stan wysoki na wyjściu cyfrowym.
- * Wyjściu przekaźnikowym (RO): wykonuje zwarcie na styku przekaźnika.
- * Wyjście tranzystorowe (TO): wystawia potencjał zasilania lub TCOM.
- * Wyjście triakowe (XO): przenosi napięcie przemienne z XCOM.
- * Jeśli opcja `save` jest włączona, aktualny stan jest zapisywany do EEPROM.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
+ * @brief Set digital output to high state.
+ * Relay output (RO): closes contact.
+ * Transistor output (TO): drives supply or TCOM.
+ * Triac output (XO): transfers AC voltage from XCOM.
+ * If `save` is enabled, the new state is stored in EEPROM.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
  */
 void DOUT_Set(DOUT_t *dout)
 {
@@ -111,12 +128,12 @@ void DOUT_Set(DOUT_t *dout)
 }
 
 /**
- * @brief Ustawia stan niski na wyjściu cyfrowym.
- * Wyjściu przekaźnikowym (RO): pozostawia rozwarty styk przekaźnika.
- * Wyjście tranzystorowe (TO): pozostawia brak potencjału (floating).
- * Wyjście triakowe (XO): pozostawia brak potencjału (floating).
- * Jeśli opcja `save` jest włączona, aktualny stan jest zapisywany do EEPROM.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
+ * @brief Set digital output to low state.
+ * Relay output (RO): leaves contact open.
+ * Transistor output (TO): leaves line floating.
+ * Triac output (XO): leaves line floating.
+ * If `save` is enabled, the new state is stored in EEPROM.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
  */
 void DOUT_Rst(DOUT_t *dout)
 {
@@ -130,14 +147,14 @@ void DOUT_Rst(DOUT_t *dout)
     if(!dout->value) return;
     dout->value = false;
     if(dout->eeprom && dout->save) EEPROM_Save(dout->eeprom, &dout->value);
-    if(dout->relay) dout->_stun = tick_keep(DOUT_RELAY_DELAY);
+    if(dout->relay) dout->stun = tick_keep(DOUT_RELAY_STUN_ms);
   }
 }
 
 /**
- * @brief Zmienia stan na wyjściu cyfrowym.
- * Jeśli opcja `save` jest włączona, aktualny stan jest zapisywany do EEPROM.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
+ * @brief Toggle digital output state.
+ * If `save` is enabled, the new state is stored in EEPROM.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
  */
 void DOUT_Tgl(DOUT_t *dout)
 {
@@ -152,9 +169,9 @@ void DOUT_Tgl(DOUT_t *dout)
 }
 
 /**
- * @brief Ustawia wyjście cyfrowe na określony stan wysoki `true`, lub niski `false`.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
- * @param value Jeśli `true`, funkcja jest równoważna `DOUT_Set`, w przeciwnym razie `DOUT_Rst`.
+ * @brief Set digital output to high `true` or low `false` state.
+ * @param[in] dout Pointer to `DOUT_t` output descriptor.
+ * @param[in] value If `true`, same as `DOUT_Set`; otherwise `DOUT_Rst`.
  */
 void DOUT_Preset(DOUT_t *dout, bool value)
 {
@@ -163,66 +180,53 @@ void DOUT_Preset(DOUT_t *dout, bool value)
 }
 
 /**
- * @brief Aktywuje impuls, czyli zmienia stan wyjścia cyfrowego na czas `time_ms`.
- * W przypadku aktywnego trybu PWM, na czas `time_ms` wyjście zostanie wyłączone.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
- * @param time_ms Czas trwania impulsu w milisekundach.
- * @return Impuls zostanie wykonany jeśli `true`
+ * @brief Generate one or more pulses on digital output.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
+ * @param[in] count Number of pulses to generate.
+ * @param[in] ton_ms Pulse ON time in milliseconds.
+ * @param[in] toff_ms Pulse OFF time in milliseconds.
+ * @return `true` if pulse sequence started, otherwise `false`.
  */
-bool DOUT_Pulse(DOUT_t *dout, uint16_t time_ms)
+bool DOUT_Pulse(DOUT_t *dout, uint8_t count, uint16_t ton_ms, uint16_t toff_ms)
 {
-  if(dout->pulse) return false;
-  dout->_pulse = time_ms;
+  if(dout->relay && (ton_ms >= DOUT_RELAY_STUN_ms || toff_ms >= DOUT_RELAY_STUN_ms)) return false;
+  dout->pulse = (count * 2u);
+  dout->ton_ms = ton_ms;
+  dout->toff_ms = toff_ms;
   return true;
 }
 
-//-------------------------------------------------------------------------------------------------
-
 /**
- * @brief Pobiera aktualny stan wyjścia.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
- * @return Wartość `true` dla stanu wysokiego, `false` stanu dla niskiego.
- * W przypadku kanału PWM, wartoś cyfrową wypełnienia sygnału.
+ * @brief Get current digital output state.
+ * @param[in] dout Pointer to `DOUT_t` output descriptor.
+ * @return `true` if output is active (non-zero), otherwise `false`.
  */
-uint32_t DOUT_State(DOUT_t *dout)
+bool DOUT_State(const DOUT_t *dout)
 {
-  if(dout->pwm) return dout->pwm->value[dout->channel];
+  if(dout->pwm) return dout->pwm->value[dout->channel] ? true : false;
   else return dout->gpio.set;
 }
 
 /**
- * @brief Sprawdza, czy wyjście cyfrowe jest w trakcie wykonywania impulsu.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
- * @return Wartość `true` dla trwającego impulsu, `false` w przeciwnym razie.
+ * @brief Check if digital output is in pulse sequence.
+ * @param[in] dout Pointer to `DOUT_t` output descriptor.
+ * @return `true` if pulse is active, otherwise `false`.
  */
 bool DOUT_IsPulse(DOUT_t *dout)
 {
-  return dout->pulse;
-}
-
-/**
- * @brief Pobiera aktualną wartość wypełnienia sygnału [%] na wyjściu cyfrowym.
- * Funkcja tylko dla wyjść z kanałami PWM.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
- * @return Wartość `true` dla aktywnego stanu, `false` dla nieaktywnego.
- */
-float DOUT_GetDuty(DOUT_t *dout)
-{
-  if(!dout->pwm) return 0;
-  return (float)dout->value * 100 / dout->pwm->auto_reload;
+  return dout->pulse ? true : false;
 }
 
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Inicjalizuje określone wyjście cyfrowe.
- * W przypadku wyjść z kanałami PWM konieczna jest jego inicjalizacja z funkcji wywołującej.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
+ * @brief Initialize digital output.
+ * For PWM-backed outputs, the `PWM_t` must be initialized by the caller.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
  */
 void DOUT_Init(DOUT_t *dout)
 {
-  if(dout->eeprom)
-  {
+  if(dout->eeprom) {
     EEPROM_Init(dout->eeprom);
     if(!dout->save) EEPROM_Load(dout->eeprom, &dout->save);
     if(dout->save) EEPROM_Load(dout->eeprom, &dout->value);
@@ -234,6 +238,10 @@ void DOUT_Init(DOUT_t *dout)
   }
 }
 
+/**
+ * @brief Increment relay switch counter and store in EEPROM.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
+ */
 static inline void DOUT_RelayCyclesInc(DOUT_t *dout)
 {
   dout->cycles++;
@@ -241,27 +249,26 @@ static inline void DOUT_RelayCyclesInc(DOUT_t *dout)
 }
 
 /**
- * @brief Pętla obsługująca wyjście cyfrowe.
- * Funkcję należy wywoływać w każdej iteracji pętli głównej lub dowolnego wątku.
- * Zalecane jest, aby była uruchamiana nie rzadziej niż 100 ms.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
+ * @brief Digital output service loop.
+ * Call every main loop; pulse timing uses even/odd `pulse` to select TON/TOFF.
+ * @param[in,out] dout Pointer to DOUT_t.
  */
 void DOUT_Loop(DOUT_t *dout)
 {
-  if(tick_over(&dout->_stun)) return;
-  if(dout->_pulse) { // Gdy zostanie ustawiony tryb pulse
+  if(tick_away(&dout->stun)) return;
+  if(dout->pulse) {
     if(dout->relay && !DOUT_State(dout)) DOUT_RelayCyclesInc(dout);
     if(dout->pwm) {
       uint32_t value = dout->value ? 0 : dout->pwm->auto_reload;
       PWM_SetValue(dout->pwm, dout->channel, value);
     }
-    else GPIO_Tgl(&dout->gpio);
-    dout->_stun = tick_keep(dout->_pulse);
-    dout->_pulse = 0;
-    dout->pulse = true;
+    else {
+      GPIO_Tgl(&dout->gpio);
+    }
+    dout->stun = tick_keep(dout->pulse % 2 ? dout->toff_ms : dout->ton_ms);
+    dout->pulse--;
     return;
   }
-  dout->pulse = false;
   if(DOUT_State(dout) != dout->value) {
     if(dout->pwm) PWM_SetValue(dout->pwm, dout->channel, dout->value);
     else {
@@ -275,24 +282,26 @@ void DOUT_Loop(DOUT_t *dout)
         dout->value = false;
       }
     }
-    if(dout->relay) dout->_stun = tick_keep(DOUT_RELAY_DELAY);
+    if(dout->relay) dout->stun = tick_keep(DOUT_RELAY_STUN_ms);
   }
   return;
 }
 
 /**
- * @brief Określa, czy zachować wartość wyjścia cyfrowego po resecie.
- * @param dout Wskaźnik do struktury reprezentującej wyjście cyfrowe.
- * @param save Wartość `true` zapisywanie stanu wyjścia, natomiast `false` brak zapisu.
+ * @brief Define whether digital output value should be retained after reset.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
+ * @param[in] save `true` to enable saving, `false` to disable.
  */
-void DOUT_Settings(DOUT_t *dout, bool save)
+void DOUT_SaveValue(DOUT_t *dout, bool save)
 {
   if(dout->eeprom && save != dout->save) {
+    dout->save = save;
     EEPROM_Save(dout->eeprom, &dout->save);
   }
 }
 
 //-------------------------------------------------------------------------------------------------
+#if(DOUT_BASH_LIMIT)
 
 #include "bash.h"
 
@@ -344,11 +353,11 @@ static struct {
   uint32_t hash[DOUT_BASH_LIMIT];
 } bash;
 
-void DOUT_Add2Bash(DOUT_t *dout)
+void DOUT_Bash_Add(DOUT_t *dout)
 {
   if(bash.count >= DOUT_BASH_LIMIT) {
     #if(LOG_COLORS)
-      LOG_Error("Exceeded "ANSI_TURQUS"DOUT_t"ANSI_END" limit (max %u)", DOUT_BASH_LIMIT);
+      LOG_Error("Exceeded " ANSI_TURQUS "DOUT_t" ANSI_END" limit (max %u)", DOUT_BASH_LIMIT);
     #else
       LOG_Error("Exceeded DOUT_t limit (max %u)", DOUT_BASH_LIMIT);
     #endif
@@ -398,22 +407,22 @@ void DOUT_Bash(char **argv, uint16_t argc)
     #endif
     return;
   }
-  bool pulse_todo = false;
+  // bool pulse_todo = false;
   if(argc >= 3) {
     switch(hash_djb2(argv[2])) {
       case HASH_Set: case HASH_On: case HASH_Enable: DOUT_Set(dout); break;
       case HASH_Rst: case HASH_Reset: case HASH_Off: case HASH_Disable: DOUT_Rst(dout); break;
       case HASH_Tgl: case HASH_Toggle: case HASH_Sw: case HASH_Switch: DOUT_Tgl(dout); break;
-      case HASH_Pulse: case HASH_Impulse: case HASH_Burst: pulse_todo = true;
+      // case HASH_Pulse: case HASH_Impulse: case HASH_Burst: pulse_todo = true;
       case HASH_Duty: case HASH_Fill: {
         BASH_Argc(4);
         if(!str_is_u16(argv[3])) {
           LOG_ErrorParse(argv[3], "uint16_t");
           BASH_ArgvExit(3);
         }
-        uint16_t value = str_to_int(argv[3]);
-        if(pulse_todo) DOUT_Pulse(dout, value);
-        else DOUT_Duty(dout, value);
+        // uint16_t value = str_to_int(argv[3]);
+        // if(pulse_todo) DOUT_Pulse(dout, value);
+        // else DOUT_Duty(dout, value);
         break;
       }
       default: BASH_ArgvExit(2);
@@ -422,4 +431,5 @@ void DOUT_Bash(char **argv, uint16_t argc)
   LOG_Info("Digital output %o", dout, &DOUT_Print);
 }
 
+#endif
 //-------------------------------------------------------------------------------------------------

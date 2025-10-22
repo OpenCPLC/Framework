@@ -9,10 +9,15 @@
 
 //---------------------------------------------------------------------------------------------------------------------
 
-#define UART_115200 baud = 115200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
-#define UART_57600 baud = 57600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
-#define UART_19200 baud = 19200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
-#define UART_9600 baud = 9600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1_0
+#define UART_CR1_RESET 0x00000000u
+#define UART_CR2_RESET 0x00000000u
+#define UART_CR3_RESET 0x00000000u
+#define UART_ICR_CLEAR 0xFFFFFFFFu 
+
+#define UART_115200 baud = 115200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1
+#define UART_57600 baud = 57600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1
+#define UART_19200 baud = 19200, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1
+#define UART_9600 baud = 9600, .parity = UART_Parity_None, .stop_bits = UART_StopBits_1
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -42,8 +47,8 @@ typedef enum {
 
 typedef enum {
   UART_StopBits_0_5 = 0,
-  UART_StopBits_1_0 = 1,
-  UART_StopBits_2_0 = 2,
+  UART_StopBits_1 = 1,
+  UART_StopBits_2 = 2,
   UART_StopBits_1_5 = 3
 } UART_StopBits_t;
 
@@ -95,7 +100,7 @@ void UART_Init(UART_t *uart);
 void UART_ReInit(UART_t *uart);
 void UART_SetTimeout(UART_t *uart, uint16_t timeout);
 bool UART_SendCompleted(UART_t *uart);
-bool UART_IsSending(UART_t *uart);
+bool UART_SendActive(UART_t *uart);
 bool UART_IsBusy(UART_t *uart);
 bool UART_IsFree(UART_t *uart);
 
