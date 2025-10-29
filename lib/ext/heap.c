@@ -3,6 +3,7 @@
 #ifdef OpenCPLC
   #include "vrts.h"
   #include "sys.h"
+  #include "log.h"
 #endif
 
 //------------------------------------------------------------------------------------------------- malloc/free

@@ -342,4 +342,14 @@ void DMA_SetRegisters(DMA_Nbr_t dma_nbr, DMA_t *dma)
   dma->mux = (DMAMUX_Channel_TypeDef *)(DMAMUX1_BASE + (4 * (dma_nbr - 1)));
 }
 
+/**
+ * @brief Clears all interrupt flags (GIF, TC, HT, TE) for the given channel.
+ * @param[in] dma Pointer to DMA_t structure (must contain valid DMAx and pos)
+ */
+void DMA_ClearFlags(DMA_t *dma)
+{
+  if(!dma || !dma->reg) return;
+  dma->reg->IFCR = (DMA_IFCR_CGIF1 | DMA_IFCR_CTCIF1 | DMA_IFCR_CHTIF1 | DMA_IFCR_CTEIF1) << (dma->pos * 4u);
+}
+
 //-------------------------------------------------------------------------------------------------

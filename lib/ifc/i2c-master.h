@@ -5,6 +5,7 @@
 #include "irq.h"
 #include "i2c.h"
 #include "heap.h"
+#include "extdef.h"
 #include "main.h"
 
 //------------------------------------------------------------------------------------------------

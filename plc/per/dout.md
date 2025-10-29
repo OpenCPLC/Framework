@@ -23,7 +23,7 @@ DOUT RO1 set
 
 
 ```bash
-DOUT <output> pulse <time_ms> 
+DOUT <output> pulse <count> <ton_ms> <toof_ms> 
 DOUT TO1 pulse 500
 ```
 

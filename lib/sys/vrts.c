@@ -1,4 +1,5 @@
 #include "vrts.h"
+#include "log.h"
 
 static volatile uint64_t ticker; // global ticker
 static uint32_t tick_ms; // time in ms for a single ticker tick

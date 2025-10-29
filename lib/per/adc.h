@@ -101,25 +101,26 @@ typedef struct {
 } ADC_Oversampling_t;
 
 typedef struct {
-  uint8_t *channels;
-  uint8_t count;
+  uint8_t *chan;
+  uint8_t chan_count;
   uint16_t *output;
   ADC_Prescaler_t prescaler;
   ADC_SamplingTime_t sampling_time;
   ADC_Oversampling_t oversampling;
   uint8_t active;
-} ADC_Measurements_t;
+} ADC_Measure_t;
 
 #if(ADC_RECORD)
 typedef struct {
-  uint8_t *channels;
-  uint8_t count;
+  uint8_t *chan;
+  uint8_t chan_count;
   DMA_Nbr_t dma_nbr;
   ADC_Prescaler_t prescaler;
   ADC_SamplingTime_t sampling_time;
   ADC_Oversampling_t oversampling;
-  uint16_t *buffer;
-  uint16_t buffer_length;
+  bool continuous_mode;
+  uint16_t *buff;
+  uint16_t buff_len;
   TIM_t *tim;
   DMA_t dma;
 } ADC_Record_t;
@@ -129,7 +130,7 @@ typedef struct {
   IRQ_Priority_t int_prioryty;
   bool freq_16Mhz;
   ADC_Prescaler_t prescaler;
-  ADC_Measurements_t measure;
+  ADC_Measure_t measure;
   #if(ADC_RECORD)
     ADC_Record_t record;
   #endif
@@ -140,9 +141,11 @@ typedef struct {
 //-------------------------------------------------------------------------------------------------
 
 uint8_t ADC_Measure(ADC_t *adc);
-uint8_t ADC_Record(ADC_t *adc);
-float ADC_RecordSampleTime_s(ADC_t *adc);
-
+#if(ADC_RECORD)
+  uint8_t ADC_Record(ADC_t *adc);
+  status_t ADC_LastMeasurements(ADC_t *adc, uint16_t *buffer, uint16_t count, bool sort);
+  float ADC_RecordSampleTime_s(ADC_t *adc);
+#endif
 bool ADC_IsBusy(ADC_t *adc);
 bool ADC_IsFree(ADC_t *adc);
 void ADC_Wait(ADC_t *adc);

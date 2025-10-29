@@ -72,18 +72,33 @@ uint32_t FLASH_Read(uint32_t addr)
  */
 status_t FLASH_Write(uint32_t addr, uint32_t data1, uint32_t data2)
 {
+  // Wait for any ongoing operation
   while(FLASH->SR & FLASH_SR_BSY1) __DSB();
-  FLASH->SR = 0;
+  // Clear all status flags
+  FLASH->SR |= FLASH_SR_EOP | FLASH_SR_WRPERR | FLASH_SR_PGAERR |
+               FLASH_SR_SIZERR | FLASH_SR_PGSERR | FLASH_SR_MISERR |
+               FLASH_SR_FASTERR | FLASH_SR_RDERR;
+  // Enable programming
   FLASH->CR |= FLASH_CR_PG;
+  // Write double word (64 bits)
   *(uint32_t *)addr = data1;
   __ISB();
   *(uint32_t *)(addr + 4U) = data2;
-  while(FLASH->SR & FLASH_SR_BSY1);
+  __DSB();
+  // Wait for completion
+  while(FLASH->SR & FLASH_SR_BSY1) __DSB();
+  // Disable programming
   FLASH->CR &= ~FLASH_CR_PG;
-  if(FLASH->SR & FLASH_SR_EOP) FLASH->SR |= FLASH_SR_EOP;
-  else return ERR;
+  // Check for errors
+  if(FLASH->SR & (FLASH_SR_WRPERR | FLASH_SR_PGAERR | FLASH_SR_SIZERR |
+    FLASH_SR_PGSERR | FLASH_SR_MISERR | FLASH_SR_FASTERR | FLASH_SR_RDERR)) {
+    return ERR;
+  }
+  // Clear EOP flag if set
+  FLASH->SR |= FLASH_SR_EOP;
   return OK;
 }
+
 
 /**
  * @brief Fast write 256 bytes to Flash.
