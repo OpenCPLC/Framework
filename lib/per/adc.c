@@ -102,27 +102,23 @@ status_t ADC_LastMeasurements(ADC_t *adc, uint16_t *buffer, uint16_t count, bool
   volatile uint16_t cnt = cha->CNDTR;
   uint16_t write_idx = (len - cnt) % len;
   uint16_t start_idx = (write_idx + len - count) % len;
-if (sort) {
+  if(sort) {
   uint16_t chan_count = adc->record.chan_count;
-  if (count % chan_count) return ERR;                      // (opcjonalnie) pilnuj pełnych ramek
+  // if(count % chan_count) return ERR;
   uint16_t chan_samples = (uint16_t)(count / chan_count);
   uint16_t i_src = start_idx;
-
-  uint16_t chan = (uint16_t)(start_idx % chan_count);      // <-- ZMIANA #1: który kanał jest pierwszy
+  uint16_t chan = (uint16_t)(start_idx % chan_count);
   uint16_t idx  = 0u;
-  uint16_t i_dsc = (uint16_t)(chan * chan_samples + idx);  // <-- ZMIANA #2: startowy offset w bloku kanału
-
-  for (uint16_t i = 0u; i < count; i++) {
+  uint16_t i_dsc = (uint16_t)(chan * chan_samples + idx);
+  for(uint16_t i = 0u; i < count; i++) {
     buffer[i_dsc] = src[i_src];
-    if (++i_src == len) i_src = 0u;
-
-    if (++chan == chan_count) {
+    if(++i_src == len) i_src = 0u;
+    if(++chan == chan_count) {
       chan = 0u;
       idx++;
-      i_dsc = idx;                                         // kanał 0, kolejna próbka
-    } else {
-      i_dsc = (uint16_t)(i_dsc + chan_samples);            // ten sam sample_idx, następny kanał
+      i_dsc = idx;
     }
+    else i_dsc = (uint16_t)(i_dsc + chan_samples);
   }
 }
   else {
