@@ -1,8 +1,21 @@
 #include "sys.h"
-
+#include "log.h"
+#ifdef OpenCPLC
+  #include "vrts.h"
+#endif
 #if(SYS_PANIC_RESET)
   #include "pwr.h"
 #endif
+
+/**
+ * @brief Initialize system clock, SysTick and heap.
+ */
+void sys_init(void)
+{
+  clock_init();
+  systick_init(SYS_BASETIME_ms);
+  heap_init();
+}
 
 /**
  * @brief Initialize system clock according to `SYS_CLOCK_FREQ`.

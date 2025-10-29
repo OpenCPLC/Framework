@@ -1,5 +1,21 @@
 #include "extmath.h"
 
+/**
+ * @brief Symmetric half-up rounding division for int64.
+ * @param num Numerator dividend (may be negative).
+ * @param den Denominator divisor (0 -> return 0; sign normalized to positive).
+ * @return Nearest integer result; .5 rounds away from zero.
+ */
+int64_t div_round(int64_t num, int64_t den)
+{
+  if(den == 0) return 0;
+  if(den < 0) { num = -num; den = -den; }
+  if(num >= 0) return (num + den / 2) / den;
+  int64_t n = num;
+  int64_t q = ((-(n + 1)) + den / 2) / den;
+  return -(q + 1);
+}
+
 //------------------------------------------------------------------------------------------------- ieee754
 
 /**

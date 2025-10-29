@@ -15,12 +15,12 @@
 
 /**
  * @brief Digital input configuration.
- * @param name Name used in bash queries
- * @param gpif Input filter instance `GPIF_t` with `gpio.port` and `gpio.pin`
- * @param eeprom Pointer to `EEPROM_t` for non-volatile storage
- * @param fast_counter Enable fast counter mode
- * @param pwmi Pointer to `PWMI_t` controller for fast counter
- * @param channel Channel of `PWMI_t` controller
+ * @param[in] name Name used in bash queries
+ * @param[in] gpif Input filter instance `GPIF_t` with `gpio.port` and `gpio.pin`
+ * @param[in] eeprom Pointer to `EEPROM_t` for non-volatile storage
+ * @param[in] fast_counter Enable fast counter mode
+ * @param[in] pwmi Pointer to `PWMI_t` controller for fast counter
+ * @param[in] channel Channel of `PWMI_t` controller
  */
 typedef struct {
   const char *name;

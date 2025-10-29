@@ -17,6 +17,8 @@ The goal is to keep code small and safe while fitting real-time and resource-lim
 
 ## Features
 
+Heap module implements static memory partitioning over a fixed-size buffer; no dynamic system allocation occurs after startup.
+
 ### Basic heap
 - `heap_init()` - Initialize heap memory. Call once at startup.  
 - `heap_alloc(size)`  
@@ -41,6 +43,9 @@ The goal is to keep code small and safe while fitting real-time and resource-lim
   Free all memory allocated with `heap_new()` for the active thread.  
 
 ---
+
+
+
 
 ## Configuration
 

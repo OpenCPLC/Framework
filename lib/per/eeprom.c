@@ -319,11 +319,22 @@ status_t EEPROM_LoadList(EEPROM_t *eeprom, uint32_t *var, ...)
  */
 status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var)
 {
-  uint32_t *p32 = (uint32_t *)(void *)var;  // low = p32[0], high = p32[1]
+  uint32_t p32[2];
+  (void)memcpy(&p32[0], var, sizeof(uint64_t));
   if(EEPROM_Save(eeprom, &p32[0]) != OK) return ERR;
   if(EEPROM_Save(eeprom, &p32[1]) != OK) return ERR;
   return OK;
 }
+
+// inconsistent with MISRA/IEC61508 norm!
+// status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var)
+// {
+//   uint32_t *p32 = (uint32_t *)(void *)var;  // low = p32[0], high = p32[1]
+//   if(EEPROM_Save(eeprom, &p32[0]) != OK) return ERR;
+//   if(EEPROM_Save(eeprom, &p32[1]) != OK) return ERR;
+//   return OK;
+// }
+
 
 /**
  * @brief Load 64-bit variable from Flash EEPROM
@@ -334,22 +345,68 @@ status_t EEPROM_Save64(EEPROM_t *eeprom, uint64_t *var)
  */
 status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var)
 {
-  uint32_t *p32 = (uint32_t *)(void *)var;
+  uint32_t p32[2];
   if(EEPROM_Load(eeprom, &p32[0]) != OK) return ERR;
   if(EEPROM_Load(eeprom, &p32[1]) != OK) return ERR;
+  (void)memcpy(var, &p32[0], sizeof(uint64_t));
   return OK;
 }
 
-inline status_t EEPROM_WriteFloat(EEPROM_t *eeprom, uint32_t key, float value)
+// inconsistent with MISRA/IEC61508 norm!
+// status_t EEPROM_Load64(EEPROM_t *eeprom, uint64_t *var)
+// {
+//   uint32_t *p32 = (uint32_t *)(void *)var;
+//   if(EEPROM_Load(eeprom, &p32[0]) != OK) return ERR;
+//   if(EEPROM_Load(eeprom, &p32[1]) != OK) return ERR;
+//   return OK;
+// }
+
+/**
+ * @brief Write floating-point value to EEPROM
+ * Convert `float` to 32-bit raw binary and store under given key.
+ * This version uses `memcpy` to ensure compliance with MISRA and IEC 61508.
+ * @param eeprom EEPROM object
+ * @param key Unique entry identifier
+ * @param value Floating-point value to write
+ * @return `OK` on success, `ERR` on flash error
+ */
+status_t EEPROM_WriteF32(EEPROM_t *eeprom, uint32_t key, float value)
 {
-  return EEPROM_Write(eeprom, key, *(uint32_t *)&value);
+  uint32_t raw;
+  (void)memcpy(&raw, &value, sizeof(float));
+  return EEPROM_Write(eeprom, key, raw);
 }
 
-inline float EEPROM_ReadFloat(EEPROM_t *eeprom, uint32_t key, float value)
+// inconsistent with MISRA/IEC61508 norm!
+// status_t EEPROM_WriteFloat(EEPROM_t *eeprom, uint32_t key, float value)
+// {
+//   return EEPROM_Write(eeprom, key, *(uint32_t *)&value);
+// }
+
+/**
+ * @brief Read floating-point value from EEPROM
+ * Retrieve 32-bit raw binary by key and convert back to `float`.
+ * Returns `default_value` if key not found. Uses `memcpy` to avoid aliasing.
+ * @param eeprom EEPROM object
+ * @param key Unique entry identifier
+ * @param default_value Value returned if key is missing
+ * @return Stored float value or default
+ */
+float EEPROM_ReadF32(EEPROM_t *eeprom, uint32_t key, float default_value)
 {
-  uint32_t raw = EEPROM_Read(eeprom, key, *(uint32_t *)&value);
-  return *(float *)&raw;
+  uint32_t raw, def;
+  (void)memcpy(&def, &default_value, sizeof(float));
+  raw = EEPROM_Read(eeprom, key, def);
+  (void)memcpy(&default_value, &raw, sizeof(float));
+  return default_value;
 }
+
+// inconsistent with MISRA/IEC61508 norm!
+// float EEPROM_ReadFloat(EEPROM_t *eeprom, uint32_t key, float default_value)
+// {
+//   uint32_t raw = EEPROM_Read(eeprom, key, *(uint32_t *)&default_value);
+//   return *(float *)&raw;
+// }
 
 //------------------------------------------------------------------------------------------------- Cache
 
@@ -480,15 +537,35 @@ status_t CACHE_Load64(uint64_t *var)
   return EEPROM_Load64(eeprom_cache, var);
 }
 
-inline status_t CACHE_WriteFloat(uint32_t key, float value)
+/**
+ * @brief Write floating-point value to cache
+ * Convert `float` to 32-bit raw binary and store it safely.
+ * @param key Unique cache entry identifier
+ * @param value Floating-point value to store
+ * @return `OK` on success, `ERR` on failure
+ */
+status_t CACHE_WriteF32(uint32_t key, float value)
 {
-  return CACHE_Write(key, *(uint32_t *)&value);
+  uint32_t raw;
+  (void)memcpy(&raw, &value, sizeof(float));
+  return CACHE_Write(key, raw);
 }
 
-inline float CACHE_ReadFloat(uint32_t key, float value)
+/**
+ * @brief Read floating-point value from cache
+ * Retrieve raw 32-bit data and convert it back to `float`.
+ * Returns `default_value` if key is not found.
+ * @param key Unique cache entry identifier
+ * @param default_value Returned if key not found
+ * @return Stored float value or default
+ */
+float CACHE_ReadF32(uint32_t key, float default_value)
 {
-  uint32_t raw = CACHE_Read(key, *(uint32_t *)&value);
-  return *(float *)&raw;
+  uint32_t raw, def;
+  (void)memcpy(&def, &default_value, sizeof(float));
+  raw = CACHE_Read(key, def);
+  (void)memcpy(&default_value, &raw, sizeof(float));
+  return default_value;
 }
 
 //-------------------------------------------------------------------------------------------------

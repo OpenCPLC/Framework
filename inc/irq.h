@@ -172,6 +172,7 @@ void IRQ_EnableADC(IRQ_Priority_t priority, void (*handler)(void *), void *objec
 void IRQ_EnableDMA(DMA_Nbr_t dma_nbr, IRQ_Priority_t priority, void (*handler)(void *), void *object);
 void IRQ_EnableEXTI(uint8_t exti_nbr, IRQ_Priority_t priority, void (*handler)(void *), void *object);
 void DMA_SetRegisters(DMA_Nbr_t dma_nbr, DMA_t *dma);
+void DMA_ClearFlags(DMA_t *dma);
 
 //-------------------------------------------------------------------------------------------------
 

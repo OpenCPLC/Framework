@@ -5,55 +5,74 @@
 #include <stdbool.h>
 #include "eeprom.h"
 #include "pwm.h"
-#include "vrts.h"
-#include "extstr.h"
 #include "main.h"
 
-// Obsługa wyjść cyfrowych tranzystorowych i triakowych OpenCPLC
 //-------------------------------------------------------------------------------------------------
 
-#ifndef DOUT_RELAY_DELAY
-  #define DOUT_RELAY_DELAY 200
+#ifndef DOUT_RELAY_STUN_ms
+  /** Safety delay [ms] to prevent relay over-switching */
+  #define DOUT_RELAY_STUN_ms 200
 #endif
 
 #ifndef DOUT_BASH_LIMIT
-  #define DOUT_BASH_LIMIT 36
+  /** Enable bash for DOUT, max outputs */
+  #define DOUT_BASH_LIMIT 0
 #endif
 
+/**
+ * @brief Digital output descriptor
+ * @param[in] relay Specifies if the output is relay-type (RO)
+ * @param[in] name Display name used in `bash` queries
+ * @param[in] gpio Reference to `GPIO_t`; fields `port` and `pin` must be configured
+ * @param[in] pwm Pointer to `PWM_t` controller
+ * @param[in] channel Channel of the `PWM_t` controller assigned to this output
+ * @param[in] eeprom Pointer to `EEPROM_t` for non-volatile storage of the output value
+ * @param[in] save Indicates whether the output state should be retained after reset
+ * @param[out] value Output duty cycle [%]; should be set via `DOUT_Set()`
+ * @param[out] cycles Total number of relay switching cycles
+ * @param stun Internal timestamp guard that temporarily freezes output activity
+ * @param ton_ms Internal storage of TON (on-time) used by `DOUT_Pulse`
+ * @param toff_ms Internal storage of TOFF (off-time) used by `DOUT_Pulse`
+ * @param pulse Internal counter of remaining pulses in a pulse sequence
+ */
 typedef struct {
-  bool relay;            // Czy wyjście jest przekaźnikowe RO
-  char *name;            // Nazwa wyświetlana podczas zapytań `bash`
-  GPIO_t gpio;           // Wskaźnik na wyjście GPIO_t. Należy skonfigurować pola `port` i `pin`.
-  PWM_t *pwm;            // Wskaźnik na kontroler PWM_t.
-  TIM_Channel_t channel; // Kanał kontrolera PWM_t sterujący 
-  EEPROM_t *eeprom;      // Wskaźnik na pamięć EEPROM_t do przechowywania wartości nieulotnych.
-  uint32_t save;         // Określa, czy zachować stan wyjścia po resecie.
-  uint32_t value;        // Wypełnienie [%] sygnału na wyjściu. Zaleca się ustawić funkcją `DOUT_Set`.
-  uint32_t cycles;       // Całkowita liczba przełączeń przekażnika.
-  bool pulse;            // Flaga informująca, czy przekażnik wykonuje impuls
-  uint64_t _stun;
-  uint16_t _pulse;
+  bool relay;
+  char *name;
+  GPIO_t gpio;
+  PWM_t *pwm;
+  TIM_Channel_t channel;
+  EEPROM_t *eeprom;
+  uint32_t save;
+  uint32_t value;
+  uint32_t cycles;
+  uint64_t stun;
+  uint16_t ton_ms;
+  uint16_t toff_ms;
+  uint8_t pulse;
 } DOUT_t;
 
-float PWM_GetFrequency(PWM_t *pwm);
+void DOUT_Init(DOUT_t *dout);
+void DOUT_Loop(DOUT_t *dout);
+
+float PWM_GetFrequency(const PWM_t *pwm);
 float PWM_Frequency(PWM_t *pwm, float frequency);
-float DOUT_GetFrequency(DOUT_t *dout);
+float DOUT_GetFrequency(const DOUT_t *dout);
 float DOUT_Frequency(DOUT_t *dout, float frequency);
+float DOUT_GetDuty(const DOUT_t *dout);
 float DOUT_Duty(DOUT_t *dout, float duty);
 void DOUT_Set(DOUT_t *dout);
 void DOUT_Rst(DOUT_t *dout);
 void DOUT_Tgl(DOUT_t *dout);
 void DOUT_Preset(DOUT_t *dout, bool value);
-bool DOUT_Pulse(DOUT_t *dout, uint16_t time_ms);
-uint32_t DOUT_State(DOUT_t *dout);
-bool DOUT_IsPulse(DOUT_t *relay);
-float DOUT_GetDuty(DOUT_t *dout);
-void DOUT_Init(DOUT_t *dout);
-void DOUT_Loop(DOUT_t *dout);
-void DOUT_Settings(DOUT_t *dout, bool save);
+bool DOUT_Pulse(DOUT_t *dout, uint8_t count, uint16_t ton_ms, uint16_t toff_ms);
+bool DOUT_State(const DOUT_t *dout);
+bool DOUT_IsPulse(DOUT_t *dout);
+void DOUT_SaveValue(DOUT_t *dout, bool save);
 
-void DOUT_Add2Bash(DOUT_t *dout);
-void DOUT_Bash(char **argv, uint16_t argc);
+#if(DOUT_BASH_LIMIT)
+  void DOUT_Bash_Add(DOUT_t *dout);
+  void DOUT_Bash(char **argv, uint16_t argc);
+#endif
 
 //-------------------------------------------------------------------------------------------------
 #endif

@@ -92,7 +92,7 @@ typedef enum {
 #endif
 
 #define ANSI_END  "\x1B[0m"
-#define ANSI_OK    ANSI_GREEN "OK" ANSI_END
+#define ANSI_OK   " " ANSI_GREEN "OK" ANSI_END
 
 //-------------------------------------------------------------------------------------------------
 

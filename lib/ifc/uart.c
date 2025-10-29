@@ -88,6 +88,29 @@ const GPIO_Map_t UART_RX_MAP[] = {
 //------------------------------------------------------------------------------------------------- Init
 
 /**
+ * @brief Checks if UART transmitter and receiver are ready.
+ * Returns true when both `TEACK` and `REACK` flags are set.
+ * @param uart Pointer to `UART_t` control structure.
+ * @return `true` if UART is ready, `false` otherwise.
+ */
+static bool UART_IsReady(UART_t *uart)
+{
+  uint32_t isr = uart->reg->ISR;
+  return ((isr & USART_ISR_TEACK) && (isr & USART_ISR_REACK));
+}
+
+/**
+ * @brief Checks if UART transmitter and receiver are disabled.
+ * Returns true when neither `TEACK` nor `REACK` flags are set.
+ * @param uart Pointer to `UART_t` control structure.
+ * @return `true` if UART is disabled, `false` otherwise.
+ */
+static bool UART_IsDisabled(UART_t *uart)
+{
+  return !UART_IsReady(uart);
+}
+
+/**
  * @brief Initialize `UART_t` instance with DMA, GPIO and optional timeout.
  * Configures buffer, DMA request, GPIO pins, UART registers,
  * stop bits, parity, baudrate and IRQ handlers.
@@ -117,36 +140,43 @@ void UART_Init(UART_t *uart)
   }
   GPIO_InitAlternate(&UART_TX_MAP[uart->tx_pin], false);
   GPIO_InitAlternate(&UART_RX_MAP[uart->rx_pin], false);
+  DMA_ClearFlags(&uart->dma);
+  uart->dma.cha->CCR &= ~(DMA_CCR_EN | DMA_CCR_PSIZE | DMA_CCR_MSIZE);
+  uart->dma.cha->CCR = 0;
   uart->dma.cha->CPAR = (uint32_t)&(uart->reg->TDR);
-  uart->dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE;
+  uart->dma.cha->CCR |= DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE; // DMA_CCR_PL_1
   if((uint32_t)uart->reg == (uint32_t)LPUART1
   #ifdef STM32G0C1xx
     || (uint32_t)uart->reg == (uint32_t)LPUART2
   #endif
   ) {
-    uart->reg->BRR = (uint64_t)256 * SystemCoreClock / uart->baud;
+    uart->reg->BRR = ((uint64_t)256 * (uint64_t)SystemCoreClock + (uart->baud / 2u)) / (uint64_t)uart->baud;
   }
-  else uart->reg->BRR = SystemCoreClock / uart->baud;
+  else {
+    uart->reg->BRR = (SystemCoreClock + (uart->baud / 2u)) / uart->baud;
+  }
+  uart->reg->CR1 = UART_CR1_RESET;
+  uart->reg->CR2 = UART_CR2_RESET;
+  uart->reg->CR3 = UART_CR3_RESET;
+  uart->reg->ICR = UART_ICR_CLEAR;
+  uart->reg->RQR = USART_RQR_RXFRQ;
   uart->reg->CR3 |= USART_CR3_DMAT | USART_CR3_OVRDIS;
   switch(uart->stop_bits) {
-    case 0: uart->reg->CR2 |= USART_CR2_STOP_0; break;
-    case 1: break;
-    case 2: uart->reg->CR2 |= USART_CR2_STOP_1; break;
-    case 3: uart->reg->CR2 |= USART_CR2_STOP_0 | USART_CR2_STOP_1; break;
+    case UART_StopBits_0_5: uart->reg->CR2 |= USART_CR2_STOP_0; break;
+    case UART_StopBits_1: break;
+    case UART_StopBits_2: uart->reg->CR2 |= USART_CR2_STOP_1; break;
+    case UART_StopBits_1_5: uart->reg->CR2 |= USART_CR2_STOP_0 | USART_CR2_STOP_1; break;
   }
   switch(uart->parity) {
-    case 0: break;
-    case 1: uart->reg->CR1 |= USART_CR1_PCE | USART_CR1_PS; break;
-    case 2: uart->reg->CR1 |= USART_CR1_PCE; break;
+    case UART_Parity_None: break;
+    case UART_Parity_Odd: uart->reg->CR1 |= USART_CR1_PCE | USART_CR1_PS; break;
+    case UART_Parity_Even: uart->reg->CR1 |= USART_CR1_PCE; break;
   }
-  uart->reg->CR1 |= USART_CR1_RXNEIE_RXFNEIE | USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
-  uart->reg->ICR |= USART_ICR_TCCF;
-  uart->reg->RQR |= USART_RQR_RXFRQ;
-  IRQ_EnableDMA(uart->dma_nbr, uart->irq_priority, (void (*)(void*))&UART_InterruptDMA, uart);
-  IRQ_EnableUART(uart->reg, uart->irq_priority, (void (*)(void*))&UART_InterruptEV, uart);
   if(uart->tim) {
-    uart->tim->prescaler = 100;
-    uart->tim->auto_reload = (float)SystemCoreClock * uart->timeout / (uart->baud) / 100;
+    uart->tim->prescaler = 100u;
+    uint64_t nbr = ((uint64_t)SystemCoreClock / (uint64_t)uart->tim->prescaler) *
+      (uint64_t)uart->timeout + (uint64_t)uart->baud / 2u;
+    uart->tim->auto_reload = (uint32_t)(nbr / (uint64_t)uart->baud);
     uart->tim->function = (void (*)(void*))BUFF_Break;
     uart->tim->function_struct = (void*)uart->buff;
     uart->tim->irq_priority = uart->irq_priority;
@@ -163,11 +193,38 @@ void UART_Init(UART_t *uart)
     uart->reg->CR2 |= USART_CR2_RTOEN;
   }
   uart->init_flag = true;
+  IRQ_EnableDMA(uart->dma_nbr, uart->irq_priority, (void (*)(void*))&UART_InterruptDMA, uart);
+  IRQ_EnableUART(uart->reg, uart->irq_priority, (void (*)(void*))&UART_InterruptEV, uart);
+  uart->reg->CR1 |= USART_CR1_RXNEIE_RXFNEIE | USART_CR1_TE | USART_CR1_RE | USART_CR1_UE;
+  #ifdef OpenCPLC
+    timeout(100, WAIT_&UART_IsReady, uart);
+  #else
+    while(UART_IsDisabled(uart)) {
+      __NOP();
+    }
+  #endif
 }
 
 void UART_ReInit(UART_t *uart)
 {
+  #ifdef OpenCPLC
+    timeout(1000, WAIT_&UART_SendCompleted, uart);
+  #else
+    while(UART_SendActive(uart)) {
+      __NOP();
+    }
+  #endif
+  uart->reg->CR3 &= ~USART_CR3_DMAT;
+  uart->reg->ICR = UART_ICR_CLEAR;
+  uart->reg->RQR = USART_RQR_RXFRQ;
   uart->reg->CR1 &= ~USART_CR1_UE;
+  #ifdef OpenCPLC
+    timeout(100, WAIT_&UART_IsDisabled, uart);
+  #else
+    while(UART_IsReady(uart)) {
+      __NOP();
+    }
+  #endif
   RCC_DisableUART(uart->reg);
   UART_Init(uart);
 }
@@ -216,7 +273,7 @@ bool UART_SendCompleted(UART_t *uart)
  * @param uart Pointer to `UART_t` control structure.
  * @return `true` if sending, `false` if send completed.
  */
-bool UART_IsSending(UART_t *uart)
+bool UART_SendActive(UART_t *uart)
 {
   return uart->tc_flag;
 }
@@ -324,18 +381,23 @@ void UART_Clear(UART_t *uart)
 //-------------------------------------------------------------------------------------------------
 
 /**
- * @brief Calculates transmission time for given UART frame length.
- * @param uart UART_t structure with UART settings.
+ * @brief Calculates transmission time for a given UART frame length.
+ * Includes start, parity, and stop bits in total bit count.
+ * @param uart Pointer to `UART_t` control structure.
  * @param len Frame length in bytes.
- * @return uint16_t Transmission time in milliseconds.
+ * @return `uint32_t` Transmission time in milliseconds.
  */
 uint32_t UART_CalcTime_ms(UART_t *uart, uint16_t len)
 {
-  uint32_t bits = 10; // start_bit + space
-  if(uart->parity) bits++;
-  switch(uart->stop_bits) {
-    case UART_StopBits_0_5: case UART_StopBits_1_0: bits += 1; break;
-    case UART_StopBits_1_5: case UART_StopBits_2_0: bits += 2; break;
-  } 
-  return 1000 * ((bits * len) + uart->timeout) / uart->baud;
+  uint32_t bits = 10u; // 1 start + 8 data + 1 stop by default
+  if (uart->parity) bits++; // add parity bit if enabled
+  switch (uart->stop_bits) {
+    case UART_StopBits_0_5:
+    case UART_StopBits_1:   bits += 1u; break;
+    case UART_StopBits_1_5:
+    case UART_StopBits_2:   bits += 2u; break;
+  }
+  // use 64-bit arithmetic to avoid overflow on large frames
+  uint64_t total_bits = (uint64_t)bits * (uint64_t)len + (uint64_t)uart->timeout;
+  return (uint32_t)((total_bits * 1000u) / (uint64_t)uart->baud);
 }
