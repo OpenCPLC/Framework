@@ -71,8 +71,14 @@ uint8_t ADC_Record(ADC_t *adc)
     ADC1->CFGR1 &= ~(ADC_CFGR1_EXTEN);
     ADC1->CFGR1 |= ADC_CFGR1_CONT;
   }
-  if(adc->record.continuous_mode) adc->record.dma.cha->CCR &= ~DMA_CCR_TCIE;
-  else adc->record.dma.cha->CCR |= DMA_CCR_TCIE;
+  if(adc->record.continuous_mode) {
+    adc->record.dma.cha->CCR |= DMA_CCR_CIRC;
+    adc->record.dma.cha->CCR &= ~DMA_CCR_TCIE;
+  }
+  else {
+    adc->record.dma.cha->CCR &= ~DMA_CCR_CIRC;
+    adc->record.dma.cha->CCR |= DMA_CCR_TCIE;
+  }
   adc->record.dma.cha->CCR |= DMA_CCR_EN;
   ADC1->CR |= ADC_CR_ADSTART;
   return OK;
@@ -89,28 +95,36 @@ uint8_t ADC_Record(ADC_t *adc)
  */
 status_t ADC_LastMeasurements(ADC_t *adc, uint16_t *buffer, uint16_t count, bool sort)
 {
-  DMA_Channel_TypeDef *ch = adc->record.dma.cha;
+  DMA_Channel_TypeDef *cha = adc->record.dma.cha;
   uint16_t *src = adc->record.buff;
   uint16_t len = adc->record.buff_len;
   if(!count || count > len) return ERR;
-  volatile uint16_t cnt = ch->CNDTR;
+  volatile uint16_t cnt = cha->CNDTR;
   uint16_t write_idx = (len - cnt) % len;
   uint16_t start_idx = (write_idx + len - count) % len;
-  if(sort) {
-    uint16_t chan_count = adc->record.chan_count;
-    uint16_t chan_samples = (uint16_t)(count / chan_count);
-    uint16_t i_src = start_idx;
-    uint16_t chan = 0u, idx = 0u;
-    uint16_t i_dsc = 0u;
-    for(uint16_t i = 0u; i < count; i++) {
-      buffer[i_dsc] = src[i_src];
-      if(++i_src == len) i_src = 0u;
-      if(++chan == chan_count) {
-        chan = 0u; idx++; i_dsc = idx;
-      }
-      else i_dsc = (uint16_t)(i_dsc + chan_samples);
+if (sort) {
+  uint16_t chan_count = adc->record.chan_count;
+  if (count % chan_count) return ERR;                      // (opcjonalnie) pilnuj pełnych ramek
+  uint16_t chan_samples = (uint16_t)(count / chan_count);
+  uint16_t i_src = start_idx;
+
+  uint16_t chan = (uint16_t)(start_idx % chan_count);      // <-- ZMIANA #1: który kanał jest pierwszy
+  uint16_t idx  = 0u;
+  uint16_t i_dsc = (uint16_t)(chan * chan_samples + idx);  // <-- ZMIANA #2: startowy offset w bloku kanału
+
+  for (uint16_t i = 0u; i < count; i++) {
+    buffer[i_dsc] = src[i_src];
+    if (++i_src == len) i_src = 0u;
+
+    if (++chan == chan_count) {
+      chan = 0u;
+      idx++;
+      i_dsc = idx;                                         // kanał 0, kolejna próbka
+    } else {
+      i_dsc = (uint16_t)(i_dsc + chan_samples);            // ten sam sample_idx, następny kanał
     }
   }
+}
   else {
     if(start_idx + count <= len) {
       memcpy(buffer, &src[start_idx], count * sizeof(uint16_t));
@@ -126,7 +140,7 @@ status_t ADC_LastMeasurements(ADC_t *adc, uint16_t *buffer, uint16_t count, bool
 
 float ADC_RecordSampleTime_s(ADC_t *adc)
 {
-  float freq = adc->freq_16Mhz ? 16000000.0f : (float)SystemCoreClock / AdcPrescalerTab[adc->record.prescaler];
+  float freq = (adc->freq_16Mhz ? 16000000.0f : (float)SystemCoreClock) / AdcPrescalerTab[adc->record.prescaler];
   float time = (float)adc->record.chan_count * (float)AdcSamplingTimeTab[adc->record.sampling_time] / freq;
   if(adc->record.oversampling.enable) time *= (float)AdcOversamplingRatioTab[adc->record.oversampling.ratio];
   return time;

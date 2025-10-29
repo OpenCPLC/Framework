@@ -13,6 +13,8 @@
   #define M_PI 3.14159265358979323846
 #endif
 
+int64_t div_round(int64_t num, int64_t den);
+
 uint32_t ieee754_pack(float nbr);
 float ieee754_unpack(uint32_t value);
 

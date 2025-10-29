@@ -64,11 +64,12 @@ void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime)
 void PWM_CenterAlign(PWM_t *pwm, bool enable)
 {
   if(enable == pwm->center_aligned) return;
-  PWM_Off(pwm);
+  pwm->reg->CR1 &= ~TIM_CR1_CEN; // OFF
+  pwm->reg->CNT = 0;
   pwm->center_aligned = enable;
   uint8_t center_aligned = enable ? 0x03 << TIM_CR1_CMS_Pos : 0;
   pwm->reg->CR1 = (pwm->reg->CR1 & ~TIM_CR1_CMS_Msk) | center_aligned;
-  PWM_On(pwm);
+  pwm->reg->CR1 |= TIM_CR1_CEN; // ON
 }
 
 static void PWM_ChannelInit(PWM_t *pwm, TIM_Channel_t channel)
@@ -121,6 +122,7 @@ void PWM_OutputEnable(PWM_t *pwm, bool enable)
 
 void PWM_Init(PWM_t *pwm)
 {
+  RCC_EnableTIM(pwm->reg);
   pwm->reg->EGR &= ~TIM_EGR_UG;
   pwm->reg->CR1 &= ~TIM_CR1_CEN;
   pwm->reg->CCER = 0;
@@ -135,16 +137,5 @@ void PWM_Init(PWM_t *pwm)
   pwm->reg->DIER = (pwm->reg->DIER & ~TIM_DIER_UIE) | (pwm->dma_trig << TIM_DIER_UDE_Pos);
   pwm->reg->BDTR |= TIM_BDTR_MOE;
   pwm->reg->EGR |= TIM_EGR_UG;
-  pwm->reg->CR1 |= TIM_CR1_CEN;
-}
-
-void PWM_Off(PWM_t *pwm)
-{
-  pwm->reg->CR1 &= ~TIM_CR1_CEN;
-  pwm->reg->CNT = 0;
-}
-
-void PWM_On(PWM_t *pwm)
-{
   pwm->reg->CR1 |= TIM_CR1_CEN;
 }

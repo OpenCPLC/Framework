@@ -27,8 +27,6 @@ void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime);
 void PWM_CenterAlign(PWM_t *pwm, bool enable);
 void PWM_OutputEnable(PWM_t *pwm, bool enable);
 void PWM_Init(PWM_t *pwm);
-void PWM_Off(PWM_t *pwm);
-void PWM_On(PWM_t *pwm);
 
 //-------------------------------------------------------------------------------------------------
 #endif
