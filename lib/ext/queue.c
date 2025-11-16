@@ -1,22 +1,9 @@
 #include "queue.h"
 
-/**
- * @brief Helper to initialize `QUEUE_t` structure.
- * This function does the same as manual struct init.
- * @param queue Pointer to `QUEUE_t` control structure.
- * @param buffer Pointer to external buffer memory. Must fit capacity `* elem_size` bytes.
- * @param capacity Max number of elements in queue.
- * @param elem_size Size of single element in bytes.
- */
-inline void QUEUE_Init(QUEUE_t *queue, void *buffer, uint16_t capacity, uint16_t elem_size, bool unique)
+static void QUEUE_Swap(void *a, void *b, size_t n) 
 {
-  queue->buffer = buffer;
-  queue->capacity = capacity;
-  queue->elem_size = elem_size;
-  queue->unique = unique;
-  queue->head = 0;
-  queue->tail = 0;
-  queue->count = 0;
+  unsigned char *pa = (unsigned char*)a, *pb = (unsigned char*)b;
+  for(size_t i = 0; i < n; i++) { unsigned char t = pa[i]; pa[i] = pb[i]; pb[i] = t; }
 }
 
 /**
@@ -31,19 +18,33 @@ bool QUEUE_Push(QUEUE_t *queue, const void *element)
   if(queue->unique) {
     for(uint16_t i = 0; i < queue->count; i++) {
       uint16_t idx = (queue->head + i) % queue->capacity;
-      const void *item = (const char*)queue->buffer + idx * queue->elem_size;
-      if(memcmp(item, element, queue->elem_size) == 0) return false;
+      const void *item = (char *)queue->buffer + (uint32_t)idx * queue->struct_size;
+      bool same = queue->Equal ? queue->Equal(item, element) : memcmp(item, element, queue->struct_size) == 0;
+      if(same) return false;
     }
   }
-  void *dest = (char*)queue->buffer + queue->tail * queue->elem_size;
-  memcpy(dest, element, queue->elem_size);
+  void *dest = (char *)queue->buffer + (uint32_t)queue->tail * queue->struct_size;
+  memcpy(dest, element, queue->struct_size);
+  uint16_t cur = queue->tail;
   queue->tail = (queue->tail + 1) % queue->capacity;
   queue->count++;
+  if(queue->Compare) {
+    while(cur != queue->head) {
+      uint16_t prev = (uint16_t)((cur + queue->capacity - 1) % queue->capacity);
+      void *a = (char *)queue->buffer + (uint32_t)prev * queue->struct_size;
+      void *b = (char *)queue->buffer + (uint32_t)cur * queue->struct_size;
+      if(queue->Compare(a, b) >= 0) break;
+      QUEUE_Swap(a, b, queue->struct_size);
+      cur = prev;
+    }
+  }
   return true;
 }
 
 /**
- * @brief Pop first element from queue (FIFO).
+ * @brief Pop one element.
+ *   Without `Compare`: FIFO (or LIFO if `invert` is set).
+ *   With Compare: returns the largest (or the smallest if invert==true).
  * @param queue Pointer to `QUEUE_t` control structure.
  * @param element Pointer to memory where element will be copied.
  * @return `true` if element copied, `false` if queue empty.
@@ -51,15 +52,25 @@ bool QUEUE_Push(QUEUE_t *queue, const void *element)
 bool QUEUE_Pop(QUEUE_t *queue, void *element)
 {
   if(queue->count == 0) return false;
-  void *src = (char*)queue->buffer + queue->head * queue->elem_size;
-  memcpy(element, src, queue->elem_size);
-  queue->head = (queue->head + 1) % queue->capacity;
+  if(queue->invert) {
+    uint16_t idx = (uint16_t)((queue->tail + queue->capacity - 1) % queue->capacity);
+    void *src = (char *)queue->buffer + (size_t)idx * queue->struct_size;
+    memcpy(element, src, queue->struct_size);
+    queue->tail = idx;
+  }
+  else {
+    void *src = (char *)queue->buffer + (size_t)queue->head * queue->struct_size;
+    memcpy(element, src, queue->struct_size);
+    queue->head = (uint16_t)((queue->head + 1) % queue->capacity);
+  }
   queue->count--;
   return true;
 }
 
 /**
- * @brief Peek first element from queue (FIFO) without removing it.
+ * @brief Peek element from queue without removing it.
+ *   Without `Compare`: FIFO (or LIFO if `invert` is set).
+ *   With Compare: returns the largest (or the smallest if invert==true).
  * @param queue Pointer to `QUEUE_t` control structure.
  * @param element Pointer to memory where element will be copied.
  * @return `true` if first element exists, `false` if `queue` is empty.
@@ -67,8 +78,15 @@ bool QUEUE_Pop(QUEUE_t *queue, void *element)
 bool QUEUE_Peek(const QUEUE_t *queue, void *element)
 {
   if(queue->count == 0) return false;
-  const void *src = (const char*)queue->buffer + queue->head * queue->elem_size;
-  memcpy(element, src, queue->elem_size);
+  if(queue->invert) {
+    uint16_t idx = (uint16_t)((queue->tail + queue->capacity - 1) % queue->capacity);
+    const void *src = (const char *)queue->buffer + (size_t)idx * queue->struct_size;
+    memcpy(element, src, queue->struct_size);
+  }
+  else {
+    const void *src = (const char *)queue->buffer + (size_t)queue->head * queue->struct_size;
+    memcpy(element, src, queue->struct_size);
+  }
   return true;
 }
 
@@ -100,4 +118,15 @@ bool QUEUE_IsFull(const QUEUE_t *queue)
 uint16_t QUEUE_Count(const QUEUE_t *queue)
 {
   return queue->count;
+}
+
+/**
+ * @brief Clear queue to an empty state (buffer contents are left intact).
+ * @param[in,out] queue Pointer to `QUEUE_t` control structure.
+ */
+void QUEUE_Clear(QUEUE_t *queue)
+{
+  queue->head = 0;
+  queue->tail = 0;
+  queue->count = 0;
 }

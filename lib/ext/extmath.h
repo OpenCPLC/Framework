@@ -40,6 +40,13 @@ bool stats_i16(const int16_t *data, uint16_t count, int16_t *min, int16_t *max, 
 bool stats_u32(const uint32_t *data, uint16_t count, uint32_t *min, uint32_t *max, uint64_t *sum, float *avg);
 bool stats_i32(const int32_t *data, uint16_t count, int32_t *min, int32_t *max, int64_t *sum, float *avg);
 
+void convert_u16_to_i32(const uint16_t *u16, int32_t *i32, uint16_t len);
+void add_scalar_u16(uint16_t *array, uint16_t len, int32_t value);
+void add_scalar_i16(int16_t *array, uint16_t len, int32_t value);
+void add_scalar_u32(uint32_t *array, uint16_t len, int64_t value);
+void add_scalar_i32(int32_t *array, uint16_t len, int64_t value);
+void add_scalar_f32(float *array, uint16_t len, float value);
+
 float stddev_u16(const uint16_t *data, uint16_t count, float *avg);
 float stddev_i16(const int16_t *data, uint16_t count, float *avg);
 float stddev_u32(const uint32_t *data, uint16_t count, float *avg);

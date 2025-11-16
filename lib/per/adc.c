@@ -86,50 +86,50 @@ uint8_t ADC_Record(ADC_t *adc)
 
 /**
  * @brief Copy last samples from ADC DMA buffer
- * Read current DMA position, find latest `count` samples, handle wrap if needed, copy to `buffer`
- * @param[in] adc ADC struct controller
+ * Read current DMA position, find latest `count` samples, handle wrap if needed, and copy them to `buffer`.
+ * Function required in `continuous_mode`, where measurements are performed all the time.
+ * @param[in] adc  ADC controller structure
  * @param[out] buffer Output buffer
- * @param[in] count Number of samples to copy
+ * @param[in] count Number of samples to copy. Must be smaller than the DMA buffer size.
  * @param[in] sort `false`: raw interleaved copy; `true`: deinterleave into channel blocks
  * @return `OK` on success, `ERR` if `count` is invalid
  */
 status_t ADC_LastMeasurements(ADC_t *adc, uint16_t *buffer, uint16_t count, bool sort)
 {
+  if(!adc || !buffer) return ERR;
   DMA_Channel_TypeDef *cha = adc->record.dma.cha;
   uint16_t *src = adc->record.buff;
   uint16_t len = adc->record.buff_len;
-  if(!count || count > len) return ERR;
-  volatile uint16_t cnt = cha->CNDTR;
-  uint16_t write_idx = (len - cnt) % len;
-  uint16_t start_idx = (write_idx + len - count) % len;
-  if(sort) {
-  uint16_t chan_count = adc->record.chan_count;
-  // if(count % chan_count) return ERR;
-  uint16_t chan_samples = (uint16_t)(count / chan_count);
-  uint16_t i_src = start_idx;
-  uint16_t chan = (uint16_t)(start_idx % chan_count);
-  uint16_t idx  = 0u;
-  uint16_t i_dsc = (uint16_t)(chan * chan_samples + idx);
-  for(uint16_t i = 0u; i < count; i++) {
-    buffer[i_dsc] = src[i_src];
-    if(++i_src == len) i_src = 0u;
-    if(++chan == chan_count) {
-      chan = 0u;
-      idx++;
-      i_dsc = idx;
-    }
-    else i_dsc = (uint16_t)(i_dsc + chan_samples);
-  }
-}
-  else {
-    if(start_idx + count <= len) {
-      memcpy(buffer, &src[start_idx], count * sizeof(uint16_t));
-    }
+  if(!src || !len || !count || count > len) return ERR;
+  volatile uint16_t cnt1 = cha->CNDTR;
+  volatile uint16_t cnt2 = cha->CNDTR;
+  uint16_t cnt = (cnt2 < cnt1) ? cnt2 : cnt1;
+  uint16_t write_idx = (uint16_t)((len - cnt) % len);
+  uint16_t start_idx = (uint16_t)((write_idx + len - count) % len);
+  if(!sort) {
+    if(start_idx + count <= len) memcpy(buffer, &src[start_idx], (size_t)count * sizeof(uint16_t));
     else {
-      uint16_t first = len - start_idx;
-      memcpy(buffer, &src[start_idx], first * sizeof(uint16_t));
-      memcpy(buffer + first, &src[0], (count - first) * sizeof(uint16_t));
+      uint16_t first = (uint16_t)(len - start_idx);
+      memcpy(buffer, &src[start_idx], (size_t)first * sizeof(uint16_t));
+      memcpy(buffer + first, &src[0], (size_t)(count - first) * sizeof(uint16_t));
     }
+    return OK;
+  }
+  uint16_t n = adc->record.chan_count;
+  if(n == 0) return ERR;
+  if((uint16_t)(len % n) != 0u) return ERR;
+  uint16_t samples = (uint16_t)(count / n);
+  if(samples == 0) return ERR;
+  uint16_t used = (uint16_t)(samples * n);
+  start_idx = (uint16_t)((write_idx + len - used) % len);
+  uint16_t ch0 = (uint16_t)(start_idx % n);
+  for(uint16_t i = 0u; i < used; ++i) {
+    uint16_t src_idx = (uint16_t)(start_idx + i);
+    if(src_idx >= len) src_idx = (uint16_t)(src_idx - len);
+    uint16_t pos = (uint16_t)(i % n);
+    uint16_t t = (uint16_t)(i / n);
+    uint16_t ch = (uint16_t)((ch0 + pos) % n);
+    buffer[(uint16_t)(ch * samples + t)] = src[src_idx];
   }
   return OK;
 }

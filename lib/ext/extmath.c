@@ -406,6 +406,101 @@ bool stats_i32(const int32_t *data, uint16_t count, int32_t *min, int32_t *max, 
   return true;
 }
 
+//------------------------------------------------------------------------------------------------- convert
+
+/**
+ * @brief Copies a `uint16_t` array into an `int32_t` array (zero-extended).
+ * @note Often measurements are stored as `uint16_t`, while processing and filtering are done on `int32_t`.
+ * @param u16 Pointer to source array.
+ * @param i32 Pointer to destination array.
+ * @param len Number of elements to copy.
+ */
+void convert_u16_to_i32(const uint16_t *u16, int32_t *i32, uint16_t len)
+{
+  for(uint16_t i = 0; i < len; i++) {
+    i32[i] = (int32_t)u16[i];
+  }
+}
+
+//------------------------------------------------------------------------------------------------- offset
+
+/**
+ * @brief Adds a constant scalar to each element of a `uint16_t` array (in-place, with saturation).
+ * @param array Pointer to array to modify.
+ * @param len   Number of elements in the array.
+ * @param value Scalar value to add to each element (can be negative).
+ */
+void add_scalar_u16(uint16_t *array, uint16_t len, int32_t value)
+{
+  for(uint16_t i = 0; i < len; i++) {
+    int32_t v = (int32_t)array[i] + value;
+    if(v < 0) v = 0;
+    if(v > 0xFFFF) v = 0xFFFF;
+    array[i] = (uint16_t)v;
+  }
+}
+
+/**
+ * @brief Adds a constant scalar to each element of an `int16_t` array (in-place, with saturation).
+ * @param array Pointer to array to modify.
+ * @param len   Number of elements in the array.
+ * @param value Scalar value to add to each element (can be negative).
+ */
+void add_scalar_i16(int16_t *array, uint16_t len, int32_t value)
+{
+  for(uint16_t i = 0; i < len; i++) {
+    int32_t v = (int32_t)array[i] + value;
+    if(v < INT16_MIN) v = INT16_MIN;
+    if(v > INT16_MAX) v = INT16_MAX;
+    array[i] = (int16_t)v;
+  }
+}
+
+/**
+ * @brief Adds a constant scalar to each element of a `uint32_t` array (in-place, with saturation).
+ * @param array Pointer to array to modify.
+ * @param len   Number of elements in the array.
+ * @param value Scalar value to add to each element (can be negative).
+ */
+void add_scalar_u32(uint32_t *array, uint16_t len, int64_t value)
+{
+  for(uint16_t i = 0; i < len; i++) {
+    int64_t v = (int64_t)array[i] + value;
+    if(v < 0) v = 0;
+    if(v > (int64_t)0xFFFFFFFF) v = (int64_t)0xFFFFFFFF;
+    array[i] = (uint32_t)v;
+  }
+}
+
+/**
+ * @brief Adds a constant scalar to each element of an `int32_t` array (in-place, with saturation).
+ * @param array Pointer to array to modify.
+ * @param len   Number of elements in the array.
+ * @param value Scalar value to add to each element (can be negative).
+ */
+void add_scalar_i32(int32_t *array, uint16_t len, int64_t value)
+{
+  for(uint16_t i = 0; i < len; i++) {
+    int64_t v = (int64_t)array[i] + value;
+    if(v < INT32_MIN) v = INT32_MIN;
+    if(v > INT32_MAX) v = INT32_MAX;
+    array[i] = (int32_t)v;
+  }
+}
+
+/**
+ * @brief Adds a constant scalar to each element of a `float` array (in-place).
+ * @param array Pointer to array to modify.
+ * @param len   Number of elements in the array.
+ * @param value Scalar value to add to each element (can be negative).
+ */
+void add_scalar_f32(float *array, uint16_t len, float value)
+{
+  for(uint16_t i = 0; i < len; i++) {
+    array[i] += value;
+  }
+}
+
 //------------------------------------------------------------------------------------------------- standard-deviation
 
 /**
