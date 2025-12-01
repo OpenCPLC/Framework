@@ -226,7 +226,7 @@ uint32_t BKPR_Read(BKPR_e reg)
 
 inline void IWDG_Init(IWDG_Time_e time, uint16_t reload_counter)
 {
-	reload_counter &= 0x00000FFF;
+  if(reload_counter > 0x0FFF) reload_counter = 0x0FFF;
   RCC->CSR |= RCC_CSR_LSION;
   while(RCC->CSR & RCC_CSR_LSIRDY);
   IWDG->KR = IWDG_START;

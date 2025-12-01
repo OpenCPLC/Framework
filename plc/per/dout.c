@@ -91,7 +91,7 @@ float DOUT_Duty(DOUT_t *dout, float duty)
   if(!dout->pwm) {
     return NaN;
   }
-  duty = ext_clamp(duty, 0.0f, 100.0f);
+  duty = clamp(duty, 0.0f, 100.0f);
   uint32_t old_value = dout->pwm->value[dout->channel];
   PWM_SetValue(dout->pwm, dout->channel, duty * dout->pwm->auto_reload / 100.0f);
   dout->value = dout->pwm->value[dout->channel];

@@ -9,11 +9,14 @@
 int64_t div_round(int64_t num, int64_t den)
 {
   if(den == 0) return 0;
-  if(den < 0) { num = -num; den = -den; }
+  if(den < 0) {
+    num = -num;
+    den = -den;
+  }
   if(num >= 0) return (num + den / 2) / den;
-  int64_t n = num;
-  int64_t q = ((-(n + 1)) + den / 2) / den;
-  return -(q + 1);
+  uint64_t abs_num = (uint64_t)(-(num + 1)) + 1;
+  uint64_t tmp = (abs_num + (uint64_t)den / 2) / (uint64_t)den;
+  return -(int64_t)tmp;
 }
 
 //------------------------------------------------------------------------------------------------- ieee754
@@ -411,9 +414,9 @@ bool stats_i32(const int32_t *data, uint16_t count, int32_t *min, int32_t *max, 
 /**
  * @brief Copies a `uint16_t` array into an `int32_t` array (zero-extended).
  * @note Often measurements are stored as `uint16_t`, while processing and filtering are done on `int32_t`.
- * @param u16 Pointer to source array.
- * @param i32 Pointer to destination array.
- * @param len Number of elements to copy.
+ * @param[in] u16 Pointer to source array.
+ * @param[out] i32 Pointer to destination array.
+ * @param[in] len Number of elements to copy.
  */
 void convert_u16_to_i32(const uint16_t *u16, int32_t *i32, uint16_t len)
 {
@@ -422,12 +425,111 @@ void convert_u16_to_i32(const uint16_t *u16, int32_t *i32, uint16_t len)
   }
 }
 
-//------------------------------------------------------------------------------------------------- offset
+/**
+ * @brief Calculates RMS value of an `int32_t` sample array.
+ * @note Uses 64-bit accumulator for sum of squares. If len is 0, returns 0.0f.
+ * @param[in] serie Pointer to input samples array.
+ * @param[in] len Number of samples in the array.
+ * @return RMS value of the samples as a float (in ADC units).
+ */
+float rms_i32(int32_t *array, uint16_t len)
+{
+  if(len == 0) return 0.0f;
+  int64_t sum_square = 0;
+  for(uint16_t i = 0; i < len; i++) {
+    int64_t sample = array[i];
+    sum_square += sample * sample;
+  }
+  float rms_adc = sqrtf((float)sum_square / len);
+  return rms_adc;
+}
+
+/**
+ * @brief Shifts each element of a uint16_t array (in-place, with saturation on left shift).
+ * Positive shift: left shift (<<), with saturation to 0xFFFF.
+ * Negative shift: right shift (>>), bits shifted out are discarded.
+ * @param array Pointer to array to modify.
+ * @param len Number of elements in the array.
+ * @param shift Shift amount in bits: >0 = left, <0 = right, 0 = no change.
+ */
+void shift_u16(uint16_t *array, uint16_t len, int32_t shift)
+{
+  if(len == 0 || shift == 0) return;
+  if(shift > 0) {
+    uint32_t s = (uint32_t)shift;
+    if(s >= 16) {
+      // any non-zero value overflows, zero stays zero
+      for(uint16_t i = 0; i < len; i++) {
+        if(array[i] != 0) array[i] = 0xFFFF;
+      }
+      return;
+    }
+    uint16_t sh = (uint16_t)s;
+    for(uint16_t i = 0; i < len; i++) {
+      uint32_t v = (uint32_t)array[i] << sh;
+      if(v > 0xFFFFu) v = 0xFFFFu;
+      array[i] = (uint16_t)v;
+    }
+  }
+  else { // shift < 0 → right shift
+    uint32_t s = (uint32_t)(-shift);
+    if(s >= 16) {
+      for(uint16_t i = 0; i < len; i++) array[i] = 0;
+      return;
+    }
+    uint16_t sh = (uint16_t)s;
+    for(uint16_t i = 0; i < len; i++) {
+      array[i] >>= sh;
+    }
+  }
+}
+
+/**
+ * @brief Shifts each element of a uint32_t array (in-place, with saturation on left shift).
+ * Positive shift: left shift (<<), with saturation to 0xFFFFFFFF.
+ * Negative shift: right shift (>>), bits shifted out are discarded.
+ * @param array Pointer to array to modify.
+ * @param len   Number of elements in the array.
+ * @param shift Shift amount in bits: >0 = left, <0 = right, 0 = no change.
+ */
+void shift_u32(uint32_t *array, uint16_t len, int32_t shift)
+{
+  if(len == 0 || shift == 0) return;
+  if(shift > 0) {
+    uint32_t s = (uint32_t)shift;
+    if(s >= 32) {
+      // any non-zero value overflows, zero stays zero
+      for(uint16_t i = 0; i < len; i++) {
+        if(array[i] != 0) array[i] = 0xFFFFFFFFu;
+      }
+      return;
+    }
+    uint32_t sh = s;
+    for(uint16_t i = 0; i < len; i++) {
+      uint64_t v = (uint64_t)array[i] << sh;
+      if(v > 0xFFFFFFFFULL) v = 0xFFFFFFFFULL;
+      array[i] = (uint32_t)v;
+    }
+  }
+  else { // shift < 0 → right shift
+    uint32_t s = (uint32_t)(-shift);
+    if(s >= 32) {
+      for(uint16_t i = 0; i < len; i++) array[i] = 0;
+      return;
+    }
+    uint32_t sh = s;
+    for(uint16_t i = 0; i < len; i++) {
+      array[i] >>= sh;
+    }
+  }
+}
+
+//------------------------------------------------------------------------------------------------- add
 
 /**
  * @brief Adds a constant scalar to each element of a `uint16_t` array (in-place, with saturation).
  * @param array Pointer to array to modify.
- * @param len   Number of elements in the array.
+ * @param len Number of elements in the array.
  * @param value Scalar value to add to each element (can be negative).
  */
 void add_scalar_u16(uint16_t *array, uint16_t len, int32_t value)
@@ -443,7 +545,7 @@ void add_scalar_u16(uint16_t *array, uint16_t len, int32_t value)
 /**
  * @brief Adds a constant scalar to each element of an `int16_t` array (in-place, with saturation).
  * @param array Pointer to array to modify.
- * @param len   Number of elements in the array.
+ * @param len Number of elements in the array.
  * @param value Scalar value to add to each element (can be negative).
  */
 void add_scalar_i16(int16_t *array, uint16_t len, int32_t value)
@@ -459,7 +561,7 @@ void add_scalar_i16(int16_t *array, uint16_t len, int32_t value)
 /**
  * @brief Adds a constant scalar to each element of a `uint32_t` array (in-place, with saturation).
  * @param array Pointer to array to modify.
- * @param len   Number of elements in the array.
+ * @param len Number of elements in the array.
  * @param value Scalar value to add to each element (can be negative).
  */
 void add_scalar_u32(uint32_t *array, uint16_t len, int64_t value)
@@ -475,7 +577,7 @@ void add_scalar_u32(uint32_t *array, uint16_t len, int64_t value)
 /**
  * @brief Adds a constant scalar to each element of an `int32_t` array (in-place, with saturation).
  * @param array Pointer to array to modify.
- * @param len   Number of elements in the array.
+ * @param len Number of elements in the array.
  * @param value Scalar value to add to each element (can be negative).
  */
 void add_scalar_i32(int32_t *array, uint16_t len, int64_t value)
@@ -491,7 +593,7 @@ void add_scalar_i32(int32_t *array, uint16_t len, int64_t value)
 /**
  * @brief Adds a constant scalar to each element of a `float` array (in-place).
  * @param array Pointer to array to modify.
- * @param len   Number of elements in the array.
+ * @param len Number of elements in the array.
  * @param value Scalar value to add to each element (can be negative).
  */
 void add_scalar_f32(float *array, uint16_t len, float value)

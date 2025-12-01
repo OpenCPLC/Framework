@@ -9,6 +9,8 @@
   #define TASK_LIMIT 16
 #endif
 
+#define TASK_ (void (*)(void *)) // Type cast for timeout function
+
 /**
  * @brief Task descriptor for time-scheduled execution.
  * @param[in] Handler Function to call when the task is executed.
