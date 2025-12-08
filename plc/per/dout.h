@@ -48,6 +48,7 @@ typedef struct {
   uint64_t stun;
   uint16_t ton_ms;
   uint16_t toff_ms;
+  uint16_t last_ms;
   uint8_t pulse;
 } DOUT_t;
 
@@ -65,6 +66,7 @@ void DOUT_Rst(DOUT_t *dout);
 void DOUT_Tgl(DOUT_t *dout);
 void DOUT_Preset(DOUT_t *dout, bool value);
 bool DOUT_Pulse(DOUT_t *dout, uint8_t count, uint16_t ton_ms, uint16_t toff_ms);
+bool DOUT_PulseFreeze(DOUT_t *dout, uint8_t count, uint16_t ton_ms, uint16_t toff_ms, uint16_t freeze_ms);
 bool DOUT_State(const DOUT_t *dout);
 bool DOUT_IsPulse(DOUT_t *dout);
 void DOUT_SaveValue(DOUT_t *dout, bool save);

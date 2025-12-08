@@ -32,7 +32,7 @@ status_t FILE_Copy(FILE_t *file_to, FILE_t *file_from)
 
 /**
  * @brief Save raw data to file buffer (overwrite).
- * @param[out] file Pointer to `FILE_t` structure
+ * @param[in,out] file Pointer to `FILE_t` structure
  * @param[in] data Pointer to source data
  * @param[in] size Number of bytes to copy
  * @return `OK` on success, `ERR` on error

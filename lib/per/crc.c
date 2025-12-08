@@ -1,15 +1,15 @@
 #include "crc.h"
 
-//---------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
 
 /**
- * Funkcja oblicza sumę kontrolną CRC.
- * @param crc: Obiekt zawierający konfiguracje dla modułu liczącego CRC.
- * @param buffer: Wskaźnik na dane wejściowe.
- * @param count: Długość wiadomości w bajtach.
- * @retval Suma kontrolna CRC.
+ * @brief Calculates CRC checksum.
+ * @param[in] crc CRC module configuration.
+ * @param[in] data Pointer to input data.
+ * @param[in] count Data length in bytes.
+ * @return CRC checksum.
  */
-uint32_t CRC_Run(const CRC_t *crc, void *buffer, uint16_t count)
+uint32_t CRC_Run(const CRC_t *crc, void *data, uint16_t count)
 {
   uint32_t out;
   uint8_t *pointner = (uint8_t *)&out;
@@ -30,7 +30,8 @@ uint32_t CRC_Run(const CRC_t *crc, void *buffer, uint16_t count)
   CRC->CR |= (crc->reflect_data_out << CRC_CR_REV_OUT_Pos) | CRC_CR_RESET;
   __DSB();
   while(count--) {
-    *(volatile uint8_t *) &CRC->DR = *(const uint8_t *)buffer++;
+    *(volatile uint8_t *) &CRC->DR = *(const uint8_t *)(data);
+    data = (void *)((const uint8_t *)data + 1);
   }
   out = (CRC->DR ^ crc->final_xor);
   if(crc->invert_out) {
@@ -42,54 +43,70 @@ uint32_t CRC_Run(const CRC_t *crc, void *buffer, uint16_t count)
   return out;
 }
 
-uint16_t CRC_Append(const CRC_t *crc, uint8_t *buffer, uint16_t count)
+//-------------------------------------------------------------------------------------------------
+
+/**
+ * @brief Calculates CRC and appends it to data (big-endian).
+ * @param[in] crc CRC module configuration.
+ * @param[in,out] data Data buffer (must have space for CRC).
+ * @param[in] count Data length in bytes (without CRC).
+ * @return New length including CRC bytes.
+ */
+uint16_t CRC_Append(const CRC_t *crc, uint8_t *data, uint16_t count)
 {
-  uint32_t code = CRC_Run(crc, (void *)buffer, count);
+  uint32_t code = CRC_Run(crc, (void *)data, count);
   switch(crc->width) {
     case 32:
-      buffer[count++] = (uint8_t)(code >> 24);
-      buffer[count++] = (uint8_t)(code >> 16);
+      data[count++] = (uint8_t)(code >> 24);
+      data[count++] = (uint8_t)(code >> 16);
     case 16:
-      buffer[count++] = (uint8_t)(code >> 8);
+      data[count++] = (uint8_t)(code >> 8);
     case 8:
-      buffer[count++] = (uint8_t)code;
+      data[count++] = (uint8_t)code;
   }
   return count;
 }
 
 /**
- * Funkcja oblicza sumę kontrolną CRC i porównuje ją z wartościami na końcu buffer'a.
- * Przekazany 'buffer' musi zawierać sumę kontolną CRC.
- * @param crc Obiekt zawierający konfiguracje dla modułu liczącego CRC.
- * @param buffer Wskaźnik na dane przychodzące.
- * @param count: Długość wiadomości w bajtach z crc.
- * @retval OK: Suma kontrolna CRC się zgadza, ERR: Suma kontrolna CRC się NIE zgadza.
+ * @brief Verifies CRC at end of data (big-endian).
+ * @param[in] crc CRC module configuration.
+ * @param[in] data Data buffer with CRC appended.
+ * @param[in] count Total length including CRC bytes.
+ * @return `OK` if valid, `ERR` if mismatch.
  */
-status_t CRC_Error(const CRC_t *crc, uint8_t *buffer, uint16_t count)
+status_t CRC_Error(const CRC_t *crc, uint8_t *data, uint16_t count)
 {
   count -= crc->width / 8;
-  uint32_t code = CRC_Run(crc, (void *)buffer, count);
+  uint32_t code = CRC_Run(crc, (void *)data, count);
 
   switch(crc->width) {
     case 32:
-      if(buffer[count++] != (uint8_t)(code >> 24)) return ERR;
-      if(buffer[count++] != (uint8_t)(code >> 16)) return ERR;
+      if(data[count++] != (uint8_t)(code >> 24)) return ERR;
+      if(data[count++] != (uint8_t)(code >> 16)) return ERR;
     case 16:
-      if(buffer[count++] != (uint8_t)(code >> 8)) return ERR;
+      if(data[count++] != (uint8_t)(code >> 8)) return ERR;
     case 8:
-      if(buffer[count++] != (uint8_t)code) return ERR;
+      if(data[count++] != (uint8_t)code) return ERR;
   }
   return OK;
 }
 
-status_t CRC_Ok(const CRC_t *crc, uint8_t *buffer, uint16_t count)
+/**
+ * @brief Verifies CRC at end of data (big-endian).
+ * @param[in] crc CRC module configuration.
+ * @param[in] data Data buffer with CRC appended.
+ * @param[in] count Total length including CRC bytes.
+ * @return `OK` if valid, `ERR` if mismatch.
+ */
+status_t CRC_Ok(const CRC_t *crc, uint8_t *data, uint16_t count)
 {
-  return !CRC_Error(crc, buffer, count);
+  return !CRC_Error(crc, data, count);
 }
 
-//---------------------------------------------------------------------------------------------------------------------
-#if(CRC_STANDARD_USED)
+//-------------------------------------------------------------------------------------------------
+#if(CRC_PRESETS)
 
+/** @brief CRC-32 ISO 3309, used in Ethernet, ZIP, PNG */
 const CRC_t crc32_iso = {
   .width = 32,
   .polynomial = 0x04C11DB7,
@@ -100,6 +117,7 @@ const CRC_t crc32_iso = {
   .invert_out = false
 };
 
+/** @brief CRC-32 AIXM, aviation data exchange */
 const CRC_t crc32_aixm = {
   .width = 32,
   .polynomial = 0x814141AB,
@@ -110,6 +128,7 @@ const CRC_t crc32_aixm = {
   .invert_out = false
 };
 
+/** @brief CRC-32 AUTOSAR, automotive E2E protection */
 const CRC_t crc32_autosar = {
   .width = 32,
   .polynomial = 0xF4ACFB13,
@@ -120,6 +139,7 @@ const CRC_t crc32_autosar = {
   .invert_out = false
 };
 
+/** @brief CRC-32 POSIX cksum command */
 const CRC_t crc32_cksum = {
   .width = 32,
   .polynomial = 0x04C11DB7,
@@ -130,6 +150,7 @@ const CRC_t crc32_cksum = {
   .invert_out = false
 };
 
+/** @brief CRC-16 Kermit, file transfer protocol */
 const CRC_t crc16_kermit = {
   .width = 16,
   .polynomial = 0x1021,
@@ -140,6 +161,7 @@ const CRC_t crc16_kermit = {
   .invert_out = false
 };
 
+/** @brief CRC-16 Modbus RTU, industrial automation */
 const CRC_t crc16_modbus = {
   .width = 16,
   .polynomial = 0x8005,
@@ -150,6 +172,7 @@ const CRC_t crc16_modbus = {
   .invert_out = true
 };
 
+/** @brief CRC-16 Buypass, payment systems */
 const CRC_t crc16_buypass = {
   .width = 16,
   .polynomial = 0x8005,
@@ -160,6 +183,7 @@ const CRC_t crc16_buypass = {
   .invert_out = false
 };
 
+/** @brief CRC-8 Maxim/Dallas, 1-Wire devices */
 const CRC_t crc8_maxim = {
   .width = 8,
   .polynomial = 0x31,
@@ -170,6 +194,7 @@ const CRC_t crc8_maxim = {
   .invert_out = false
 };
 
+/** @brief CRC-8 SMBus, system management bus */
 const CRC_t crc8_smbus = {
   .width = 8,
   .polynomial = 0x07,
@@ -181,4 +206,4 @@ const CRC_t crc8_smbus = {
 };
 
 #endif
-//---------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------

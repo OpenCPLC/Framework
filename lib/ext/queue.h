@@ -14,11 +14,9 @@
  * @param[in] struct_size Element size in bytes.
  * @param[in] capacity Max number of elements (not bytes).
  * @param[in] unique When `true`, duplicate elements are rejected.
- * @param[in] invert If `true`, reverses retrieval order.
- *   If `Compare == NULL`: queue acts as LIFO (pop newest).
- *   If `Compare != NULL`: sort order is inverted (descending by Compare).
+ * @param[in] invert If `true`, pop/peek from tail instead of head.
  * @param[in] Equal Optional equality predicate; returns `true` if `a` and `b` represent the same element.
- *   If `NULL`, uniqueness falls back to `a` byte-wise comparison of the entire element.
+ *   If `NULL`, uniqueness falls back to byte-wise comparison of the entire element.
  * @param[in] Compare Optional comparison function; returns `<0` if `a<b`, `0` if `a==b`, `>0` if `a>b`.
  *   If `NULL`, the queue behaves as a regular FIFO/LIFO (no sorting).
  * @param head Index of oldest element. [internal]

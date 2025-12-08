@@ -68,7 +68,17 @@ typedef enum {
   HASH_Impulse = 2630979716,
   HASH_Burst = 254705173,
   HASH_Duty = 2090198667,
-  HASH_Fill = 2090257196
+  HASH_Fill = 2090257196,
+  HASH_0 = 177621,
+  HASH_1 = 177622,
+  HASH_2 = 177623,
+  HASH_3 = 177624,
+  HASH_4 = 177625,
+  HASH_5 = 177626,
+  HASH_6 = 177627,
+  HASH_7 = 177628,
+  HASH_8 = 177629,
+  HASH_9 = 177630
 } HASH_e;
 
 #ifdef RTC_H_

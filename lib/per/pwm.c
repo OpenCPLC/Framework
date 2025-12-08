@@ -35,7 +35,7 @@ uint32_t PWM_GetValue(PWM_t *pwm, TIM_Channel_t channel)
   return 0;
 }
 
-void PWM_SetDeadtime(PWM_t *pwm, uint32_t deadtime)
+void PWM_SetDeadtime(PWM_t *pwm, uint16_t deadtime)
 {
   if(deadtime >= 1024) deadtime = 1024;
   uint8_t dtg, temp;

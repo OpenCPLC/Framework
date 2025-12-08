@@ -336,14 +336,14 @@ static void BASH_Uid(char **argv, uint16_t argc)
 static RTC_Weekday_e RTC_Str2Weekday(const char *str)
 {
   switch(hash_djb2(str)) {
-    case RTC_Hash_Everyday: case RTC_Hash_Evd: case HASH_Number_0: return RTC_Weekday_Everyday;
-    case RTC_Hash_Monday: case RTC_Hash_Mon: case HASH_Number_1: return RTC_Weekday_Monday;
-    case RTC_Hash_Tuesday: case RTC_Hash_Tue: case HASH_Number_2: return RTC_Weekday_Tuesday;
-    case RTC_Hash_Wednesday: case RTC_Hash_Wed: case HASH_Number_3: return RTC_Weekday_Wednesday;
-    case RTC_Hash_Thursday: case RTC_Hash_Thu: case HASH_Number_4: return RTC_Weekday_Thursday;
-    case RTC_Hash_Friday: case RTC_Hash_Fri: case HASH_Number_5: return RTC_Weekday_Friday;
-    case RTC_Hash_Saturday: case RTC_Hash_Sat: case HASH_Number_6: return RTC_Weekday_Saturday;
-    case RTC_Hash_Sunday: case RTC_Hash_Sun: case HASH_Number_7: return RTC_Weekday_Sunday;
+    case RTC_Hash_Everyday: case RTC_Hash_Evd: case HASH_0: return RTC_Weekday_Everyday;
+    case RTC_Hash_Monday: case RTC_Hash_Mon: case HASH_1: return RTC_Weekday_Monday;
+    case RTC_Hash_Tuesday: case RTC_Hash_Tue: case HASH_2: return RTC_Weekday_Tuesday;
+    case RTC_Hash_Wednesday: case RTC_Hash_Wed: case HASH_3: return RTC_Weekday_Wednesday;
+    case RTC_Hash_Thursday: case RTC_Hash_Thu: case HASH_4: return RTC_Weekday_Thursday;
+    case RTC_Hash_Friday: case RTC_Hash_Fri: case HASH_5: return RTC_Weekday_Friday;
+    case RTC_Hash_Saturday: case RTC_Hash_Sat: case HASH_6: return RTC_Weekday_Saturday;
+    case RTC_Hash_Sunday: case RTC_Hash_Sun: case HASH_7: return RTC_Weekday_Sunday;
     default: return RTC_Weekday_Error;
   }
 }
@@ -480,11 +480,11 @@ static void BASH_Alarm(char **argv, uint16_t argc)
 PWR_SleepMode_e PWR_StrSleepMode(const char *str)
 {
   switch(hash_djb2(str)) {
-    case PWR_Hash_Stop0: case HASH_Number_0: return PWR_SleepMode_Stop0;
-    case PWR_Hash_Stop: case PWR_Hash_Stop1: case HASH_Number_1: return PWR_SleepMode_Stop1;
-    case PWR_Hash_StandbySram: case PWR_Hash_Standbysram: case HASH_Number_2: return PWR_SleepMode_StandbySRAM;
-    case PWR_Hash_Standby: case HASH_Number_3: return PWR_SleepMode_Standby;
-    case PWR_Hash_Shutdown: case HASH_Number_4: return PWR_SleepMode_Shutdown;
+    case PWR_Hash_Stop0: case HASH_0: return PWR_SleepMode_Stop0;
+    case PWR_Hash_Stop: case PWR_Hash_Stop1: case HASH_1: return PWR_SleepMode_Stop1;
+    case PWR_Hash_StandbySram: case PWR_Hash_Standbysram: case HASH_2: return PWR_SleepMode_StandbySRAM;
+    case PWR_Hash_Standby: case HASH_3: return PWR_SleepMode_Standby;
+    case PWR_Hash_Shutdown: case HASH_4: return PWR_SleepMode_Shutdown;
     default: return PWR_SleepMode_Error;
   }
 }

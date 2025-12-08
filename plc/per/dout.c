@@ -189,12 +189,35 @@ void DOUT_Preset(DOUT_t *dout, bool value)
  */
 bool DOUT_Pulse(DOUT_t *dout, uint8_t count, uint16_t ton_ms, uint16_t toff_ms)
 {
+  if(dout->pulse) return false;
   if(dout->relay && (ton_ms >= DOUT_RELAY_STUN_ms || toff_ms >= DOUT_RELAY_STUN_ms)) return false;
   dout->pulse = (count * 2u);
   dout->ton_ms = ton_ms;
   dout->toff_ms = toff_ms;
+  dout->last_ms = toff_ms;
   return true;
 }
+
+/**
+ * @brief Generate one or more pulses on digital output with freeze after last pulse.
+ * @param[in,out] dout Pointer to `DOUT_t` output descriptor.
+ * @param[in] count Number of pulses to generate.
+ * @param[in] ton_ms Pulse ON time in milliseconds.
+ * @param[in] toff_ms Pulse OFF time in milliseconds.
+ * @param[in] freeze_ms Extra OFF time added after last pulse.
+ * @return `true` if pulse sequence started, otherwise `false`.
+ */
+bool DOUT_PulseFreeze(DOUT_t *dout, uint8_t count, uint16_t ton_ms, uint16_t toff_ms, uint16_t freeze_ms)
+{
+  if(dout->pulse) return false;
+  if(dout->relay && (ton_ms >= DOUT_RELAY_STUN_ms || toff_ms >= DOUT_RELAY_STUN_ms)) return false;
+  dout->pulse = (count * 2u);
+  dout->ton_ms = ton_ms;
+  dout->toff_ms = toff_ms;
+  dout->last_ms = toff_ms + freeze_ms;
+  return true;
+}
+
 
 /**
  * @brief Get current digital output state.
@@ -265,7 +288,9 @@ void DOUT_Loop(DOUT_t *dout)
     else {
       GPIO_Tgl(&dout->gpio);
     }
-    dout->stun = tick_keep(dout->pulse % 2 ? dout->toff_ms : dout->ton_ms);
+    dout->stun = (dout->pulse == 1) ?
+      tick_keep(dout->last_ms) :
+      tick_keep(dout->pulse % 2 ? dout->toff_ms : dout->ton_ms);
     dout->pulse--;
     return;
   }
@@ -274,7 +299,6 @@ void DOUT_Loop(DOUT_t *dout)
     else {
       if(dout->value) {
         GPIO_Set(&dout->gpio);
-        dout->value = true;
         if(dout->relay) DOUT_RelayCyclesInc(dout);
       }
       else {
@@ -284,7 +308,6 @@ void DOUT_Loop(DOUT_t *dout)
     }
     if(dout->relay) dout->stun = tick_keep(DOUT_RELAY_STUN_ms);
   }
-  return;
 }
 
 /**

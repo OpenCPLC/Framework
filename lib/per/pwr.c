@@ -224,28 +224,40 @@ uint32_t BKPR_Read(BKPR_e reg)
 
 //------------------------------------------------------------------------------------------------- IWDG
 
+/**
+ * @brief Initialize Independent Watchdog.
+ * @param[in] time Prescaler value `IWDG_Time_e`.
+ * @param[in] reload_counter Reload value [`0..0x0FFF`].
+ */
 inline void IWDG_Init(IWDG_Time_e time, uint16_t reload_counter)
 {
   if(reload_counter > 0x0FFF) reload_counter = 0x0FFF;
   RCC->CSR |= RCC_CSR_LSION;
-  while(RCC->CSR & RCC_CSR_LSIRDY);
+  while(!(RCC->CSR & RCC_CSR_LSIRDY)) __NOP();  // wait for LSI ready
   IWDG->KR = IWDG_START;
   IWDG->KR = IWDG_WRITE_ACCESS;
-  IWDG->PR = time;
+  IWDG->PR = (uint32_t)time;
   IWDG->RLR = reload_counter;
-  while(IWDG->SR);
+  while(IWDG->SR) __NOP();
   IWDG->KR = IWDG_REFRESH;
 }
 
+/**
+ * @brief Refresh watchdog counter. Call periodically to prevent reset.
+ */
 inline void IWDG_Refresh(void) { IWDG->KR = IWDG_REFRESH; }
 
+/**
+ * @brief Check if last reset was caused by watchdog.
+ * @return `true` if watchdog reset occurred, clears flag.
+ */
 bool IWDG_Status(void)
 {
   if(RCC->CSR & RCC_CSR_IWDGRSTF) {
-    RCC->CSR |= RCC_CSR_RMVF;
-    return 1;
+    RCC->CSR |= RCC_CSR_RMVF;  // clear reset flags
+    return true;
   }
-  return 0;
+  return false;
 }
 
 //-------------------------------------------------------------------------------------------------

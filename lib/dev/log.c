@@ -491,7 +491,7 @@ void LOG_Message(LOG_Level_e lvl, char *message, ...)
 void LOG_ErrorParse(const char *value, const char *type)
 {
   #if(LOG_COLORS)
-    LOG_Error("Parse " ANSI_ORANGE "%s" ANSI_END " to " ANSI_TURQUS "%s" ANSI_END " fault", value, type);
+    LOG_Error("Parse " ANSI_ORANGE "%s" ANSI_END " to " ANSI_TURQS "%s" ANSI_END " fault", value, type);
   #else
     LOG_Error("Parse %s to %s fault", value, type);
   #endif

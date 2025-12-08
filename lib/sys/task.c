@@ -1,15 +1,17 @@
 #include "task.h"
 #include "log.h"
 
-static bool TASK_Equal(const TASK_t *a, const TASK_t *b)
+static bool TASK_Equal(const void *a, const void *b)
 {
-  return a->unique_key && b->unique_key && (a->unique_key == b->unique_key);
+  const TASK_t *task_a = a, *task_b = b;
+  return task_a->unique_key && task_b->unique_key && (task_a->unique_key == task_b->unique_key);
 }
 
-static int32_t TASK_Compare(const TASK_t *a, const TASK_t *b)
+static int32_t TASK_Compare(const void *a, const void *b)
 {
-  if(a->tick < b->tick) return -1;
-  if(a->tick > b->tick) return 1;
+  const TASK_t *task_a = a, *task_b = b;
+  if(task_a->tick < task_b->tick) return -1;
+  if(task_a->tick > task_b->tick) return 1;
   return 0;
 }
 
@@ -19,13 +21,14 @@ static QUEUE_t task_queue = {
   .struct_size = sizeof(TASK_t),
   .capacity = TASK_LIMIT,
   .unique = true,
-  .Equal = (bool (*)(const void*, const void*))TASK_Equal,
-  .Compare = (int32_t (*)(const void*, const void*))TASK_Compare
+  .invert = true,
+  .Equal = TASK_Equal,
+  .Compare = TASK_Compare
 };
 
-static void TASK_IsFull(void)
+static inline void TASK_FullError(void)
 {
-  LOG_Error("Task not added: the queue is full" LOG_LIB("TAKS"));
+  LOG_Error("Task not added: the queue is full" LOG_LIB("TASK"));
 }
 
 /**
@@ -47,7 +50,7 @@ void TASK_Add(void (*Handler)(void *), void *arg, uint32_t delay_ms)
     .unique_key = 0
   };
   bool ok = QUEUE_Push(&task_queue, &task);
-  if(!ok) TASK_IsFull();
+  if(!ok) TASK_FullError();
 }
 
 /**
@@ -66,7 +69,7 @@ void TASK_AddUnique(void (*Handler)(void *), void *arg, uint32_t delay_ms, int32
     .unique_key = unique_key
   };
   bool ok = QUEUE_Push(&task_queue, &task);
-  if(!ok) TASK_IsFull();
+  if(!ok) TASK_FullError();
 }
 
 /**
@@ -77,10 +80,10 @@ void TASK_Main(void)
 {
   TASK_t task;
   while(1) {
-    if(QUEUE_Peek(&task_queue, (void *)&task)) {
+    if(QUEUE_Peek(&task_queue, &task)) {
       if(tick_over(&task.tick)) {
         task.Handler(task.arg);
-        QUEUE_Pop(&task_queue, (void *)&task);
+        QUEUE_Pop(&task_queue, &task);
       }
     }
     let();

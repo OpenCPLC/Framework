@@ -1,7 +1,7 @@
 #include "vrts.h"
 #include "log.h"
 
-static volatile uint64_t ticker; // global ticker
+volatile uint64_t VrtsTicker;
 static uint32_t tick_ms; // time in ms for a single ticker tick
 
 volatile VRTS_Task_t *vrts_now_thread; // Current thread
@@ -141,11 +141,21 @@ uint8_t vrts_active_thread(void)
  * @brief Returns the adjusted system tick with an offset.
  * @param offset_ms Milliseconds to add to the current tick.
  * @return Adjusted tick.
- *  @note Interoperates with 'tick_over', 'tick_away', 'delay_until', 'sleep_until' functions.
+ * @note Working with 'tick_over', 'tick_away', 'tick_diff', 'delay_until', 'sleep_until' functions.
  */
 uint64_t tick_keep(uint32_t offset_ms)
 {
-  return ticker + ((offset_ms + (tick_ms - 1)) / tick_ms);
+  return VrtsTicker + ((offset_ms + (tick_ms - 1)) / tick_ms);
+}
+
+/**
+ * @brief Returns current system tick.
+ * @return Current tick value.
+ * @note Working with 'tick_over', 'tick_away', 'tick_diff', 'delay_until', 'sleep_until' functions.
+ */
+inline uint64_t tick_now(void)
+{
+  return tick_keep(0);
 }
 
 /**
@@ -155,7 +165,7 @@ uint64_t tick_keep(uint32_t offset_ms)
  */
 bool tick_over(uint64_t *tick)
 {
-  if(!*tick || *tick > ticker) return false;
+  if(!*tick || *tick > VrtsTicker) return false;
   *tick = 0;
   return true;
 }
@@ -168,9 +178,19 @@ bool tick_over(uint64_t *tick)
 bool tick_away(uint64_t *tick)
 {
   if(!*tick) return false;
-  if(*tick > ticker) return true;
+  if(*tick > VrtsTicker) return true;
   *tick = 0;
   return false;
+}
+
+/**
+ * @brief Measures the time elapsed since a specified tick
+ * @param tick Reference tick to measure from
+ * @return Elapsed time in milliseconds
+ */
+int32_t tick_diff(uint64_t tick)
+{
+  return (int32_t)(((int64_t)VrtsTicker - tick) * tick_ms) ;
 }
 
 /** 
@@ -181,7 +201,7 @@ bool tick_away(uint64_t *tick)
 void delay(uint32_t ms)
 {
   uint64_t end = tick_keep(ms);
-  while(end > ticker) let();
+  while(end > VrtsTicker) let();
 }
 
 /** 
@@ -192,7 +212,7 @@ void delay(uint32_t ms)
 void sleep(uint32_t ms)
 {
   uint64_t end = tick_keep(ms);
-  while(end > ticker) __WFI();
+  while(end > VrtsTicker) __WFI();
 }
 
 /**
@@ -205,7 +225,7 @@ void sleep(uint32_t ms)
 bool timeout(uint32_t ms, bool (*Free)(void *), void *subject)
 {
   uint64_t end = tick_keep(ms);
-  while(end > ticker) {
+  while(end > VrtsTicker) {
     if(Free(subject)) {
       return false;
     }
@@ -222,7 +242,7 @@ bool timeout(uint32_t ms, bool (*Free)(void *), void *subject)
 void delay_until(uint64_t *tick)
 {
   if(!*tick) return;
-  while(*tick > ticker) let();
+  while(*tick > VrtsTicker) let();
   *tick = 0;
 }
 
@@ -234,18 +254,8 @@ void delay_until(uint64_t *tick)
 void sleep_until(uint64_t *tick)
 {
   if(!*tick) return;
-  while(*tick > ticker) __WFI();
+  while(*tick > VrtsTicker) __WFI();
   *tick = 0;
-}
-
-/**
- * @brief Measures the time elapsed since a specified tick
- * @param tick Reference tick to measure from
- * @return Elapsed time in milliseconds
- */
-int32_t watch(uint64_t tick)
-{
-  return (int32_t)(((int64_t)ticker - tick) * tick_ms) ;
 }
 
 /**
@@ -271,10 +281,10 @@ bool systick_init(uint32_t systick_ms)
   return true;
 }
 
-/** @brief SysTick interrupt handler to increment the global ticker */
+/** @brief SysTick interrupt handler to increment the global `VrtsTicker` */
 void SysTick_Handler(void)
 {
-  ticker++;
+  VrtsTicker++;
   #if(VRTS_SWITCHING && VRTS_THREAD_TIMEOUT_MS)
   if(vrts.init) {
     hold_ticker--;
